@@ -611,7 +611,7 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 **Milestones:**
 | # | Milestone | Done when… |
 |---|---|---|
-| **M0** | Project setup | 3D URP and Forward+ are configured, the folder structure exists, the Input actions are set up, and Boot/Hub/Run scenes exist. The PCG32 `IRandom` and seed-derivation code exist, with determinism tests. |
+| **M0** ✅ | Project setup | 3D URP and Forward+ are configured, the folder structure exists, the Input actions are set up, and Boot/Hub/Run scenes exist. The PCG32 `IRandom` and seed-derivation code exist, with determinism tests. |
 | **M1** | Core combat feel | The ship moves, aims, shoots (Photon Repeater) and dashes with i-frames, and one arena has Drones and Gunners. Hull, shield and death work. Built on the co-op rules ([§14.4](#144-co-op-readiness)): `ShipCommand` input, `PlayerRegistry` and an authority boundary. *Test: are the first 2 minutes fun?* |
 | **M2** | Combat breadth | 3 primaries, 2 secondaries, 5 archetypes, the wave director, Scraps drops and pickups. |
 | **M3** | Run structure | Galaxy map generation with its rules and tests, the map UI, all 7 level types, and RunState. |
