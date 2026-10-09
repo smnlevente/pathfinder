@@ -3,6 +3,7 @@
     "rootNamespace": "Pathfinder.Tests",
     "references": [
         "Pathfinder.Core",
+        "Pathfinder.Game",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22b15b67be564c7419363e5d2bb4da20, type: 3}
+  m_Name: Primary_PhotonRepeater
+  m_EditorClassIdentifier: 
+  id: primary.photon-repeater
+  displayName: Photon Repeater
+  <Damage>k__BackingField: 8
+  <ShotsPerSecond>k__BackingField: 10
+  <MagazineSize>k__BackingField: 30
+  <ReloadTime>k__BackingField: 1
+  <ProjectilesPerShot>k__BackingField: 1
+  <SpreadDegrees>k__BackingField: 2
+  <ProjectileSpeed>k__BackingField: 28
+  <Range>k__BackingField: 18
+  <ProjectileRadius>k__BackingField: 0.15
+  <ProjectilePrefab>k__BackingField: {fileID: 6268485968812979070, guid: 73ae0642a1a856e4d842aa28b11b47fe, type: 3}
+  <ImpactPrefab>k__BackingField: {fileID: 2049056424969655290, guid: 472fad97d07ad9748ae1e3bfae96f38d, type: 3}

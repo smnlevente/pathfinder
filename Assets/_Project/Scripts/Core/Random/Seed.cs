@@ -48,10 +48,14 @@ namespace Pathfinder.Core.Random
     {
         public const string Map = "map";
         public const string Level = "level";
+        public const string Player = "player";
+        public const string Enemy = "enemy";
 
         public const string Layout = "layout";
         public const string Waves = "waves";
         public const string Loot = "loot";
+        public const string Weapon = "weapon";
+        public const string Ai = "ai";
 
         /// <summary>Visual-only randomness. Clients may draw from it freely without risking desync.</summary>
         public const string Cosmetic = "cosmetic";

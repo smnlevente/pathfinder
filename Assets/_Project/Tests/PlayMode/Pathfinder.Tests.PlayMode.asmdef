@@ -1,0 +1,23 @@
+{
+    "name": "Pathfinder.Tests.PlayMode",
+    "rootNamespace": "Pathfinder.Tests.PlayMode",
+    "references": [
+        "Pathfinder.Core",
+        "Pathfinder.Game",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

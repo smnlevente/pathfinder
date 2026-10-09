@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 1.1 (open questions resolved; RNG and co-op architecture added) |
+| **Version** | 1.2 (M1 implemented; combat tuning recorded) |
 | **Date** | 2026-10-09 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
@@ -221,6 +221,11 @@ Archetypes are defined by their behavior. Each faction or theme re-skins and sli
 | **Shielder** | Projects a damage-absorbing shield over nearby allies. | 50 | 4 |
 
 **Elite modifiers:** *Armored* (+100% HP, slower), *Hasty* (+50% speed and fire rate), *Splitting* (splits into 2 smaller copies on death), *Volatile* (explodes on death and leaves a bullet ring).
+
+**Implemented in M1** **[tune]**:
+- **Drone:** 5.5 u/s, weaves while closing in. Contact damage 10, then it bounces off with a 0.75 s contact cooldown.
+- **Gunner:** 4 u/s. Contact damage 10. Every 2 s (±0.3 s) it glows for 0.45 s as a warning, then fires a 3-shot burst (0.15 s apart) of 8-damage bullets at 11 u/s, aimed at the target's current position. It moves at 30% speed while attacking.
+- **Spawns** are telegraphed for 1 s by a red glow on the floor and are never within 6 u of a player.
 
 **Scaling per galaxy:** enemy HP ×1.0 / ×1.6 / ×2.4, wave budget ×1.0 / ×1.4 / ×1.8. **[tune]**
 
@@ -472,7 +477,7 @@ Boot → Main Menu → Hub ──► Ship Select → Loadout Select → Galaxy M
 
 ### 13.1 Visuals
 - **Style:** Stylized 3D in the spirit of Alienation and Helldivers: chunky readable silhouettes, dark environments with **strong neon accents**, emissive materials, bloom, and dynamic point lights from projectiles and explosions.
-- **Camera:** perspective, about 60° pitch, with a fixed height. A slight zoom-out in boss fights.
+- **Camera:** perspective, 60° pitch, 20 u from the focus point, 40° FOV. It leads 2 u toward the aim direction and shakes on hits. A slight zoom-out in boss fights.
 - **Rendering:** URP with the Forward+ renderer, so many dynamic lights are cheap. Post-processing: bloom, vignette, light color grading, and chromatic aberration on hits.
 - **Juice:** hit-stop on heavy hits, screen shake (with a setting to turn it off), hit flashes, damage numbers (optional setting), and debris particles.
 - **Production plan:** The slice uses **primitives and simple emissive shapes**, so gameplay can be judged on feel alone. Final 3D assets come from asset packs or commissions after the slice proves the fun.
@@ -500,7 +505,8 @@ Boot → Main Menu → Hub ──► Ship Select → Loadout Select → Galaxy M
 
   In single-player there is just one per-player entry. Serializability also allows a mid-run save later.
 - **MetaState**: currencies, unlocks and upgrades, stored per player profile. Saved as JSON in `Application.persistentDataPath`.
-- **Pooling** for projectiles, enemies, pickups and VFX, using `UnityEngine.Pool.ObjectPool`.
+- **Simulation tick:** fixed 60 Hz. `CombatWorld` advances everything in a fixed order: players, then enemies, then projectiles. Gameplay collision is circle-vs-circle on the plane, with swept projectiles; no physics engine is involved. Transforms interpolate between ticks for smooth rendering.
+- **Pooling** for projectiles, enemies, pickups and VFX. Projectile visuals already use per-prefab pools.
 - **Scenes:** `Boot`, `Hub`, `Run`. The Galaxy Map is a UI overlay inside the Run scene, and arenas are loaded additively as prefabs or templates.
 
 ### 14.3 Randomness
@@ -521,7 +527,7 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 
 | Rule | What it means in practice |
 |---|---|
-| **No player singletons** | No `Player.Instance`. A `PlayerRegistry` holds 1–N players. Enemy targeting, the camera, pickups and the wave director all work on that list. Enemies target the nearest player or a threat-weighted player. |
+| **No player singletons** | No `Player.Instance`. `CombatRegistry` holds 1–N players (and enemies, by team). Enemy targeting, the camera, pickups and the wave director all work on that list. Enemies target the nearest player or a threat-weighted player. |
 | **Input → commands** | Ships never read the Input System directly. A `PlayerInputSource` produces a `ShipCommand` struct per tick (move, aim, fire, secondary, dash, reload, interact), and the ship consumes commands. The source can be a local device, a network peer or a bot. |
 | **Authority boundary** | Damage resolution, deaths, spawns, loot rolls, currency changes and RNG draws happen only in **authority code** (an `IsAuthority` check, always true in single-player). Clients send intents and the authority confirms outcomes. |
 | **Simulation vs presentation** | Gameplay state lives in plain components that are updated in `FixedUpdate` on a fixed tick. VFX, audio and UI subscribe to gameplay **events** and never mutate state. |
@@ -612,7 +618,7 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 | # | Milestone | Done when… |
 |---|---|---|
 | **M0** ✅ | Project setup | 3D URP and Forward+ are configured, the folder structure exists, the Input actions are set up, and Boot/Hub/Run scenes exist. The PCG32 `IRandom` and seed-derivation code exist, with determinism tests. |
-| **M1** | Core combat feel | The ship moves, aims, shoots (Photon Repeater) and dashes with i-frames, and one arena has Drones and Gunners. Hull, shield and death work. Built on the co-op rules ([§14.4](#144-co-op-readiness)): `ShipCommand` input, `PlayerRegistry` and an authority boundary. *Test: are the first 2 minutes fun?* |
+| **M1** ✅ | Core combat feel | The ship moves, aims, shoots (Photon Repeater) and dashes with i-frames, and one arena has Drones and Gunners. Hull, shield and death work. Built on the co-op rules ([§14.4](#144-co-op-readiness)): `ShipCommand` input, `CombatRegistry` and an authority boundary. *Test: are the first 2 minutes fun?* |
 | **M2** | Combat breadth | 3 primaries, 2 secondaries, 5 archetypes, the wave director, Scraps drops and pickups. |
 | **M3** | Run structure | Galaxy map generation with its rules and tests, the map UI, all 7 level types, and RunState. |
 | **M4** | Build system | Equipment slots, the modifier system, event hooks, choice cards, the Shop, and the 2 ships with their traits. |
