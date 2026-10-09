@@ -38,8 +38,8 @@ namespace Pathfinder.Editor.Setup
 
         sealed class Materials
         {
-            public Material Floor, ShipHull, ShipGlow, DroneHull, DroneGlow, GunnerHull, GunnerGlow;
-            public Material PlayerBolt, EnemyBullet, Wall, Telegraph, FxOrange, FxCyan, FxMagenta, FxRed;
+            public Material Floor, ShipHull, ShipGlow, EnemyHull, EnemyGlow, EnemyHalo;
+            public Material PlayerBolt, EnemyBulletCore, EnemyBulletHalo, Wall, Telegraph, FxOrange, FxCyan, FxMagenta, FxRed;
         }
 
         sealed class Prefabs
@@ -85,6 +85,7 @@ namespace Pathfinder.Editor.Setup
             foreach (var dir in new[] { MaterialsDir, TexturesDir, PrefabsDir, DataDir })
                 EnsureFolder(dir);
 
+            DeleteObsoleteAssets();
             var materials = BuildMaterials();
             var prefabs = new Prefabs();
             BuildEffects(materials, prefabs);
@@ -99,6 +100,25 @@ namespace Pathfinder.Editor.Setup
             PopulateRunScene(materials, prefabs, definitions);
             AssetDatabase.SaveAssets();
             Debug.Log("[M1ContentBuilder] Combat sandbox built.");
+        }
+
+        /// <summary>Generated assets from earlier builder versions that nothing uses anymore.</summary>
+        static readonly string[] ObsoleteAssets =
+        {
+            MaterialsDir + "/M_DroneHull.mat",
+            MaterialsDir + "/M_DroneGlow.mat",
+            MaterialsDir + "/M_GunnerHull.mat",
+            MaterialsDir + "/M_GunnerGlow.mat",
+            MaterialsDir + "/M_EnemyBullet.mat",
+        };
+
+        static void DeleteObsoleteAssets()
+        {
+            foreach (string path in ObsoleteAssets)
+            {
+                if (File.Exists(path))
+                    AssetDatabase.DeleteAsset(path);
+            }
         }
 
         // ---------------------------------------------------------------- materials & textures
@@ -135,26 +155,36 @@ namespace Pathfinder.Editor.Setup
                 Floor = floor,
                 ShipHull = Lit("M_ShipHull", new Color(0.62f, 0.68f, 0.78f), smoothness: 0.6f, metallic: 0.35f),
                 ShipGlow = Unlit("M_ShipGlow", new Color(0.3f, 1.6f, 2.6f)),
-                DroneHull = Lit("M_DroneHull", new Color(0.32f, 0.09f, 0.06f), smoothness: 0.5f, metallic: 0.3f),
-                DroneGlow = Unlit("M_DroneGlow", new Color(3.6f, 0.7f, 0.12f)),
-                GunnerHull = Lit("M_GunnerHull", new Color(0.2f, 0.08f, 0.3f), smoothness: 0.5f, metallic: 0.4f),
-                GunnerGlow = Unlit("M_GunnerGlow", new Color(2.4f, 0.3f, 2.2f)),
+                // Visual language (GDD §12.4): enemies are solid crimson bodies with red-orange accent strips
+                // and a red floor glow. They never look like glowing orbs, which is what enemy bullets look like.
+                EnemyHull = Lit("M_EnemyHull", new Color(0.72f, 0.13f, 0.1f), smoothness: 0.5f, metallic: 0.35f, emission: new Color(0.22f, 0.03f, 0.02f)),
+                EnemyGlow = Unlit("M_EnemyGlow", new Color(3.4f, 0.6f, 0.12f)),
                 PlayerBolt = Unlit("M_PlayerBolt", new Color(0.5f, 2.2f, 3.2f)),
-                EnemyBullet = Unlit("M_EnemyBullet", new Color(4f, 0.5f, 2.4f)),
+                // Enemy bullets are the only magenta in the game: a white-hot core inside a pulsing magenta halo.
+                EnemyBulletCore = Unlit("M_EnemyBulletCore", new Color(6f, 4f, 6f)),
                 Wall = Unlit("M_ArenaWall", new Color(0.3f, 1.3f, 2.2f)),
                 Telegraph = Unlit("M_SpawnTelegraph", new Color(2.6f, 0.25f, 0.2f)),
                 FxOrange = Particle("M_FX_Orange", new Color(4f, 1.4f, 0.3f), dot),
                 FxCyan = Particle("M_FX_Cyan", new Color(0.6f, 2.4f, 4f), dot),
                 FxMagenta = Particle("M_FX_Magenta", new Color(4f, 0.6f, 3f), dot),
                 FxRed = Particle("M_FX_Red", new Color(3f, 0.25f, 0.15f), dot),
+                EnemyHalo = Particle("M_FX_EnemyHalo", new Color(1.1f, 0.08f, 0.05f), dot),
+                EnemyBulletHalo = Particle("M_FX_EnemyBulletHalo", new Color(6f, 0.4f, 4.5f), dot),
             };
         }
 
-        static Material Lit(string name, Color color, float smoothness, float metallic) => Material(name, LitShader, m =>
+        static Material Lit(string name, Color color, float smoothness, float metallic, Color? emission = null) => Material(name, LitShader, m =>
         {
             m.SetColor("_BaseColor", color);
             m.SetFloat("_Smoothness", smoothness);
             m.SetFloat("_Metallic", metallic);
+            if (emission.HasValue)
+            {
+                // A faint self-glow keeps silhouettes readable against the dark floor.
+                m.SetColor("_EmissionColor", emission.Value);
+                m.EnableKeyword("_EMISSION");
+                m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            }
         });
 
         static Material Unlit(string name, Color hdrColor) => Material(name, UnlitShader, m => m.SetColor("_BaseColor", hdrColor));
@@ -275,7 +305,9 @@ namespace Pathfinder.Editor.Setup
             prefabs.PlayerBolt = SavePrefab(bolt, "Projectiles");
 
             var bullet = new GameObject("PV_EnemyBullet");
-            Primitive(PrimitiveType.Sphere, "Mesh", bullet.transform, materials.EnemyBullet, Vector3.zero, Vector3.one * 0.5f);
+            Primitive(PrimitiveType.Sphere, "Core", bullet.transform, materials.EnemyBulletCore, Vector3.zero, Vector3.one * 0.32f);
+            var halo = Primitive(PrimitiveType.Quad, "Halo", bullet.transform, materials.EnemyBulletHalo, Vector3.zero, new Vector3(1.3f, 1.3f, 1f), Quaternion.Euler(90f, 0f, 0f));
+            SetFields(halo.AddComponent<SimpleMotion>(), ("pulseAmount", 0.18f), ("pulseFrequency", 7f));
             prefabs.EnemyBullet = SavePrefab(bullet, "Projectiles");
         }
 
@@ -337,32 +369,43 @@ namespace Pathfinder.Editor.Setup
 
         static void BuildEnemies(Materials materials, Prefabs prefabs, Definitions definitions)
         {
-            // Drone: a spinning diamond blade around an exposed hot core.
+            // Drone: a spinning crimson blade with glowing tips, sitting on a red floor glow.
             var drone = new GameObject("Drone");
+            var droneHalo = Halo(drone.transform, materials.EnemyHalo, 0.45f);
             var droneModel = Model(drone.transform);
             SetFields(droneModel.gameObject.AddComponent<SimpleMotion>(), ("spinSpeed", 300f));
-            Primitive(PrimitiveType.Cube, "Blade", droneModel, materials.DroneHull, Vector3.zero, new Vector3(0.8f, 0.08f, 0.8f), Quaternion.Euler(0f, 45f, 0f));
-            var droneCore = Primitive(PrimitiveType.Sphere, "Core", droneModel, materials.DroneGlow, Vector3.zero, new Vector3(0.42f, 0.3f, 0.42f));
+            Primitive(PrimitiveType.Cube, "Blade", droneModel, materials.EnemyHull, Vector3.zero, new Vector3(1f, 0.08f, 1f), Quaternion.Euler(0f, 45f, 0f));
+            Primitive(PrimitiveType.Cylinder, "Hub", droneModel, materials.EnemyHull, new Vector3(0f, 0.06f, 0f), new Vector3(0.45f, 0.08f, 0.45f));
+            var droneTips = new Renderer[4];
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 tip = Quaternion.Euler(0f, i * 90f, 0f) * new Vector3(0f, 0f, 0.66f);
+                droneTips[i] = Primitive(PrimitiveType.Cube, "Tip" + i, droneModel, materials.EnemyGlow, tip, new Vector3(0.12f, 0.1f, 0.12f), Quaternion.Euler(0f, 45f, 0f)).GetComponent<Renderer>();
+            }
 
             drone.AddComponent<DroneBrain>();
             var droneEnemy = drone.AddComponent<Enemy>();
             SetFields(droneEnemy, ("radius", 0.45f), ("definition", definitions.Drone));
-            AddVisual(drone, droneEnemy, prefabs.EnemyExplosion, droneCore.GetComponent<Renderer>());
+            var droneVisual = AddVisual(drone, droneEnemy, prefabs.EnemyExplosion, droneTips);
+            SetFields(droneVisual, ("flashExclusions", new Object[] { droneHalo }));
             prefabs.Drone = SavePrefab(drone, "Enemies").GetComponent<Enemy>();
 
-            // Gunner: a squat turret with a glowing dome and barrel tip, which brighten as it winds up.
+            // Gunner: a squat crimson turret. Its eye slit and muzzle flare up as it winds up a burst.
             var gunner = new GameObject("Gunner");
+            var gunnerHalo = Halo(gunner.transform, materials.EnemyHalo, 0.6f);
             var gunnerModel = Model(gunner.transform);
-            Primitive(PrimitiveType.Cylinder, "Body", gunnerModel, materials.GunnerHull, Vector3.zero, new Vector3(1.1f, 0.22f, 1.1f));
-            var dome = Primitive(PrimitiveType.Sphere, "Dome", gunnerModel, materials.GunnerGlow, new Vector3(0f, 0.18f, 0f), new Vector3(0.55f, 0.4f, 0.55f));
-            Primitive(PrimitiveType.Cube, "Barrel", gunnerModel, materials.GunnerHull, new Vector3(0f, 0.1f, 0.55f), new Vector3(0.18f, 0.18f, 0.7f));
-            var muzzle = Primitive(PrimitiveType.Sphere, "Muzzle", gunnerModel, materials.GunnerGlow, new Vector3(0f, 0.1f, 0.92f), Vector3.one * 0.24f);
+            Primitive(PrimitiveType.Cylinder, "Body", gunnerModel, materials.EnemyHull, Vector3.zero, new Vector3(1.1f, 0.22f, 1.1f));
+            Primitive(PrimitiveType.Cube, "Turret", gunnerModel, materials.EnemyHull, new Vector3(0f, 0.22f, 0f), new Vector3(0.6f, 0.24f, 0.6f));
+            var eye = Primitive(PrimitiveType.Cube, "Eye", gunnerModel, materials.EnemyGlow, new Vector3(0f, 0.25f, 0.3f), new Vector3(0.42f, 0.07f, 0.06f));
+            Primitive(PrimitiveType.Cube, "Barrel", gunnerModel, materials.EnemyHull, new Vector3(0f, 0.15f, 0.6f), new Vector3(0.18f, 0.18f, 0.7f));
+            var muzzle = Primitive(PrimitiveType.Cube, "Muzzle", gunnerModel, materials.EnemyGlow, new Vector3(0f, 0.15f, 0.97f), new Vector3(0.22f, 0.22f, 0.08f));
 
             var gunnerBrain = gunner.AddComponent<GunnerBrain>();
             SetFields(gunnerBrain, ("bulletPrefab", prefabs.EnemyBullet), ("bulletImpactPrefab", prefabs.BulletImpact));
             var gunnerEnemy = gunner.AddComponent<Enemy>();
             SetFields(gunnerEnemy, ("radius", 0.6f), ("definition", definitions.Gunner));
-            AddVisual(gunner, gunnerEnemy, prefabs.EnemyExplosion, dome.GetComponent<Renderer>(), muzzle.GetComponent<Renderer>());
+            var gunnerVisual = AddVisual(gunner, gunnerEnemy, prefabs.EnemyExplosion, eye.GetComponent<Renderer>(), muzzle.GetComponent<Renderer>());
+            SetFields(gunnerVisual, ("flashExclusions", new Object[] { gunnerHalo }));
             prefabs.Gunner = SavePrefab(gunner, "Enemies").GetComponent<Enemy>();
         }
 
@@ -397,6 +440,14 @@ namespace Pathfinder.Editor.Setup
             prefabs.Player = SavePrefab(root, "Player").GetComponent<PlayerShip>();
         }
 
+        /// <summary>The red floor glow that marks every enemy as a unit rather than a projectile.</summary>
+        static Renderer Halo(Transform parent, Material material, float radius)
+        {
+            float size = radius * 3.4f;
+            return Primitive(PrimitiveType.Quad, "Halo", parent, material, new Vector3(0f, 0.03f, 0f), new Vector3(size, size, 1f), Quaternion.Euler(90f, 0f, 0f))
+                .GetComponent<Renderer>();
+        }
+
         static Transform Model(Transform parent)
         {
             var model = new GameObject("Model").transform;
@@ -421,7 +472,7 @@ namespace Pathfinder.Editor.Setup
 
         // ---------------------------------------------------------------- scene
 
-        /// <summary>Strong bloom sells the neon look (GDD �13.1): emissive parts are authored well above 1.0.</summary>
+        /// <summary>Strong bloom sells the neon look (GDD §13.1): emissive parts are authored well above 1.0.</summary>
         static void TunePostProcessing()
         {
             var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(Root + "/Settings/Rendering/PP_Default.asset");
@@ -559,6 +610,11 @@ namespace Pathfinder.Editor.Setup
                 switch (value)
                 {
                     case Object reference: property.objectReferenceValue = reference; break;
+                    case Object[] references:
+                        property.arraySize = references.Length;
+                        for (int i = 0; i < references.Length; i++)
+                            property.GetArrayElementAtIndex(i).objectReferenceValue = references[i];
+                        break;
                     case float number: property.floatValue = number; break;
                     case int integer: property.intValue = integer; break;
                     case bool flag: property.boolValue = flag; break;

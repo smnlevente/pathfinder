@@ -467,9 +467,17 @@ Boot → Main Menu → Hub ──► Ship Select → Loadout Select → Galaxy M
 - A side panel shows the current build (equipped items) and hull.
 
 ### 12.4 Readability rules
-- **Enemy bullets:** bright magenta or orange with a white core. No player or environment effect may use those colors.
-- **Player projectiles:** cyan or blue, and less opaque.
-- Environment lighting and neon sit in the teal and purple range. Hazards are always outlined in red.
+Every colour and shape has a single meaning, so the player can read a crowded screen at a glance. These rules were
+tightened after the M1 playtest, where glowing enemy cores were mistaken for bullets.
+
+| Element | Look | Exclusive |
+|---|---|---|
+| **Enemy bullets** | White-hot core inside a pulsing **magenta** halo. Round. | Magenta and round glowing orbs are used for nothing else. |
+| **Enemies** | Solid, lit **crimson** bodies with small red-orange accent strips, on a faint **red floor glow**. Never a glowing orb. | The red floor glow marks units only. |
+| **Enemy attack warnings** | Accent strips flare toward white-orange, and red lines show charge paths. Spawns are a soft red glow on the floor. | |
+| **Player & allies** | **Cyan / blue** hull lights and projectiles. Player projectiles are elongated bolts, not orbs. | Cyan is never used by enemies. |
+| **Pickups** | **Gold** for Scraps; Dark Matter gets its own colour later. They spin and bob. | |
+| **Environment** | Teal/blue grid and walls, kept dim. Hazards use orange-yellow warning stripes. | |
 
 ---
 

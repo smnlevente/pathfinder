@@ -312,6 +312,34 @@ namespace Pathfinder.Tests.PlayMode
             }
         }
 
+        /// <summary>
+        /// Stages enemies and enemy bullets side by side, to check that bullets never read as enemies
+        /// (GDD §12.4).
+        /// </summary>
+        [UnityTest, Category("Screenshot")]
+        public IEnumerator CaptureReadabilityShowcase()
+        {
+            string directory = Environment.GetEnvironmentVariable("PATHFINDER_SCREENSHOT_DIR");
+            if (string.IsNullOrEmpty(directory))
+                Assert.Ignore("Set PATHFINDER_SCREENSHOT_DIR to capture screenshots.");
+            Directory.CreateDirectory(directory);
+
+            yield return LoadRun();
+            Vector2 center = _player.Position + new Vector2(0f, 3f);
+            _waves.Spawn(_waves.DroneDefinition, center + new Vector2(-4f, 1f));
+            _waves.Spawn(_waves.GunnerDefinition, center + new Vector2(4f, 2f));
+            for (int i = 0; i < 8; i++)
+            {
+                Vector2 direction = PlaneMath.FromHeading(i * 45f);
+                _world.Projectiles.Spawn(new ProjectileSpawn(center + direction * 1.5f, direction, speed: 1f, damage: 0f,
+                    radius: 0.25f, range: 10f, team: Team.Enemy, ownerId: 0, visualPrefab: _waves.GunnerDefinition.Prefab.GetComponent<GunnerBrain>().BulletPrefab));
+            }
+
+            yield return WaitTicks(20);
+            yield return null;
+            Capture(Path.Combine(directory, "readability.png"));
+        }
+
         static void Capture(string path)
         {
             var camera = Camera.main;

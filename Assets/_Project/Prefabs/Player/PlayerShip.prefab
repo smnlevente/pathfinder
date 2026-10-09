@@ -770,6 +770,7 @@ MonoBehaviour:
   telegraphGlow: 3
   flashDuration: 0.07
   flashColor: {r: 3, g: 3, b: 3, a: 1}
+  flashExclusions: []
   dashTrail: {fileID: 1100326222333772777}
   deathEffect: {fileID: 4363614604830423785, guid: f70018b68f337af4a9202e4a8cd824ba, type: 3}
   hideOnDeath: 1

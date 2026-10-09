@@ -20,11 +20,13 @@ namespace Pathfinder.Game.Presentation
         [SerializeField, Min(1f)] float telegraphGlow = 3f;
         [SerializeField, Min(0f)] float flashDuration = 0.07f;
         [SerializeField] Color flashColor = new Color(3f, 3f, 3f, 1f);
+        [SerializeField, Tooltip("Renderers that never flash, e.g. the floor glow under enemies.")] Renderer[] flashExclusions = new Renderer[0];
         [SerializeField] TrailRenderer dashTrail;
         [SerializeField] GameObject deathEffect;
         [SerializeField] bool hideOnDeath;
 
         Renderer[] _renderers;
+        Renderer[] _flashRenderers;
         Color[] _glowBaseColors;
         MaterialPropertyBlock _block;
         float _flashRemaining;
@@ -34,6 +36,7 @@ namespace Pathfinder.Game.Presentation
         {
             _block = new MaterialPropertyBlock();
             _renderers = GetComponentsInChildren<MeshRenderer>(includeInactive: true);
+            _flashRenderers = System.Array.FindAll(_renderers, r => System.Array.IndexOf(flashExclusions, r) < 0);
             _glowBaseColors = new Color[glowRenderers.Length];
             for (int i = 0; i < glowRenderers.Length; i++)
             {
@@ -114,7 +117,7 @@ namespace Pathfinder.Game.Presentation
         void ApplyToAll(Color color)
         {
             _block.SetColor(BaseColorId, color);
-            foreach (var renderer in _renderers)
+            foreach (var renderer in _flashRenderers)
                 renderer.SetPropertyBlock(_block);
             _usingBlock = true;
         }

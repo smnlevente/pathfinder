@@ -43,6 +43,8 @@ namespace Pathfinder.Game.Enemies
 
         bool IsAttacking => _telegraphRemaining > 0f || _shotsRemaining > 0;
 
+        public GameObject BulletPrefab => bulletPrefab;
+
         public override void ResetState(Enemy self)
         {
             _cooldown = self.Random.Range(0.6f, fireCooldown);
