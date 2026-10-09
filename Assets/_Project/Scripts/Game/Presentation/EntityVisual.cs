@@ -1,5 +1,6 @@
 using Pathfinder.Core.Combat;
 using Pathfinder.Game.Combat;
+using Pathfinder.Game.Content;
 using Pathfinder.Game.Enemies;
 using Pathfinder.Game.Player;
 using UnityEngine;
@@ -7,16 +8,16 @@ using UnityEngine;
 namespace Pathfinder.Game.Presentation
 {
     /// <summary>
-    /// Feedback for an entity's model. It flashes on hits, glows while an enemy telegraphs, blinks during
-    /// post-hit invulnerability, draws the dash trail, and spawns an effect on death. It only reads gameplay
-    /// state and events and never changes them.
+    /// Feedback for an entity's model. It flashes on hits, glows while an enemy telegraphs or the ship charges a
+    /// shot, blinks during post-hit invulnerability, draws the dash trail, and spawns death and secondary-weapon
+    /// effects. It only reads gameplay state and events and never changes them.
     /// </summary>
     public sealed class EntityVisual : MonoBehaviour
     {
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         [SerializeField] CombatEntity entity;
-        [SerializeField, Tooltip("Emissive parts that brighten while telegraphing an attack.")] Renderer[] glowRenderers = new Renderer[0];
+        [SerializeField, Tooltip("Emissive parts that brighten while telegraphing an attack or charging a shot.")] Renderer[] glowRenderers = new Renderer[0];
         [SerializeField, Min(1f)] float telegraphGlow = 3f;
         [SerializeField, Min(0f)] float flashDuration = 0.07f;
         [SerializeField] Color flashColor = new Color(3f, 3f, 3f, 1f);
@@ -49,12 +50,22 @@ namespace Pathfinder.Game.Presentation
         {
             entity.Damaged += OnDamaged;
             entity.Died += OnDied;
+            if (entity is PlayerShip ship)
+                ship.SecondaryActivated += OnSecondaryActivated;
         }
 
         void OnDisable()
         {
             entity.Damaged -= OnDamaged;
             entity.Died -= OnDied;
+            if (entity is PlayerShip ship)
+                ship.SecondaryActivated -= OnSecondaryActivated;
+        }
+
+        void OnSecondaryActivated(PlayerShip ship, SecondaryWeaponDefinition weapon)
+        {
+            if (weapon.ActivationEffect != null)
+                Instantiate(weapon.ActivationEffect, transform.position + Vector3.up * 0.5f, Quaternion.identity);
         }
 
         void OnDamaged(CombatEntity source, DamageInfo info, DamageResult result)
@@ -98,13 +109,13 @@ namespace Pathfinder.Game.Presentation
                 return;
             }
 
-            bool telegraphing = entity is Enemy enemy && enemy.IsTelegraphing;
-            if (telegraphing)
+            float glow = GlowFactor(player);
+            if (glow > 1.001f)
             {
                 ClearBlocks();
                 for (int i = 0; i < glowRenderers.Length; i++)
                 {
-                    _block.SetColor(BaseColorId, _glowBaseColors[i] * telegraphGlow);
+                    _block.SetColor(BaseColorId, _glowBaseColors[i] * glow);
                     glowRenderers[i].SetPropertyBlock(_block);
                 }
                 _usingBlock = true;
@@ -112,6 +123,21 @@ namespace Pathfinder.Game.Presentation
             }
 
             ClearBlocks();
+        }
+
+        float GlowFactor(PlayerShip player)
+        {
+            if (entity is Enemy enemy)
+                return enemy.IsTelegraphing ? telegraphGlow : 1f;
+            if (player == null)
+                return 1f;
+
+            // Charging brightens the ship. Holding a full charge too long flickers as a warning.
+            var status = player.Primary.Status;
+            float glow = 1f + status.Charge * (telegraphGlow - 1f);
+            if (status.Warning && status.Charge > 0f)
+                glow *= Mathf.Repeat(Time.time * 12f, 1f) < 0.5f ? 1.4f : 0.7f;
+            return glow;
         }
 
         void ApplyToAll(Color color)

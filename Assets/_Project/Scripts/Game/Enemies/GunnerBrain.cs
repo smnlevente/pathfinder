@@ -69,7 +69,8 @@ namespace Pathfinder.Game.Enemies
             Vector2 forward = distance > 1e-4f ? toTarget / distance : Vector2.up;
             self.FaceTowards(forward);
 
-            UpdateAttack(self, deltaTime, world, target.Position, distance);
+            // Hasty elites run their attack timers faster.
+            UpdateAttack(self, deltaTime * self.AttackRate, world, target.Position, distance);
             return Move(self, deltaTime, forward, distance);
         }
 
@@ -122,7 +123,7 @@ namespace Pathfinder.Game.Enemies
             Vector2 side = new Vector2(-forward.y, forward.x) * (_strafeSign * strafeSpeedFactor);
             Vector2 direction = forward * radial + side;
 
-            float speed = self.Definition.MoveSpeed * (IsAttacking ? attackMoveFactor : 1f);
+            float speed = self.MoveSpeed * (IsAttacking ? attackMoveFactor : 1f);
             return Vector2.ClampMagnitude(direction, 1f) * speed;
         }
 

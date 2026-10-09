@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Pathfinder.Core.Combat;
 using Pathfinder.Core.Random;
+using Pathfinder.Game.Content;
+using Pathfinder.Game.Enemies;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
 
@@ -21,12 +23,16 @@ namespace Pathfinder.Game.Combat
         [SerializeField, Tooltip("Optional run seed code (e.g. 7-K3QP-9ZD2-XW4M). Leave empty for a random seed.")]
         string seedCode;
 
+        [SerializeField, Tooltip("Visual for a Scraps pickup.")]
+        GameObject scrapPickupPrefab;
+
         /// <summary>Seed for the next world that starts. Consumed on use. Used by tests and seeded runs.</summary>
         public static Seed? NextSeedOverride { get; set; }
 
         public Seed Seed { get; private set; }
         public Vector2 ArenaSize => arenaSize;
         public ProjectileSystem Projectiles { get; private set; }
+        public PickupSystem Pickups { get; private set; }
 
         /// <summary>Number of simulation ticks completed.</summary>
         public int Tick { get; private set; }
@@ -40,6 +46,7 @@ namespace Pathfinder.Game.Combat
         public bool IsOver { get; private set; }
 
         readonly List<CombatEntity> _scratch = new List<CombatEntity>(128);
+        int _enemySpawnCount;
 
         void Awake()
         {
@@ -57,6 +64,10 @@ namespace Pathfinder.Game.Combat
             var projectileRoot = new GameObject("Projectiles").transform;
             projectileRoot.SetParent(transform, false);
             Projectiles = new ProjectileSystem(projectileRoot);
+
+            var pickupRoot = new GameObject("Pickups").transform;
+            pickupRoot.SetParent(transform, false);
+            Pickups = new PickupSystem(pickupRoot, scrapPickupPrefab);
         }
 
         void FixedUpdate()
@@ -69,6 +80,7 @@ namespace Pathfinder.Game.Combat
             foreach (var entity in _scratch)
                 entity.CapturePreviousPose();
             Projectiles.CapturePrevious();
+            Pickups.CapturePrevious();
 
             if (GameClock.Paused)
                 return;
@@ -83,6 +95,7 @@ namespace Pathfinder.Game.Combat
             }
 
             Projectiles.Simulate(deltaTime, this);
+            Pickups.Simulate(deltaTime, this);
             Tick++;
 
             if (!IsOver && CombatRegistry.Players.Count > 0 && !CombatRegistry.AnyPlayerAlive())
@@ -94,7 +107,24 @@ namespace Pathfinder.Game.Combat
             Ticked?.Invoke(this);
         }
 
-        void LateUpdate() => Projectiles.UpdateVisuals(SimInterpolation.Alpha);
+        void LateUpdate()
+        {
+            float alpha = SimInterpolation.Alpha;
+            Projectiles.UpdateVisuals(alpha);
+            Pickups.UpdateVisuals(alpha);
+        }
+
+        /// <summary>
+        /// Spawns an enemy. Authority only. Each spawn gets its own deterministic random streams, keyed by
+        /// spawn order, so the same seed and inputs replay identically.
+        /// </summary>
+        public Enemy SpawnEnemy(EnemyDefinition definition, Vector2 position, EliteModifierDefinition elite = null, bool dropsLoot = true)
+        {
+            var seed = Seed.Derive(SeedLabels.Enemy).Derive(_enemySpawnCount++);
+            var enemy = Instantiate(definition.Prefab, PlaneMath.ToWorld(position), Quaternion.identity);
+            enemy.Initialize(this, definition, seed.CreateRandom(SeedLabels.Ai), seed.CreateRandom(SeedLabels.Loot), elite, dropsLoot);
+            return enemy;
+        }
 
         public Vector2 ClampToArena(Vector2 position, float radius)
         {

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 1.2 (M1 implemented; combat tuning recorded) |
+| **Version** | 1.3 (M2 implemented; weapon, enemy, wave and drop tuning recorded) |
 | **Date** | 2026-10-09 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
@@ -190,6 +190,12 @@ Secondary weapons are cooldown-based burst tools that deal much more damage than
 | 4 | **Gravity Well** | Throws a singularity to the aim point. For 3 s it pulls enemies and enemy bullets toward it, then implodes for 80 AoE damage. | 14 s | 200 DM |
 | 5 | **Arc Lance** | Channels a piercing beam in the aim direction for 1.5 s, dealing 120 dmg/s. Move speed is halved while channeling. | 10 s | 200 DM |
 
+**Implemented in M2** **[tune]**:
+- **Plasma Cutter:** the 6 pellets fan evenly across the 30° cone with a little jitter. They fly at 26 u/s, and damage falls off to 40% at the 7 u maximum range.
+- **Quantum Charger:** the shot flies at 36 u/s with a 24 u range and **pierces every enemy in its path**. Its hit radius grows from 0.2 to 0.55 u, and its visual scale up to 2.2×, with charge. The ship's lights brighten as it charges and flicker when it is about to overheat.
+- **Seeker Swarm:** the missiles launch in a 140° fan, fly at 14 u/s and turn at 300°/s. Each missile is assigned a different nearby enemy so the salvo doesn't overkill one target. A missile whose target dies retargets the nearest enemy.
+- **Nova Pulse:** a shove of 14 u/s that decays quickly, pushing enemies about 1.75 u whatever their weight.
+
 ---
 
 ## 7. Combat & Enemies
@@ -207,6 +213,12 @@ Enemy spawns are driven by a **budget**:
 - Spawns are telegraphed with a 1 s warp-in effect, and enemies never spawn within 6 u of the player.
 - Elites are normal enemies with a modifier (see below). Their chance to appear increases per row and per galaxy.
 
+**Implemented in M2** **[tune]**:
+- **Budget:** `round(6 × galaxy[1.0 / 1.4 / 1.8] × (1 + 0.15 × (row − 1)) × (1 + 0.25 × (wave − 1)))`. Each pick is weighted among the enemies that are unlocked and still affordable (Shattered Expanse pool: Drone 5, Gunner 3, Spinner 2 from wave 2, Lancer 2 from wave 2, Carrier 1 from wave 4). A wave holds at most 40 spawns.
+- **Elite chance:** `min(0.35, 0.03 + 0.02 × (wave − 1) + 0.04 × (row − 1) + 0.05 × galaxy)`. An elite costs ×2 budget.
+- **Pacing:** the first wave comes after 1.5 s. The next wave starts at 80% dead or after 25 s. Levels have a fixed wave count; the combat sandbox is endless.
+- The director's randomness is a seeded stream keyed by galaxy and row, and every enemy gets its own AI and loot streams keyed by spawn order. Seeded replays therefore match exactly.
+
 ### 7.3 Enemy archetypes
 Archetypes are defined by their behavior. Each faction or theme re-skins and slightly re-tunes them. **[tune]**
 
@@ -222,16 +234,21 @@ Archetypes are defined by their behavior. Each faction or theme re-skins and sli
 
 **Elite modifiers:** *Armored* (+100% HP, slower), *Hasty* (+50% speed and fire rate), *Splitting* (splits into 2 smaller copies on death), *Volatile* (explodes on death and leaves a bullet ring).
 
-**Implemented in M1** **[tune]**:
+**Implemented (M1–M2)** **[tune]**:
 - **Drone:** 5.5 u/s, weaves while closing in. Contact damage 10, then it bounces off with a 0.75 s contact cooldown.
 - **Gunner:** 4 u/s. Contact damage 10. Every 2 s (±0.3 s) it glows for 0.45 s as a warning, then fires a 3-shot burst (0.15 s apart) of 8-damage bullets at 11 u/s, aimed at the target's current position. It moves at 30% speed while attacking.
-- **Spawns** are telegraphed for 1 s by a red glow on the floor and are never within 6 u of a player.
+- **Spinner:** 2 u/s, holds 6–13 u and drifts sideways. Every 1.8 s its emitters flare for 0.35 s, then it fires a ring of 10 bullets (8 damage, 6 u/s). Each ring is rotated 11° from the last, so the gaps move.
+- **Lancer:** 4.5 u/s. Within 9 u it plants itself and shows a red line along its locked direction for 0.7 s. It then charges 14 u at 22 u/s, hitting for 20 (double contact damage). The charge ends early if it hits the ship or a wall. It recovers for 1 s at 30% speed (its vulnerable window) and then waits 1.5 s before the next wind-up.
+- **Carrier:** 1.8 u/s, keeps about 10 u away and turns at only 60°/s, so it can be flanked. Its armoured front takes 60% damage and its yellow rear weak point takes 200%. Every 4 s its flank bays flare and it launches 2 Drones from the rear, with at most 6 alive. Launched Drones drop no Scraps, so Carriers can't be farmed.
+- **Elites:** *Armored* has ×2 HP and ×0.75 speed. *Hasty* has ×1.5 speed and ×1.5 attack rate (cooldowns, wind-ups and bursts). Both are ×1.2 larger, carry a gold ring marker and always drop ×3 Scraps. *Splitting* and *Volatile* come post-slice.
+- **Spawns** are telegraphed for 1 s by a red glow on the floor (staggered by 0.08 s within a wave) and are never within 6 u of a player.
 
 **Scaling per galaxy:** enemy HP ×1.0 / ×1.6 / ×2.4, wave budget ×1.0 / ×1.4 / ×1.8. **[tune]**
 
 ### 7.4 Drops
 - Every enemy has a chance to drop **Scraps** (Drone 1, Gunner 2, Carrier 8, elites ×3).
 - Scraps are pulled into the ship by the magnet radius and despawn after 10 s if not collected.
+- **Implemented in M2** **[tune]**: drop chances are Drone 50%, Gunner 75%, Spinner 3 at 85%, Lancer 2 at 80%, Carrier 100%, and elites always drop. A drop bursts into up to 12 gold pieces that settle on the floor. Within the 3 u magnet radius they accelerate into the ship (up to 24 u/s). They blink for their last 2 s. Collection is decided by the authority, and Scraps are counted per pilot.
 
 ### 7.5 Bosses
 Each boss has three phases with a separate health bar segment for each. A boss fight lasts about 3–4 minutes.
@@ -551,7 +568,7 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 ### 14.5 Testing
 - EditMode tests for map generation rules ([§9.2](#92-generation-rules)), the stat and modifier math, and economy calculations.
 - **Determinism tests:** the same seed must always produce an identical galaxy map and level content, with golden values checked into the tests. Changing the order in which levels are played must not change any level's content.
-- A debug menu for development builds: spawn enemies, grant items or currency, jump to a node, god mode, and **set the run seed**.
+- A debug menu for development builds: spawn enemies, grant items or currency, jump to a node, god mode, and **set the run seed**. M2 added Editor and development-build hotkeys: **F1** cycle primary, **F2** cycle secondary, **F3** god mode, **F4** kill all enemies, **F5** next wave. The run seed is set on **Combat World**.
 
 ---
 
@@ -627,7 +644,7 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 |---|---|---|
 | **M0** ✅ | Project setup | 3D URP and Forward+ are configured, the folder structure exists, the Input actions are set up, and Boot/Hub/Run scenes exist. The PCG32 `IRandom` and seed-derivation code exist, with determinism tests. |
 | **M1** ✅ | Core combat feel | The ship moves, aims, shoots (Photon Repeater) and dashes with i-frames, and one arena has Drones and Gunners. Hull, shield and death work. Built on the co-op rules ([§14.4](#144-co-op-readiness)): `ShipCommand` input, `CombatRegistry` and an authority boundary. *Test: are the first 2 minutes fun?* |
-| **M2** | Combat breadth | 3 primaries, 2 secondaries, 5 archetypes, the wave director, Scraps drops and pickups. |
+| **M2** ✅ | Combat breadth | 3 primaries, 2 secondaries, 5 archetypes, the wave director, Scraps drops and pickups. |
 | **M3** | Run structure | Galaxy map generation with its rules and tests, the map UI, all 7 level types, and RunState. |
 | **M4** | Build system | Equipment slots, the modifier system, event hooks, choice cards, the Shop, and the 2 ships with their traits. |
 | **M5** | Boss + meta | The Quarry Maw, run end and summary, the Hub, meta upgrades, and save/load. |

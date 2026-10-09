@@ -33,7 +33,7 @@ namespace Pathfinder.Game.Enemies
             Vector2 forward = toTarget.normalized;
             Vector2 side = new Vector2(-forward.y, forward.x);
             float sway = Mathf.Sin(_time * weaveFrequency * Mathf.PI * 2f + _phase) * weave;
-            return (forward + side * sway).normalized * self.Definition.MoveSpeed;
+            return (forward + side * sway).normalized * self.MoveSpeed;
         }
     }
 }

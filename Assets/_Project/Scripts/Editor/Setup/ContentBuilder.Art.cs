@@ -1,0 +1,184 @@
+using Pathfinder.Game.Presentation;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+namespace Pathfinder.Editor.Setup
+{
+    public static partial class ContentBuilder
+    {
+        /// <summary>Generated placeholder art: materials, effects and projectile/pickup visuals.</summary>
+        sealed class Art
+        {
+            // Visual language (GDD §12.4): player cyan; enemies solid crimson with red-orange accents and a red floor
+            // glow; enemy bullets the only magenta; pickups gold; weak points yellow.
+            public Material Floor, Wall, ShipHull, ShipGlow, EnemyHull, EnemyGlow, EnemyHalo, WeakPoint;
+            public Material PlayerBolt, ChargeBolt, PlayerMissile, EnemyBulletCore, EnemyBulletHalo, Scrap;
+            public Material Telegraph, LancerLine, EliteRing, NovaRing, FxOrange, FxCyan, FxMagenta, FxRed;
+
+            public GameObject BoltImpact, BulletImpact, MissileImpact, EnemyExplosion, PlayerExplosion;
+            public GameObject SpawnTelegraph, NovaPulse, EliteMarker;
+            public GameObject PlayerBoltVisual, PelletVisual, ChargeBoltVisual, MissileVisual, EnemyBulletVisual, ScrapVisual;
+        }
+
+        static Art BuildArt()
+        {
+            var grid = CreateTexture("T_Grid", 128, (x, y) =>
+            {
+                bool line = x < 3 || y < 3;
+                return line ? new Color(0.16f, 0.36f, 0.46f) : new Color(0.05f, 0.06f, 0.09f);
+            }, TextureWrapMode.Repeat, alphaIsTransparency: false);
+            var dot = RadialTexture("T_SoftDot", 64, d => (1f - d) * (1f - d) * (d < 1f ? 1f : 0f));
+            var ring = RadialTexture("T_Ring", 128, d => Mathf.Exp(-Mathf.Pow((d - 0.88f) / 0.06f, 2f)));
+
+            var art = new Art
+            {
+                Floor = Material("M_ArenaFloor", LitShader, m =>
+                {
+                    m.SetColor("_BaseColor", Color.white);
+                    m.SetTexture("_BaseMap", grid);
+                    m.SetTextureScale("_BaseMap", ArenaSize / 2f);   // one grid cell = 2 × 2 units
+                    m.SetFloat("_Smoothness", 0.55f);
+                    m.SetTexture("_EmissionMap", grid);
+                    m.SetColor("_EmissionColor", new Color(0.35f, 0.75f, 1f) * 0.6f);
+                    m.EnableKeyword("_EMISSION");
+                    m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+                }),
+                Wall = Unlit("M_ArenaWall", new Color(0.3f, 1.3f, 2.2f)),
+
+                ShipHull = Lit("M_ShipHull", new Color(0.62f, 0.68f, 0.78f), smoothness: 0.6f, metallic: 0.35f),
+                ShipGlow = Unlit("M_ShipGlow", new Color(0.3f, 1.6f, 2.6f)),
+                PlayerBolt = Unlit("M_PlayerBolt", new Color(0.5f, 2.2f, 3.2f)),
+                ChargeBolt = Unlit("M_ChargeBolt", new Color(2f, 4f, 6f)),
+                PlayerMissile = Unlit("M_PlayerMissile", new Color(1.2f, 3f, 4.5f)),
+
+                EnemyHull = Lit("M_EnemyHull", new Color(0.72f, 0.13f, 0.1f), smoothness: 0.5f, metallic: 0.35f, emission: new Color(0.22f, 0.03f, 0.02f)),
+                EnemyGlow = Unlit("M_EnemyGlow", new Color(3.4f, 0.6f, 0.12f)),
+                EnemyHalo = Additive("M_FX_EnemyHalo", new Color(1.1f, 0.08f, 0.05f), dot),
+                WeakPoint = Unlit("M_WeakPoint", new Color(3.2f, 2.4f, 0.4f)),
+                EnemyBulletCore = Unlit("M_EnemyBulletCore", new Color(6f, 4f, 6f)),
+                EnemyBulletHalo = Additive("M_FX_EnemyBulletHalo", new Color(6f, 0.4f, 4.5f), dot),
+
+                Scrap = Unlit("M_Scrap", new Color(2.8f, 1.9f, 0.35f)),
+                Telegraph = Unlit("M_SpawnTelegraph", new Color(2.6f, 0.25f, 0.2f)),
+                LancerLine = Additive("M_FX_LancerLine", new Color(4f, 0.3f, 0.2f), dot),
+                EliteRing = Additive("M_FX_EliteRing", new Color(3.5f, 2.4f, 0.4f), ring),
+                NovaRing = Additive("M_FX_NovaRing", new Color(0.35f, 1.5f, 2.8f), ring),
+                FxOrange = Additive("M_FX_Orange", new Color(4f, 1.4f, 0.3f), dot),
+                FxCyan = Additive("M_FX_Cyan", new Color(0.6f, 2.4f, 4f), dot),
+                FxMagenta = Additive("M_FX_Magenta", new Color(4f, 0.6f, 3f), dot),
+                FxRed = Additive("M_FX_Red", new Color(3f, 0.25f, 0.15f), dot),
+            };
+
+            BuildEffects(art);
+            BuildProjectileVisuals(art);
+            return art;
+        }
+
+        static void BuildEffects(Art art)
+        {
+            art.BoltImpact = SavePrefab(Burst("FX_BoltImpact", art.FxCyan, count: 6, speed: 4f, size: 0.18f, lifetime: 0.15f), "FX");
+            art.BulletImpact = SavePrefab(Burst("FX_BulletImpact", art.FxMagenta, count: 10, speed: 5f, size: 0.25f, lifetime: 0.2f), "FX");
+            art.MissileImpact = SavePrefab(Burst("FX_MissileImpact", art.FxCyan, count: 14, speed: 6f, size: 0.3f, lifetime: 0.25f), "FX");
+            art.EnemyExplosion = SavePrefab(Burst("FX_EnemyExplosion", art.FxOrange, count: 28, speed: 7f, size: 0.4f, lifetime: 0.45f), "FX");
+            art.PlayerExplosion = SavePrefab(Burst("FX_PlayerExplosion", art.FxCyan, count: 70, speed: 9f, size: 0.55f, lifetime: 0.9f), "FX");
+
+            // A soft additive glow on the floor reads as "something is arriving here", not as a solid object.
+            var telegraph = new GameObject("FX_SpawnTelegraph");
+            var glow = FlatQuad("Glow", telegraph.transform, art.FxRed, 0.03f, 2.4f);
+            SetFields(glow.AddComponent<SimpleMotion>(), ("pulseAmount", 0.2f), ("pulseFrequency", 3f));
+            var core = Primitive(PrimitiveType.Cylinder, "Core", telegraph.transform, art.Telegraph, new Vector3(0f, 0.02f, 0f), new Vector3(0.35f, 0.01f, 0.35f));
+            SetFields(core.AddComponent<SimpleMotion>(), ("pulseAmount", 0.4f), ("pulseFrequency", 3f));
+            art.SpawnTelegraph = SavePrefab(telegraph, "FX");
+
+            // Nova Pulse: an expanding cyan ring sized to the 4 u blast radius (the ring band sits at 44% of the quad).
+            var nova = new GameObject("FX_NovaPulse");
+            var novaRing = FlatQuad("Ring", nova.transform, art.NovaRing, -0.45f, 1f);
+            SetFields(nova.AddComponent<RingPulse>(), ("ring", novaRing.GetComponent<Renderer>()), ("duration", 0.3f), ("startScale", 1f), ("endScale", 9f));
+            art.NovaPulse = SavePrefab(nova, "FX");
+
+            // Elite marker: a slowly turning gold ring under the elite, authored at unit size.
+            var elite = new GameObject("FX_EliteMarker");
+            var eliteRing = FlatQuad("Ring", elite.transform, art.EliteRing, 0.05f, 1f);
+            SetFields(eliteRing.AddComponent<SimpleMotion>(), ("pulseAmount", 0.08f), ("pulseFrequency", 1.5f));
+            SetFields(elite.AddComponent<SimpleMotion>(), ("spinSpeed", 45f));
+            art.EliteMarker = SavePrefab(elite, "FX");
+        }
+
+        static GameObject Burst(string name, Material material, int count, float speed, float size, float lifetime)
+        {
+            var go = new GameObject(name);
+            var particles = go.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            var main = particles.main;
+            main.duration = lifetime;
+            main.loop = false;
+            main.playOnAwake = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(lifetime * 0.5f, lifetime);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(speed * 0.4f, speed);
+            main.startSize = new ParticleSystem.MinMaxCurve(size * 0.5f, size);
+            main.startColor = Color.white;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+
+            var emission = particles.emission;
+            emission.rateOverTime = 0f;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)count) });
+
+            var shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.15f;
+
+            var sizeOverLifetime = particles.sizeOverLifetime;
+            sizeOverLifetime.enabled = true;
+            sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0f));
+
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            return go;
+        }
+
+        static void BuildProjectileVisuals(Art art)
+        {
+            // Player shots are elongated cyan bolts. Enemy shots are round magenta orbs (GDD §12.4).
+            var bolt = new GameObject("PV_PlayerBolt");
+            Primitive(PrimitiveType.Capsule, "Mesh", bolt.transform, art.PlayerBolt, Vector3.zero, new Vector3(0.14f, 0.35f, 0.14f), Quaternion.Euler(90f, 0f, 0f));
+            art.PlayerBoltVisual = SavePrefab(bolt, "Projectiles");
+
+            var pellet = new GameObject("PV_Pellet");
+            Primitive(PrimitiveType.Capsule, "Mesh", pellet.transform, art.PlayerBolt, Vector3.zero, new Vector3(0.12f, 0.16f, 0.12f), Quaternion.Euler(90f, 0f, 0f));
+            art.PelletVisual = SavePrefab(pellet, "Projectiles");
+
+            var charge = new GameObject("PV_ChargeBolt");
+            Primitive(PrimitiveType.Capsule, "Core", charge.transform, art.ChargeBolt, Vector3.zero, new Vector3(0.3f, 0.45f, 0.3f), Quaternion.Euler(90f, 0f, 0f));
+            FlatQuad("Glow", charge.transform, art.FxCyan, 0f, 1.4f);
+            art.ChargeBoltVisual = SavePrefab(charge, "Projectiles");
+
+            var missile = new GameObject("PV_Missile");
+            Primitive(PrimitiveType.Capsule, "Body", missile.transform, art.PlayerMissile, Vector3.zero, new Vector3(0.14f, 0.22f, 0.14f), Quaternion.Euler(90f, 0f, 0f));
+            var trailObject = new GameObject("Trail");
+            trailObject.transform.SetParent(missile.transform, false);
+            trailObject.transform.localPosition = new Vector3(0f, 0f, -0.2f);
+            var trail = trailObject.AddComponent<TrailRenderer>();
+            trail.time = 0.25f;
+            trail.minVertexDistance = 0.08f;
+            trail.widthCurve = AnimationCurve.Linear(0f, 0.22f, 1f, 0f);
+            trail.sharedMaterial = art.FxCyan;
+            trail.shadowCastingMode = ShadowCastingMode.Off;
+            art.MissileVisual = SavePrefab(missile, "Projectiles");
+
+            var bullet = new GameObject("PV_EnemyBullet");
+            Primitive(PrimitiveType.Sphere, "Core", bullet.transform, art.EnemyBulletCore, Vector3.zero, Vector3.one * 0.32f);
+            var halo = FlatQuad("Halo", bullet.transform, art.EnemyBulletHalo, 0f, 1.3f);
+            SetFields(halo.AddComponent<SimpleMotion>(), ("pulseAmount", 0.18f), ("pulseFrequency", 7f));
+            art.EnemyBulletVisual = SavePrefab(bullet, "Projectiles");
+
+            // Scraps: small spinning gold chunks.
+            var scrap = new GameObject("PV_Scrap");
+            var chunk = Primitive(PrimitiveType.Cube, "Chunk", scrap.transform, art.Scrap, Vector3.zero, Vector3.one * 0.24f, Quaternion.Euler(45f, 0f, 45f));
+            SetFields(chunk.AddComponent<SimpleMotion>(), ("spinSpeed", 200f));
+            art.ScrapVisual = SavePrefab(scrap, "Pickups");
+        }
+    }
+}

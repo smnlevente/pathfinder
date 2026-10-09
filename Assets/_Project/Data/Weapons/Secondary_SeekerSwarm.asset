@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bd9ad8f855d0a94c95a3ac3c8d600d2, type: 3}
+  m_Name: Secondary_SeekerSwarm
+  m_EditorClassIdentifier: 
+  id: secondary.seeker-swarm
+  displayName: Seeker Swarm
+  <Cooldown>k__BackingField: 8
+  <Charges>k__BackingField: 1
+  <ActivationEffect>k__BackingField: {fileID: 0}
+  <MissileCount>k__BackingField: 6
+  <Damage>k__BackingField: 20
+  <Speed>k__BackingField: 14
+  <TurnRate>k__BackingField: 300
+  <Range>k__BackingField: 30
+  <Radius>k__BackingField: 0.2
+  <LaunchArc>k__BackingField: 140
+  <ProjectilePrefab>k__BackingField: {fileID: 2758038229679938342, guid: 15aeeb9c23e8ae4428cdb87dd8b09bf8, type: 3}
+  <ImpactPrefab>k__BackingField: {fileID: 7149279435565465041, guid: fd74e4f51a66b7a46ad172bc90e32887, type: 3}

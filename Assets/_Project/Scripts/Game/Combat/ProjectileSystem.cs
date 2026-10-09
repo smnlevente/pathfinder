@@ -8,23 +8,32 @@ namespace Pathfinder.Game.Combat
     /// <summary>
     /// All projectiles in the arena, simulated as plain structs on the fixed tick. Each projectile
     /// sweeps from its previous to its next position against the opposing team, so fast shots can't
-    /// tunnel. Visuals are pooled GameObjects that only follow the simulation.
+    /// tunnel. Projectiles can pierce, home in on targets, and lose damage over range. Visuals are
+    /// pooled GameObjects that only follow the simulation.
     /// </summary>
     public sealed class ProjectileSystem
     {
         /// <summary>World height that projectile visuals fly at.</summary>
         public const float VisualHeight = 0.5f;
 
+        const float RetargetRange = 25f;
+
         struct Projectile
         {
             public Vector2 Position;
             public Vector2 Previous;
             public Vector2 Velocity;
+            public float Range;
             public float RangeLeft;
             public float Damage;
+            public float DamageAtMaxRange;
             public float Radius;
             public Team Team;
             public int OwnerId;
+            public int PierceLeft;
+            public HashSet<int> HitIds;
+            public float TurnRate;
+            public int TargetId;
             public GameObject VisualPrefab;
             public GameObject ImpactPrefab;
             public Transform Visual;
@@ -32,11 +41,24 @@ namespace Pathfinder.Game.Combat
 
         readonly List<Projectile> _active = new List<Projectile>(256);
         readonly Dictionary<GameObject, Stack<Transform>> _pools = new Dictionary<GameObject, Stack<Transform>>();
+        readonly Stack<HashSet<int>> _hitSetPool = new Stack<HashSet<int>>();
+        readonly List<TrailRenderer> _trailBuffer = new List<TrailRenderer>();
         readonly Transform _visualRoot;
 
         public int Count => _active.Count;
 
         public ProjectileSystem(Transform visualRoot) => _visualRoot = visualRoot;
+
+        public int CountForTeam(Team team)
+        {
+            int count = 0;
+            foreach (var projectile in _active)
+            {
+                if (projectile.Team == team)
+                    count++;
+            }
+            return count;
+        }
 
         public void Spawn(in ProjectileSpawn spawn)
         {
@@ -45,24 +67,55 @@ namespace Pathfinder.Game.Combat
                 Position = spawn.Position,
                 Previous = spawn.Position,
                 Velocity = spawn.Direction.normalized * spawn.Speed,
+                Range = spawn.Range,
                 RangeLeft = spawn.Range,
                 Damage = spawn.Damage,
+                DamageAtMaxRange = spawn.DamageAtMaxRange,
                 Radius = spawn.Radius,
                 Team = spawn.Team,
                 OwnerId = spawn.OwnerId,
+                PierceLeft = spawn.Pierce,
+                HitIds = spawn.Pierce > 0 ? RentHitSet() : null,
+                TurnRate = spawn.TurnRate,
+                TargetId = spawn.TargetId,
                 VisualPrefab = spawn.VisualPrefab,
                 ImpactPrefab = spawn.ImpactPrefab,
             };
 
             if (projectile.VisualPrefab != null)
             {
-                projectile.Visual = Rent(projectile.VisualPrefab);
-                projectile.Visual.SetPositionAndRotation(
+                var visual = Rent(projectile.VisualPrefab);
+                visual.SetPositionAndRotation(
                     PlaneMath.ToWorld(projectile.Position, VisualHeight),
                     Quaternion.LookRotation(PlaneMath.ToWorld(projectile.Velocity)));
+                visual.localScale = projectile.VisualPrefab.transform.localScale * spawn.VisualScale;
+
+                // A reused visual must not draw a trail from wherever it last flew.
+                visual.GetComponentsInChildren(_trailBuffer);
+                foreach (var trail in _trailBuffer)
+                    trail.Clear();
+
+                projectile.Visual = visual;
             }
 
             _active.Add(projectile);
+        }
+
+        /// <summary>Removes the team's projectiles inside the circle, e.g. Nova Pulse erasing enemy bullets.</summary>
+        public int DestroyInRadius(Team team, Vector2 center, float radius)
+        {
+            int destroyed = 0;
+            for (int i = _active.Count - 1; i >= 0; i--)
+            {
+                var projectile = _active[i];
+                float reach = radius + projectile.Radius;
+                if (projectile.Team == team && (projectile.Position - center).sqrMagnitude <= reach * reach)
+                {
+                    RemoveAt(i, projectile);
+                    destroyed++;
+                }
+            }
+            return destroyed;
         }
 
         internal void CapturePrevious()
@@ -81,18 +134,36 @@ namespace Pathfinder.Game.Combat
             for (int i = _active.Count - 1; i >= 0; i--)
             {
                 var projectile = _active[i];
-                Vector2 next = projectile.Position + projectile.Velocity * deltaTime;
+                if (projectile.TurnRate > 0f)
+                    Steer(ref projectile, deltaTime);
 
-                if (TryFindHit(projectile, next, out var target, out float t))
+                Vector2 next = projectile.Position + projectile.Velocity * deltaTime;
+                bool consumed = false;
+
+                // A piercing projectile can pass through several targets in one tick, in order along its path.
+                while (TryFindHit(projectile, next, out var target, out float t))
                 {
                     Vector2 hitPoint = Vector2.Lerp(projectile.Position, next, t);
-                    target.ApplyDamage(new DamageInfo(
-                        projectile.Damage, projectile.Team, projectile.OwnerId, hitPoint, projectile.Velocity.normalized));
+                    float travelled = projectile.Range - projectile.RangeLeft + (hitPoint - projectile.Position).magnitude;
+                    float falloff = Mathf.Lerp(1f, projectile.DamageAtMaxRange, Mathf.Clamp01(travelled / projectile.Range));
 
-                    projectile.Position = hitPoint;
+                    target.ApplyDamage(new DamageInfo(projectile.Damage * falloff, projectile.Team, projectile.OwnerId, hitPoint, projectile.Velocity.normalized));
                     if (projectile.ImpactPrefab != null)
                         Object.Instantiate(projectile.ImpactPrefab, PlaneMath.ToWorld(hitPoint, VisualHeight), Quaternion.identity);
 
+                    if (projectile.PierceLeft <= 0)
+                    {
+                        projectile.Position = hitPoint;
+                        consumed = true;
+                        break;
+                    }
+
+                    projectile.PierceLeft--;
+                    projectile.HitIds.Add(target.EntityId);
+                }
+
+                if (consumed)
+                {
                     RemoveAt(i, projectile);
                     continue;
                 }
@@ -114,9 +185,63 @@ namespace Pathfinder.Game.Combat
         {
             foreach (var projectile in _active)
             {
-                if (projectile.Visual != null)
-                    projectile.Visual.position = PlaneMath.ToWorld(Vector2.Lerp(projectile.Previous, projectile.Position, alpha), VisualHeight);
+                if (projectile.Visual == null)
+                    continue;
+
+                projectile.Visual.position = PlaneMath.ToWorld(Vector2.Lerp(projectile.Previous, projectile.Position, alpha), VisualHeight);
+                if (projectile.TurnRate > 0f && projectile.Velocity.sqrMagnitude > 1e-6f)
+                    projectile.Visual.rotation = Quaternion.LookRotation(PlaneMath.ToWorld(projectile.Velocity));
             }
+        }
+
+        /// <summary>Turns a homing projectile toward its target, picking the nearest one if it has none.</summary>
+        static void Steer(ref Projectile projectile, float deltaTime)
+        {
+            var target = FindLivingTarget(projectile);
+            if (target == null)
+            {
+                target = NearestOpponent(projectile);
+                projectile.TargetId = target != null ? target.EntityId : 0;
+            }
+            if (target == null)
+                return;
+
+            Vector2 desired = target.Position - projectile.Position;
+            if (desired.sqrMagnitude < 1e-6f)
+                return;
+
+            float angle = Vector2.SignedAngle(projectile.Velocity, desired);
+            float maxTurn = projectile.TurnRate * deltaTime;
+            projectile.Velocity = PlaneMath.Rotate(projectile.Velocity, Mathf.Clamp(angle, -maxTurn, maxTurn));
+        }
+
+        static CombatEntity FindLivingTarget(in Projectile projectile)
+        {
+            if (projectile.TargetId == 0)
+                return null;
+
+            foreach (var entity in CombatRegistry.OnTeam(projectile.Team.Opponent()))
+            {
+                if (entity.EntityId == projectile.TargetId)
+                    return entity.IsAlive ? entity : null;
+            }
+            return null;
+        }
+
+        static CombatEntity NearestOpponent(in Projectile projectile)
+        {
+            CombatEntity nearest = null;
+            float best = RetargetRange * RetargetRange;
+            foreach (var entity in CombatRegistry.OnTeam(projectile.Team.Opponent()))
+            {
+                float distance = (entity.Position - projectile.Position).sqrMagnitude;
+                if (entity.IsAlive && !entity.IsIntangible && distance < best)
+                {
+                    best = distance;
+                    nearest = entity;
+                }
+            }
+            return nearest;
         }
 
         static bool TryFindHit(in Projectile projectile, Vector2 next, out CombatEntity target, out float hitT)
@@ -126,7 +251,7 @@ namespace Pathfinder.Game.Combat
 
             foreach (var entity in CombatRegistry.OnTeam(projectile.Team.Opponent()))
             {
-                if (!entity.IsAlive || entity.IsIntangible)
+                if (!entity.IsAlive || entity.IsIntangible || (projectile.HitIds != null && projectile.HitIds.Contains(entity.EntityId)))
                     continue;
 
                 if (PlaneMath.SegmentHitsCircle(projectile.Position, next, entity.Position, entity.Radius + projectile.Radius, out float t) && t < hitT)
@@ -142,11 +267,18 @@ namespace Pathfinder.Game.Combat
         {
             if (projectile.Visual != null)
                 Return(projectile.VisualPrefab, projectile.Visual);
+            if (projectile.HitIds != null)
+            {
+                projectile.HitIds.Clear();
+                _hitSetPool.Push(projectile.HitIds);
+            }
 
             int last = _active.Count - 1;
             _active[index] = _active[last];
             _active.RemoveAt(last);
         }
+
+        HashSet<int> RentHitSet() => _hitSetPool.Count > 0 ? _hitSetPool.Pop() : new HashSet<int>();
 
         Transform Rent(GameObject prefab)
         {
@@ -181,8 +313,23 @@ namespace Pathfinder.Game.Combat
         public GameObject VisualPrefab { get; }
         public GameObject ImpactPrefab { get; }
 
+        /// <summary>Extra targets the projectile passes through before it is consumed.</summary>
+        public int Pierce { get; }
+
+        /// <summary>Damage multiplier reached at maximum range (1 = no falloff).</summary>
+        public float DamageAtMaxRange { get; }
+
+        /// <summary>Homing turn rate in degrees per second (0 = flies straight).</summary>
+        public float TurnRate { get; }
+
+        /// <summary>Preferred homing target. 0 = nearest.</summary>
+        public int TargetId { get; }
+
+        public float VisualScale { get; }
+
         public ProjectileSpawn(Vector2 position, Vector2 direction, float speed, float damage, float radius, float range,
-            Team team, int ownerId, GameObject visualPrefab, GameObject impactPrefab = null)
+            Team team, int ownerId, GameObject visualPrefab, GameObject impactPrefab = null,
+            int pierce = 0, float damageAtMaxRange = 1f, float turnRate = 0f, int targetId = 0, float visualScale = 1f)
         {
             Position = position;
             Direction = direction;
@@ -194,6 +341,11 @@ namespace Pathfinder.Game.Combat
             OwnerId = ownerId;
             VisualPrefab = visualPrefab;
             ImpactPrefab = impactPrefab;
+            Pierce = pierce;
+            DamageAtMaxRange = damageAtMaxRange;
+            TurnRate = turnRate;
+            TargetId = targetId;
+            VisualScale = visualScale;
         }
     }
 }

@@ -9,13 +9,14 @@ using UnityEngine;
 namespace Pathfinder.Game.Enemies
 {
     /// <summary>
-    /// Shared enemy body: health, steering, separation, contact damage and death. Behaviour comes from the
-    /// <see cref="EnemyBrain"/> on the same GameObject.
+    /// Shared enemy body: health, steering, separation, contact damage, loot and death. Behaviour comes from
+    /// the <see cref="EnemyBrain"/> on the same GameObject. Elite modifiers scale its stats.
     /// </summary>
     public sealed class Enemy : CombatEntity
     {
         const float ContactCooldown = 0.75f;
         const float SeparationPadding = 0.3f;
+        const float KnockbackDrag = 8f; // knockback travels about v / 8 units, whatever the enemy's own acceleration
 
         [SerializeField] EnemyDefinition definition;
         [SerializeField, Min(0.01f), Tooltip("Seconds to reach full speed.")] float accelerationTime = 0.25f;
@@ -24,7 +25,15 @@ namespace Pathfinder.Game.Enemies
         public override Vitals Vitals => _vitals;
 
         public EnemyDefinition Definition => definition;
+        public EliteModifierDefinition Elite { get; private set; }
+        public bool IsElite => Elite != null;
         public Vector2 Velocity { get; private set; }
+
+        /// <summary>Base move speed, including any elite modifier.</summary>
+        public float MoveSpeed => definition.MoveSpeed * (Elite != null ? Elite.MoveSpeedMultiplier : 1f);
+
+        /// <summary>Multiplier for attack timers: 1 normally, higher for Hasty elites.</summary>
+        public float AttackRate => Elite != null ? Elite.AttackRateMultiplier : 1f;
 
         /// <summary>Deterministic per-enemy randomness for its brain (GDD §14.3).</summary>
         public IRandom Random { get; private set; }
@@ -32,10 +41,23 @@ namespace Pathfinder.Game.Enemies
         /// <summary>Presentation hint: the enemy is winding up an attack.</summary>
         public bool IsTelegraphing { get; set; }
 
+        /// <summary>Set by the brain each tick. Allows bursts beyond normal speed, e.g. a Lancer charge.</summary>
+        public float SpeedMultiplier { get; set; } = 1f;
+        public float AccelerationMultiplier { get; set; } = 1f;
+        public float ContactDamageMultiplier { get; set; } = 1f;
+
+        /// <summary>True during the tick after this enemy dealt contact damage.</summary>
+        public bool DealtContactDamage { get; private set; }
+
         Vitals _vitals;
         EnemyBrain _brain;
+        CombatWorld _world;
+        IRandom _lootRandom;
+        bool _dropsLoot;
         float _contactCooldown;
         bool _headingOverridden;
+        bool _contactThisTick;
+        Vector2 _knockback;
 
         protected override void Awake()
         {
@@ -44,15 +66,35 @@ namespace Pathfinder.Game.Enemies
             if (_brain == null)
                 Debug.LogError($"[Enemy] {name} needs an {nameof(EnemyBrain)} component.", this);
             if (definition != null)
-                Initialize(definition, new Pcg32(0UL, 0UL));
+                Initialize(null, definition, new Pcg32(0UL, 0UL), new Pcg32(0UL, 1UL), null, dropsLoot: false);
         }
 
-        public void Initialize(EnemyDefinition enemyDefinition, IRandom random)
+        /// <summary>Use <see cref="CombatWorld.SpawnEnemy"/> rather than calling this directly.</summary>
+        public void Initialize(CombatWorld world, EnemyDefinition enemyDefinition, IRandom random, IRandom lootRandom,
+            EliteModifierDefinition elite, bool dropsLoot)
         {
+            _world = world;
             definition = enemyDefinition;
             Random = random;
-            _vitals = new Vitals(definition.MaxHealth);
+            _lootRandom = lootRandom;
+            _dropsLoot = dropsLoot;
+            Elite = elite;
+
+            float health = definition.MaxHealth * (elite != null ? elite.HealthMultiplier : 1f);
+            _vitals = new Vitals(health);
             Velocity = Vector2.zero;
+            _knockback = Vector2.zero;
+
+            float scale = elite != null ? elite.ScaleMultiplier : 1f;
+            SetRadiusScale(scale);
+            transform.localScale = Vector3.one * scale;
+            if (elite != null && elite.MarkerPrefab != null)
+            {
+                // Markers are authored at unit size. Fit them to this enemy's footprint.
+                var marker = Instantiate(elite.MarkerPrefab, transform, worldPositionStays: false).transform;
+                marker.localScale *= Radius / scale * 2.8f;
+            }
+
             _brain.ResetState(this);
         }
 
@@ -66,15 +108,35 @@ namespace Pathfinder.Game.Enemies
             _headingOverridden = true;
         }
 
+        /// <summary>Turns toward a direction by at most the given number of degrees.</summary>
+        public void TurnTowards(Vector2 direction, float maxDegrees)
+        {
+            if (direction.sqrMagnitude < 1e-6f)
+                return;
+
+            Heading = Mathf.MoveTowardsAngle(Heading, PlaneMath.HeadingDegrees(direction), maxDegrees);
+            _headingOverridden = true;
+        }
+
+        /// <summary>Adds a shove that decays quickly, independent of the enemy's own movement.</summary>
+        public void ApplyKnockback(Vector2 velocity) => _knockback += velocity;
+
         public override void Simulate(float deltaTime, CombatWorld world)
         {
             _headingOverridden = false;
-            Vector2 desired = _brain.Think(this, deltaTime, world);
-            desired += Separation() * definition.MoveSpeed;
+            SpeedMultiplier = AccelerationMultiplier = ContactDamageMultiplier = 1f;
+            DealtContactDamage = _contactThisTick;
+            _contactThisTick = false;
 
-            float acceleration = definition.MoveSpeed / accelerationTime;
-            Velocity = Vector2.MoveTowards(Velocity, Vector2.ClampMagnitude(desired, definition.MoveSpeed), acceleration * deltaTime);
-            Position = world.ClampToArena(Position + Velocity * deltaTime, Radius);
+            Vector2 desired = _brain.Think(this, deltaTime, world);
+            desired += Separation() * MoveSpeed;
+
+            float maxSpeed = MoveSpeed * SpeedMultiplier;
+            // Based on the larger speed, so a brain can also brake to a halt (speed multiplier 0) quickly.
+            float acceleration = Mathf.Max(MoveSpeed, maxSpeed) / accelerationTime * AccelerationMultiplier;
+            Velocity = Vector2.MoveTowards(Velocity, Vector2.ClampMagnitude(desired, maxSpeed), acceleration * deltaTime);
+            _knockback *= Mathf.Max(0f, 1f - KnockbackDrag * deltaTime);
+            Position = world.ClampToArena(Position + (Velocity + _knockback) * deltaTime, Radius);
 
             if (!_headingOverridden && Velocity.sqrMagnitude > 0.01f)
                 Heading = PlaneMath.HeadingDegrees(Velocity);
@@ -86,7 +148,23 @@ namespace Pathfinder.Game.Enemies
             _vitals.Tick(deltaTime);
         }
 
-        protected override void OnKilled(in DamageInfo info) => Destroy(gameObject);
+        protected override float IncomingDamageMultiplier(in DamageInfo info) =>
+            _brain is IDamageModifier modifier ? modifier.IncomingDamageMultiplier(this, info) : 1f;
+
+        protected override void OnKilled(in DamageInfo info)
+        {
+            if (_dropsLoot && _world != null && Authority.IsAuthority)
+                DropLoot();
+            Destroy(gameObject);
+        }
+
+        void DropLoot()
+        {
+            int amount = Mathf.RoundToInt(definition.ScrapsDrop * (Elite != null ? Elite.ScrapsMultiplier : 1f));
+            bool drops = Elite != null || _lootRandom.Chance(definition.ScrapsDropChance);
+            if (drops && amount > 0)
+                _world.Pickups.SpawnScraps(Position, amount, _lootRandom);
+        }
 
         void TryContactDamage()
         {
@@ -101,11 +179,12 @@ namespace Pathfinder.Game.Enemies
                     continue;
 
                 Vector2 direction = toPlayer.sqrMagnitude > 1e-6f ? toPlayer.normalized : Vector2.up;
-                player.ApplyDamage(new DamageInfo(definition.ContactDamage, Team, EntityId, Position + direction * Radius, direction));
+                player.ApplyDamage(new DamageInfo(definition.ContactDamage * ContactDamageMultiplier, Team, EntityId, Position + direction * Radius, direction));
 
                 // Bounce off so a swarm doesn't drain the shield in consecutive ticks.
-                Velocity = -direction * definition.MoveSpeed * 1.5f;
+                Velocity = -direction * MoveSpeed * 1.5f;
                 _contactCooldown = ContactCooldown;
+                _contactThisTick = true;
                 return;
             }
         }
@@ -143,5 +222,11 @@ namespace Pathfinder.Game.Enemies
         public abstract Vector2 Think(Enemy self, float deltaTime, CombatWorld world);
 
         protected static PlayerShip Target(Enemy self) => CombatRegistry.NearestLivingPlayer(self.Position);
+    }
+
+    /// <summary>A brain that changes the damage its enemy takes, e.g. directional armour.</summary>
+    public interface IDamageModifier
+    {
+        float IncomingDamageMultiplier(Enemy self, in DamageInfo info);
     }
 }

@@ -16,6 +16,7 @@ namespace Pathfinder.Game.Player
         [SerializeField] PlayerShip shipPrefab;
         [SerializeField] ShipDefinition ship;
         [SerializeField] PrimaryWeaponDefinition primaryWeapon;
+        [SerializeField] SecondaryWeaponDefinition secondaryWeapon;
         [SerializeField] Vector2 spawnPosition = new Vector2(0f, -6f);
 
         readonly List<PlayerShip> _spawned = new List<PlayerShip>();
@@ -29,7 +30,7 @@ namespace Pathfinder.Game.Player
             int index = _spawned.Count;
             var player = Instantiate(shipPrefab, PlaneMath.ToWorld(spawnPosition), Quaternion.identity);
             player.name = $"Player {index + 1}";
-            player.Initialize(ship, primaryWeapon);
+            player.Initialize(ship, primaryWeapon, secondaryWeapon);
             player.Bind(world, index);
             player.IsLocal = true;
             player.CommandSource = player.gameObject.AddComponent<LocalInputCommandSource>();

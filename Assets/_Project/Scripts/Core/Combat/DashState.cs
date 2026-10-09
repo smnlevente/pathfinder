@@ -8,18 +8,19 @@ namespace Pathfinder.Core.Combat
     /// </summary>
     public sealed class DashState
     {
-        public int MaxCharges { get; }
-        public float Duration { get; }
-        public float RechargeTime { get; }
+        readonly Cooldown _charges;
 
-        public int Charges { get; private set; }
+        public int MaxCharges => _charges.MaxCharges;
+        public float Duration { get; }
+        public float RechargeTime => _charges.RechargeTime;
+
+        public int Charges => _charges.Charges;
         public bool IsDashing => _activeRemaining > 0f;
 
         /// <summary>Progress of the charge that is recharging, from 0 to 1. 0 when all charges are full.</summary>
-        public float RechargeProgress => Charges < MaxCharges ? _recharge / RechargeTime : 0f;
+        public float RechargeProgress => _charges.RechargeProgress;
 
         float _activeRemaining;
-        float _recharge;
 
         public DashState(int maxCharges, float duration, float rechargeTime)
         {
@@ -27,21 +28,17 @@ namespace Pathfinder.Core.Combat
                 throw new ArgumentOutOfRangeException(nameof(maxCharges), "A ship needs at least one dash charge.");
             if (duration <= 0f)
                 throw new ArgumentOutOfRangeException(nameof(duration), "Dash duration must be positive.");
-            if (rechargeTime <= 0f)
-                throw new ArgumentOutOfRangeException(nameof(rechargeTime), "Recharge time must be positive.");
 
-            MaxCharges = Charges = maxCharges;
+            _charges = new Cooldown(maxCharges, rechargeTime);
             Duration = duration;
-            RechargeTime = rechargeTime;
         }
 
         /// <summary>Spends a charge and starts the dash. Fails while already dashing or when out of charges.</summary>
         public bool TryStart()
         {
-            if (IsDashing || Charges == 0)
+            if (IsDashing || !_charges.TryUse())
                 return false;
 
-            Charges--;
             _activeRemaining = Duration;
             return true;
         }
@@ -56,18 +53,7 @@ namespace Pathfinder.Core.Combat
             if (_activeRemaining <= TimeTolerance.Epsilon)
                 _activeRemaining = 0f;
 
-            if (Charges >= MaxCharges)
-                return;
-
-            _recharge += deltaTime;
-            while (_recharge >= RechargeTime - TimeTolerance.Epsilon && Charges < MaxCharges)
-            {
-                _recharge = Math.Max(0f, _recharge - RechargeTime);
-                Charges++;
-            }
-
-            if (Charges == MaxCharges)
-                _recharge = 0f;
+            _charges.Tick(deltaTime);
         }
     }
 }

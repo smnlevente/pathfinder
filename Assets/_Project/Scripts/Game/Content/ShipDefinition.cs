@@ -17,6 +17,7 @@ namespace Pathfinder.Game.Content
         [field: Header("Movement")]
         [field: SerializeField, Min(0.1f)] public float MoveSpeed { get; private set; } = 8f;
         [field: SerializeField, Min(0.01f), Tooltip("Seconds to reach full speed from standstill.")] public float AccelerationTime { get; private set; } = 0.08f;
+        [field: SerializeField, Min(0f), Tooltip("Radius within which pickups fly to the ship.")] public float PickupMagnetRadius { get; private set; } = 3f;
 
         [field: Header("Dash")]
         [field: SerializeField, Min(0.1f)] public float DashDistance { get; private set; } = 5f;

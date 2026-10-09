@@ -3,32 +3,38 @@
 A top-down, twin-stick roguelite shooter in neon-lit 3D, built in Unity 6 (6000.0.67f1, URP).
 The design lives in [docs/GDD.md](docs/GDD.md).
 
-![M1 combat sandbox](docs/images/m1-combat.png)
+![Every enemy type, an elite, enemy bullets and Scraps](docs/images/m2-enemies.png)
 
 ## Status
 
 | Milestone | State |
 |---|---|
 | M0 Project setup | ✅ |
-| M1 Core combat feel | ✅ playable sandbox, awaiting a playtest |
-| M2–M6 | Planned (GDD §17) |
+| M1 Core combat feel | ✅ playtested |
+| M2 Combat breadth | ✅ 3 primaries, 2 secondaries, 5 enemy types + elites, wave director, Scraps |
+| M3–M6 | Planned (GDD §17) |
 
 ## Playing the combat sandbox
 
-Open `Assets/_Project/Scenes/Run.unity` and press Play. Endless, escalating waves of Drones and Gunners spawn until the ship is destroyed.
+Open `Assets/_Project/Scenes/Run.unity` and press Play. The wave director sends endless, escalating waves of Drones, Gunners, Spinners, Lancers and Carriers, with the occasional gold-ringed elite, until the ship is destroyed. Enemies drop gold Scraps that fly to the ship.
 
 | Action | Keyboard & Mouse | Gamepad |
 |---|---|---|
 | Move | WASD / arrows | Left stick |
 | Aim | Mouse | Right stick |
-| Fire | Left mouse | Right trigger |
+| Fire primary (hold to charge the Quantum Charger) | Left mouse | Right trigger |
+| Fire secondary | Right mouse | Left trigger |
 | Dash (i-frames) | Space | A / Cross, RB |
 | Reload | R | X / Square |
 | Pause | Esc | Start |
 | Restart after death | E | Y / Triangle |
 
-Tuning lives in the ScriptableObjects under `Assets/_Project/Data` (ship, weapon, enemies) and on the brain
-components in the enemy prefabs. To replay an exact run, set a seed code on **Combat World** in the Run scene.
+**Dev hotkeys** (Editor and development builds): **F1** cycle primary weapon, **F2** cycle secondary, **F3** god mode,
+**F4** kill all enemies, **F5** skip to the next wave.
+
+Tuning lives in the ScriptableObjects under `Assets/_Project/Data`: ship, weapons, enemies, elites, and the wave config
+`Waves/Waves_ShatteredExpanse`. Behaviour tuning (bursts, charge speed, launch rates) is on the brain components in the
+enemy prefabs. To replay an exact run, set a seed code on **Combat World** in the Run scene.
 
 ## Project layout
 
@@ -45,8 +51,8 @@ Assets/_Project/
 ## Editor tools
 
 - **Pathfinder > Setup > Apply M0 Project Setup**: converts a fresh template into the 3D URP setup. Safe to rerun.
-- **Pathfinder > Setup > Build M1 Content**: regenerates the placeholder art, prefabs and Run scene wiring.
-  ScriptableObject data is never overwritten.
+- **Pathfinder > Setup > Build Content**: regenerates the placeholder art, prefabs and Run scene wiring.
+  ScriptableObject data is never overwritten. New definitions are created when missing.
 
 ## Running tests from the command line
 

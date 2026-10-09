@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b9a1ecfd0cfb2694887579ba283fc919, type: 3}
+  m_Name: Secondary_NovaPulse
+  m_EditorClassIdentifier: 
+  id: secondary.nova-pulse
+  displayName: Nova Pulse
+  <Cooldown>k__BackingField: 12
+  <Charges>k__BackingField: 1
+  <ActivationEffect>k__BackingField: {fileID: 8433437193507909146, guid: 62c122fe82f7ece43a1da9a74d4df7ef, type: 3}
+  <Radius>k__BackingField: 4
+  <Damage>k__BackingField: 40
+  <Knockback>k__BackingField: 14

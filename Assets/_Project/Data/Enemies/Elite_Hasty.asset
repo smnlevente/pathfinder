@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee2c8a38fe379a648855f9bfd6db0b1c, type: 3}
+  m_Name: Elite_Hasty
+  m_EditorClassIdentifier: 
+  id: elite.hasty
+  displayName: Hasty
+  <HealthMultiplier>k__BackingField: 1
+  <MoveSpeedMultiplier>k__BackingField: 1.5
+  <AttackRateMultiplier>k__BackingField: 1.5
+  <ScrapsMultiplier>k__BackingField: 3
+  <ScaleMultiplier>k__BackingField: 1.2
+  <MarkerPrefab>k__BackingField: {fileID: 8949609827342316807, guid: 653727347727e7f4c816a79f95dbe8fc, type: 3}

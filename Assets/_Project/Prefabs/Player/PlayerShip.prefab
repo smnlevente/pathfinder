@@ -752,6 +752,7 @@ MonoBehaviour:
   radius: 0.45
   ship: {fileID: 11400000, guid: 6ae274df5a07b624ab03c24fa065cec3, type: 2}
   primaryWeapon: {fileID: 11400000, guid: be9a8083b9dba724e882afe3bd748c78, type: 2}
+  secondaryWeapon: {fileID: 11400000, guid: 8e51f5109c1f38b469bd6af412e2d79b, type: 2}
   muzzleDistance: 0.9
 --- !u!114 &6222661277026082252
 MonoBehaviour:
@@ -766,7 +767,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   entity: {fileID: 4330562196222121647}
-  glowRenderers: []
+  glowRenderers:
+  - {fileID: 5095738963403451550}
+  - {fileID: 4516334351448085781}
+  - {fileID: 6928804348513258022}
+  - {fileID: 3903026408846607156}
   telegraphGlow: 3
   flashDuration: 0.07
   flashColor: {r: 3, g: 3, b: 3, a: 1}

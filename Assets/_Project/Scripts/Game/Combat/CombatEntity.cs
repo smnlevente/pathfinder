@@ -20,7 +20,7 @@ namespace Pathfinder.Game.Combat
         public abstract Team Team { get; }
         public abstract Vitals Vitals { get; }
 
-        public float Radius => radius;
+        public float Radius => radius * _radiusScale;
         public Vector2 Position { get; protected set; }
 
         /// <summary>Yaw in degrees, 0 = +Z. See <see cref="PlaneMath.HeadingDegrees"/>.</summary>
@@ -37,6 +37,7 @@ namespace Pathfinder.Game.Combat
 
         Vector2 _previousPosition;
         float _previousHeading;
+        float _radiusScale = 1f;
 
         protected virtual void Awake()
         {
@@ -56,7 +57,7 @@ namespace Pathfinder.Game.Combat
             if (!Authority.IsAuthority || !IsAlive)
                 return default;
 
-            var result = Vitals.ApplyDamage(info.Amount);
+            var result = Vitals.ApplyDamage(info.Amount * IncomingDamageMultiplier(info));
             if (result.Blocked || result.TotalDamage > 0f)
                 Damaged?.Invoke(this, info, result);
 
@@ -82,6 +83,12 @@ namespace Pathfinder.Game.Combat
         }
 
         protected virtual void OnKilled(in DamageInfo info) { }
+
+        /// <summary>Directional armour and weak points, e.g. a Carrier's exposed rear.</summary>
+        protected virtual float IncomingDamageMultiplier(in DamageInfo info) => 1f;
+
+        /// <summary>Scales the hit radius, e.g. for larger elites.</summary>
+        protected void SetRadiusScale(float scale) => _radiusScale = scale;
 
         protected virtual void Update() => SyncTransform(SimInterpolation.Alpha);
 

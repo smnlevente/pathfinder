@@ -18,4 +18,6 @@ MonoBehaviour:
   <MoveSpeed>k__BackingField: 4
   <ContactDamage>k__BackingField: 10
   <BudgetCost>k__BackingField: 2
+  <ScrapsDrop>k__BackingField: 2
+  <ScrapsDropChance>k__BackingField: 0.75
   <Prefab>k__BackingField: {fileID: 6446785221668379828, guid: 25dc3f15930dcb1489027ee1fdb52f85, type: 3}
