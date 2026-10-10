@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 1.8 (M6 in progress: audio, juice, uGUI HUD and Hub, balance probe) |
+| **Version** | 1.9 (M6: audio and music, juice, uGUI HUD and Hub, balance probe; external playtest next) |
 | **Date** | 2026-10-10 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
@@ -567,7 +567,7 @@ Boot → Main Menu → Hub ──► Ship Select → Loadout Select → Galaxy M
 - **Top right:** Scraps, plus Dark Matter collected this run.
 - **Top center:** Level objective (waves remaining, DM nodes, instability timer). Boss levels show the boss health bar here instead.
 - **On pickups:** equipment choice cards in a modal. In single-player the modal pauses the game. In co-op nothing pauses: choices are made at the end of the level while the exit wormhole charges.
-- *Implemented in M6 (uGUI):* hull bar with its value and a thin shield bar above it, primary and secondary gauges with their state, dash pips, ship trait and equipment list (coloured by rarity) top left; Scraps, Dark Matter, Cores and the seed top right; level, objective and the boss bar with phase marks top centre; banners and prompts; pause, galaxy-cleared and run-over overlays. Text carries a drop shadow so it reads over explosions. **A red vignette flashes at the screen edges when the hull is hit**, scaled by the damage. The ammo ring around the crosshair is still to come.
+- *Implemented in M6 (uGUI):* hull bar with its value and a thin shield bar above it, primary and secondary gauges with their state, dash pips, ship trait and equipment list (coloured by rarity) top left; Scraps, Dark Matter, Cores and the seed top right; level, objective and the boss bar with phase marks top centre; banners and prompts; pause, galaxy-cleared and run-over overlays. Text carries a drop shadow so it reads over explosions. **A red vignette flashes at the screen edges when the hull is hit**, scaled by the damage. A **crosshair** follows the mouse (or sits 150 px along the aim for a gamepad) and replaces the system cursor while flying; its ring shows the primary's ammo, reload or charge, and turns orange on a warning (reloading, overheating).
 
 ### 12.3 Galaxy Map
 - A vertical scrolling node map with icons for each type and a highlighted current path.
@@ -604,7 +604,8 @@ dense bullet patterns blew out into glare and the Lancer's charge line looked li
 ### 13.2 Audio
 - **Music:** dark synthwave and electronic tracks, one per galaxy, plus a boss track with intensity layers that rise with the wave count.
 - **SFX priority:** player weapon feel (punchy, layered), dash whoosh, a distinct "hull hit" sting, and warning tells for Lancers and bosses.
-- **Implemented in M6 (placeholder):** 23 sound effects synthesized by the content builder from oscillators, noise, envelopes and a sweeping low-pass filter, so the slice has sound without any third-party assets. Each gameplay moment asks for a **cue**: weapons, enemy shots, enemy hits, armour deflects (a metallic tink), shield and hull hits, small and large explosions, dash, pickups, telegraphs, the Quarry Maw's roar and eruption, menu move/confirm/back, exit open, boss defeated and run over. A sound director plays them from 28 pooled 2D voices, panned by where the sound happens on screen. Every cue has a voice limit and a minimum interval, so a bullet storm stays a texture instead of a wall of noise. Final audio replaces the clips in the sound library without code changes. Music is still to come.
+- **Implemented in M6 (placeholder):** 23 sound effects synthesized by the content builder from oscillators, noise, envelopes and a sweeping low-pass filter, so the slice has sound without any third-party assets. Each gameplay moment asks for a **cue**: weapons, enemy shots, enemy hits, armour deflects (a metallic tink), shield and hull hits, small and large explosions, dash, pickups, telegraphs, the Quarry Maw's roar and eruption, menu move/confirm/back, exit open, boss defeated and run over. A sound director plays them from 28 pooled 2D voices, panned by where the sound happens on screen. Every cue has a voice limit and a minimum interval, so a bullet storm stays a texture instead of a wall of noise. Final audio replaces the clips in the sound library without code changes.
+- **Placeholder music (M6):** three synthesized loops in A minor: **Hub/map** (80 BPM, slow pads and a soft arpeggio), **combat** (110 BPM: saw bass, detuned pads, square arpeggio, drums) and **boss** (128 BPM, darker i–♭II–i–V progression, sixteenth-note bass, four-on-the-floor). They crossfade over 1 s as the run moves between the map, levels and the boss, and fade out on victory or defeat. Loops are rendered with wrap-around notes and a primed filter, so the seam is silent.
 
 ---
 
@@ -743,6 +744,6 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 | **M3** ✅ | Run structure | Galaxy map generation with its rules and tests, the map UI, all 7 level types, and RunState. |
 | **M4** ✅ | Build system | Equipment slots, the modifier system, event hooks, choice cards, the Shop, and the 2 ships with their traits. |
 | **M5** ✅ | Boss + meta | The Quarry Maw, run end and summary, the Hub, meta upgrades, and save/load. |
-| **M6** (in progress) | Slice polish | VFX, juice, audio pass, balance pass, and an external playtest. *Done so far:* playtest 2 fixes, synthesized SFX and a sound director, explosions with shockwaves, camera kicks, muzzle flash, hull-hit vignette, uGUI HUD and Hub, and the economy probe. *Left:* music, the crosshair ammo ring, and the external playtest with tuning from its feedback. |
+| **M6** (in progress) | Slice polish | VFX, juice, audio pass, balance pass, and an external playtest. *Done:* playtest 2 fixes, synthesized SFX and music with a sound director, explosions with shockwaves, camera kicks, muzzle flash, hull-hit vignette, crosshair ammo ring, uGUI HUD and Hub, and the economy probe. *Left:* the external playtest and tuning from its feedback. |
 
 **After the slice:** Galaxies 2–3 and their bosses, the remaining ships, weapons and equipment, The Remnant faction, narrative, final art, **online co-op**, Pathfinder Protocols, and console ports.

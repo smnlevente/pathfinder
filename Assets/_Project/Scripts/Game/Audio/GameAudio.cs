@@ -22,11 +22,16 @@ namespace Pathfinder.Game.Audio
         [SerializeField, Min(4)] int voices = 28;
         [SerializeField, Range(0f, 1f)] float masterVolume = 0.8f;
         [SerializeField, Min(1f), Tooltip("Horizontal distance from the camera at which sounds pan fully to one side.")] float panDistance = 20f;
+        [SerializeField, Tooltip("What plays when the scene starts.")] MusicTrack startTrack;
+        [SerializeField, Range(0f, 1f)] float musicVolume = 0.35f;
+        [SerializeField, Min(0.01f)] float musicFade = 1f;
 
         readonly List<AudioSource> _sources = new List<AudioSource>();
         readonly Dictionary<SoundCue, float> _lastPlayed = new Dictionary<SoundCue, float>();
         readonly Dictionary<AudioSource, SoundCue> _playing = new Dictionary<AudioSource, SoundCue>();
         readonly HashSet<PlayerShip> _subscribed = new HashSet<PlayerShip>();
+        AudioSource _musicA, _musicB;
+        MusicTrack _track;
 
         public static float MasterVolume
         {
@@ -37,6 +42,15 @@ namespace Pathfinder.Game.Audio
                     s_instance.masterVolume = Mathf.Clamp01(value);
             }
         }
+
+        /// <summary>Crossfades to a music track, or fades out for <see cref="MusicTrack.None"/>. Safe without a director.</summary>
+        public static void PlayMusic(MusicTrack track)
+        {
+            if (s_instance != null)
+                s_instance.SwitchMusic(track);
+        }
+
+        public static MusicTrack CurrentMusic => s_instance != null ? s_instance._track : MusicTrack.None;
 
         /// <summary>Plays a cue. A position pans it toward that side of the screen. Does nothing without a director.</summary>
         public static void Play(SoundCue cue, Vector3? position = null, float volume = 1f)
@@ -56,6 +70,48 @@ namespace Pathfinder.Game.Audio
                 source.spatialBlend = 0f;
                 _sources.Add(source);
             }
+
+            _musicA = MusicSource();
+            _musicB = MusicSource();
+        }
+
+        void Start() => SwitchMusic(startTrack);
+
+        AudioSource MusicSource()
+        {
+            var source = gameObject.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.loop = true;
+            source.spatialBlend = 0f;
+            source.volume = 0f;
+            return source;
+        }
+
+        void SwitchMusic(MusicTrack track)
+        {
+            var clip = library != null ? library.Music(track) : null;
+            if (track == _track && (_musicA.clip == clip || clip == null))
+                return;
+            _track = track;
+
+            // The current source fades out; the other one starts the new track and fades in.
+            (_musicA, _musicB) = (_musicB, _musicA);
+            _musicA.clip = clip;
+            _musicA.volume = 0f;
+            if (clip != null)
+                _musicA.Play();
+            else
+                _musicA.Stop();
+        }
+
+        void FadeMusic()
+        {
+            float step = Time.unscaledDeltaTime / musicFade;
+            float target = musicVolume * masterVolume;
+            _musicA.volume = Mathf.MoveTowards(_musicA.volume, _musicA.clip != null ? target : 0f, step * Mathf.Max(target, 0.01f));
+            _musicB.volume = Mathf.MoveTowards(_musicB.volume, 0f, step * Mathf.Max(target, 0.01f));
+            if (_musicB.isPlaying && _musicB.volume <= 0f)
+                _musicB.Stop();
         }
 
         void OnEnable()
@@ -90,6 +146,8 @@ namespace Pathfinder.Game.Audio
 
         void Update()
         {
+            FadeMusic();
+
             // Local pilots can spawn later (a new run, a respawn), so pick them up as they appear.
             foreach (var player in CombatRegistry.Players)
             {

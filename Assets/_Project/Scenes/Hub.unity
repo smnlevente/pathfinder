@@ -197,6 +197,9 @@ MonoBehaviour:
   voices: 28
   masterVolume: 0.8
   panDistance: 20
+  startTrack: 1
+  musicVolume: 0.35
+  musicFade: 1
 --- !u!4 &97563901
 Transform:
   m_ObjectHideFlags: 0

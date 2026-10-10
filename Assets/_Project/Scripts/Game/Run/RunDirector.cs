@@ -87,6 +87,7 @@ namespace Pathfinder.Game.Run
             GameClock.Resume(this);
             SetPhase(Phase.Level);
             level.Begin(Run, new LevelContext(type, Run.LevelSeed(node), Run.GalaxyIndex, node.Row, node.Type == MapNodeType.Mystery, ambush));
+            PlayLevelMusic();
             return true;
         }
 
@@ -101,7 +102,11 @@ namespace Pathfinder.Game.Run
             SetPhase(Phase.Level);
             var seed = Run.Seed.Derive("test-level").Derive((int)type);
             level.Begin(Run, new LevelContext(type, seed, Run.GalaxyIndex, row, fromMystery: false, ambush: false));
+            PlayLevelMusic();
         }
+
+        void PlayLevelMusic() =>
+            Audio.GameAudio.PlayMusic(level.Context.Type == MapNodeType.Boss ? Audio.MusicTrack.Boss : Audio.MusicTrack.Combat);
 
         void OnLevelExited(LevelController source)
         {
@@ -167,6 +172,9 @@ namespace Pathfinder.Game.Run
         void SetPhase(Phase phase)
         {
             State = phase;
+            // Levels pick their own track once they've begun (the boss has its own).
+            if (phase != Phase.Level)
+                Audio.GameAudio.PlayMusic(phase is Phase.Victory or Phase.Defeat ? Audio.MusicTrack.None : Audio.MusicTrack.Hub);
             PhaseChanged?.Invoke(this);
         }
 

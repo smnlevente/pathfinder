@@ -65,6 +65,25 @@ namespace Pathfinder.Editor.Setup
                 clips[recipe.cue] = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
             }
 
+            var music = new Dictionary<string, AudioClip>();
+            foreach (var (name, style) in new[] { ("Hub", HubMusic), ("Combat", CombatMusic), ("Boss", BossMusic) })
+            {
+                string path = $"{AudioDir}/Music_{name}.wav";
+                WriteWav(path, Compose(style));
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+                if (AssetImporter.GetAtPath(path) is AudioImporter importer)
+                {
+                    var settings = importer.defaultSampleSettings;
+                    settings.loadType = AudioClipLoadType.CompressedInMemory;
+                    settings.compressionFormat = AudioCompressionFormat.Vorbis;
+                    settings.quality = 0.7f;
+                    importer.defaultSampleSettings = settings;
+                    importer.forceToMono = true;
+                    importer.SaveAndReimport();
+                }
+                music[name] = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            }
+
             const string libraryPath = DataDir + "/Audio/SoundLibrary.asset";
             EnsureFolder(DataDir + "/Audio");
             var library = AssetDatabase.LoadAssetAtPath<SoundLibrary>(libraryPath);
@@ -97,6 +116,9 @@ namespace Pathfinder.Editor.Setup
                 }
                 entry.FindPropertyRelative("Clip").objectReferenceValue = clips[recipe.cue];
             }
+            so.FindProperty("<HubMusic>k__BackingField").objectReferenceValue = music["Hub"];
+            so.FindProperty("<CombatMusic>k__BackingField").objectReferenceValue = music["Combat"];
+            so.FindProperty("<BossMusic>k__BackingField").objectReferenceValue = music["Boss"];
             so.ApplyModifiedPropertiesWithoutUndo();
             return library;
         }

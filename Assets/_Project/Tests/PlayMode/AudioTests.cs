@@ -53,6 +53,20 @@ namespace Pathfinder.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator Music_HasLoopsForEachContext()
+        {
+            yield return LoadRun();
+            yield return null;
+            var library = Library();
+            foreach (var track in new[] { MusicTrack.Hub, MusicTrack.Combat, MusicTrack.Boss })
+            {
+                Assert.IsNotNull(library.Music(track), $"{track} music exists.");
+                Assert.Greater(library.Music(track).length, 10f, $"{track} music is a real loop, not a jingle.");
+            }
+            Assert.AreEqual(MusicTrack.Combat, GameAudio.CurrentMusic, "The combat sandbox plays the combat track.");
+        }
+
+        [UnityTest]
         public IEnumerator GameplayRuns_WithoutADirector()
         {
             yield return LoadRun();

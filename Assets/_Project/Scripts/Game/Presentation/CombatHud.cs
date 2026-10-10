@@ -8,6 +8,7 @@ using Pathfinder.Game.Player;
 using Pathfinder.Game.Presentation.Ui;
 using Pathfinder.Game.Run;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace Pathfinder.Game.Presentation
@@ -15,7 +16,8 @@ namespace Pathfinder.Game.Presentation
     /// <summary>
     /// The combat HUD (GDD §12.2): hull and shield, weapons, dash charges and equipment top left; currencies top right;
     /// level, objective and the boss bar top centre; banners and prompts; the pause, galaxy-cleared and run-over
-    /// overlays; and a red edge flash when the hull is hit. Built in uGUI below the menus, which cover it when open.
+    /// overlays; a crosshair whose ring shows ammo, reload or charge; and a red edge flash when the hull is hit. Built in
+    /// uGUI below the menus, which cover it when open.
     /// </summary>
     public sealed class CombatHud : MonoBehaviour
     {
@@ -37,6 +39,7 @@ namespace Pathfinder.Game.Presentation
 
         const int MaxDashPips = 4;
         const float VignetteFade = 2.5f;
+        const float GamepadReticleDistance = 150f;
 
         UiBar _hull, _shield, _primary, _secondary, _boss;
         readonly UiBar[] _dash = new UiBar[MaxDashPips];
@@ -45,6 +48,9 @@ namespace Pathfinder.Game.Presentation
         Text _overlayTitle, _overlayHint;
         GameObject _playerPanel, _bossPanel, _overlay;
         Image _vignette;
+        RectTransform _canvasRect, _reticle;
+        Image _reticleFill;
+        bool _gamepadAiming;
         float _vignetteAlpha;
         float _fps;
         PlayerShip _subscribed;
@@ -64,6 +70,7 @@ namespace Pathfinder.Game.Presentation
 
             RefreshStatus(player);
             RefreshOverlay();
+            RefreshReticle(player);
 
             _vignetteAlpha = Mathf.Max(0f, _vignetteAlpha - VignetteFade * Time.unscaledDeltaTime);
             _vignette.color = new Color(1f, 0.1f, 0.08f, _vignetteAlpha);
@@ -184,6 +191,48 @@ namespace Pathfinder.Game.Presentation
             }
         }
 
+        /// <summary>
+        /// The crosshair follows the mouse, or sits along the aim for a gamepad. Its ring shows the primary's ammo,
+        /// reload or charge (GDD §12.2). It replaces the system cursor while flying; menus bring the cursor back.
+        /// </summary>
+        void RefreshReticle(PlayerShip player)
+        {
+            bool flying = player != null && player.IsAlive && !_overlay.activeSelf && !ModalScreens.AnyOpen;
+            _reticle.gameObject.SetActive(flying);
+            Cursor.visible = !flying;
+            if (!flying)
+                return;
+
+            var mouse = Mouse.current;
+            var gamepad = Gamepad.current;
+            if (gamepad != null && gamepad.rightStick.ReadValue().sqrMagnitude > 0.04f)
+                _gamepadAiming = true;
+            else if (mouse != null && mouse.delta.ReadValue().sqrMagnitude > 0.5f)
+                _gamepadAiming = false;
+
+            Vector2 screen;
+            if (!_gamepadAiming && mouse != null)
+            {
+                screen = mouse.position.ReadValue();
+            }
+            else
+            {
+                var camera = Camera.main;
+                if (camera == null)
+                    return;
+                Vector2 ship = camera.WorldToScreenPoint(player.transform.position);
+                float scale = Screen.height / UiKit.ReferenceSize.y;
+                screen = ship + player.AimDirection * (GamepadReticleDistance * scale);
+            }
+
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvasRect, screen, null, out var local))
+                _reticle.anchoredPosition = local;
+
+            var status = player.Primary.Status;
+            _reticleFill.fillAmount = status.Fill;
+            _reticleFill.color = status.Warning ? WarningColor : WeaponColor;
+        }
+
         string RunSummary()
         {
             var run = runDirector != null ? runDirector.Run : null;
@@ -214,7 +263,11 @@ namespace Pathfinder.Game.Presentation
                 _vignetteAlpha = Mathf.Clamp(0.35f + result.HullDamage / 40f, 0.35f, 0.8f);
         }
 
-        void OnDestroy() => Subscribe(null);
+        void OnDestroy()
+        {
+            Subscribe(null);
+            Cursor.visible = true;
+        }
 
         static PlayerShip LocalPlayer()
         {
@@ -232,6 +285,7 @@ namespace Pathfinder.Game.Presentation
         {
             var canvas = UiKit.Canvas("HUD", transform, sortingOrder: 0);
             var root = canvas.transform;
+            _canvasRect = (RectTransform)root;
 
             _vignette = UiKit.Image(root, "Hull Hit", Color.clear, UiKit.Vignette);
             UiKit.Stretch(_vignette.rectTransform);
@@ -289,6 +343,20 @@ namespace Pathfinder.Game.Presentation
             AddShadow(_prompt);
             _debug = UiKit.Text(root, "Dev Keys", string.Empty, 16, UiKit.TextDim, TextAnchor.MiddleLeft);
             UiKit.Place(_debug.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(40f, 16f), new Vector2(1840f, 28f));
+
+            // Crosshair: a centre dot inside a dim track and the ammo ring.
+            _reticle = UiKit.Node("Crosshair", root);
+            _reticle.anchorMin = _reticle.anchorMax = new Vector2(0.5f, 0.5f);
+            _reticle.sizeDelta = new Vector2(56f, 56f);
+            UiKit.Stretch(UiKit.Image(_reticle, "Track", new Color(1f, 1f, 1f, 0.18f), UiKit.Ring).rectTransform);
+            _reticleFill = UiKit.Image(_reticle, "Ammo", WeaponColor, UiKit.Ring);
+            UiKit.Stretch(_reticleFill.rectTransform);
+            _reticleFill.type = Image.Type.Filled;
+            _reticleFill.fillMethod = Image.FillMethod.Radial360;
+            _reticleFill.fillOrigin = (int)Image.Origin360.Top;
+            _reticleFill.fillClockwise = false;
+            var dot = UiKit.Image(_reticle, "Dot", Color.white, UiKit.Circle);
+            UiKit.Place(dot.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(7f, 7f));
 
             // Full-screen overlays: paused, galaxy cleared, run over.
             var overlay = UiKit.Image(root, "Overlay", new Color(0f, 0f, 0f, 0.65f));

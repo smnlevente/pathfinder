@@ -89,7 +89,7 @@ namespace Pathfinder.Editor.Setup
 
             var world = FindOrCreate<CombatWorld>("Combat World");
             SetFields(world, ("arenaSize", ArenaSize), ("scrapPickupPrefab", Load<GameObject>(assets.Scrap)), ("deflectEffectPrefab", Load<GameObject>(assets.Deflect)));
-            AddAudio(assets);
+            AddAudio(assets, isRun ? MusicTrack.Hub : MusicTrack.Combat); // a run opens on the map
 
             var floor = GameObject.Find("ArenaFloor");
             if (floor != null)
@@ -161,17 +161,17 @@ namespace Pathfinder.Editor.Setup
             var scene = EditorSceneManager.OpenScene(HubScenePath, OpenSceneMode.Single);
             var menu = FindOrCreate<HubMenu>("Hub Menu");
             SetFields(menu, ("content", Load<ContentDatabase>(assets.Database)));
-            AddAudio(assets);
+            AddAudio(assets, MusicTrack.Hub);
             RequireReferences(menu);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
         }
 
         /// <summary>Every scene gets a sound director (GDD §13.2).</summary>
-        static void AddAudio(ScenePaths assets)
+        static void AddAudio(ScenePaths assets, MusicTrack startTrack)
         {
             var audio = FindOrCreate<GameAudio>("Audio");
-            SetFields(audio, ("library", Load<SoundLibrary>(assets.Audio)));
+            SetFields(audio, ("library", Load<SoundLibrary>(assets.Audio)), ("startTrack", (int)startTrack));
             RequireReferences(audio);
         }
 

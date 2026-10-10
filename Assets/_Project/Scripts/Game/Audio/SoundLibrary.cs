@@ -31,7 +31,10 @@ namespace Pathfinder.Game.Audio
         RunOver,
     }
 
-    /// <summary>The clips and mix settings for each <see cref="SoundCue"/>.</summary>
+    /// <summary>Background music, by context (GDD §13.2).</summary>
+    public enum MusicTrack { None, Hub, Combat, Boss }
+
+    /// <summary>The clips and mix settings for each <see cref="SoundCue"/>, and the music tracks.</summary>
     [CreateAssetMenu(menuName = "Pathfinder/Sound Library", fileName = "SoundLibrary")]
     public sealed class SoundLibrary : ScriptableObject
     {
@@ -47,6 +50,17 @@ namespace Pathfinder.Game.Audio
         }
 
         [field: SerializeField] public Entry[] Entries { get; private set; } = Array.Empty<Entry>();
+        [field: SerializeField] public AudioClip HubMusic { get; private set; }
+        [field: SerializeField] public AudioClip CombatMusic { get; private set; }
+        [field: SerializeField] public AudioClip BossMusic { get; private set; }
+
+        public AudioClip Music(MusicTrack track) => track switch
+        {
+            MusicTrack.Hub => HubMusic,
+            MusicTrack.Combat => CombatMusic,
+            MusicTrack.Boss => BossMusic,
+            _ => null,
+        };
 
         public Entry Find(SoundCue cue)
         {

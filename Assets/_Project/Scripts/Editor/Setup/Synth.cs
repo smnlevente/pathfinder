@@ -57,6 +57,68 @@ namespace Pathfinder.Editor.Setup
             }
         }
 
+        /// <summary>
+        /// Adds a sustained note for music: attack, hold at full level, then release. Samples past the end wrap to the
+        /// start, so notes ringing over the loop point keep a loop seamless.
+        /// </summary>
+        public static void Note(float[] buffer, float start, float duration, Wave wave, float hz, float volume,
+            float attack = 0.01f, float release = 0.05f, float detune = 0f, int seed = 1)
+        {
+            var random = new Random(seed);
+            int first = (int)(start * Rate);
+            int count = (int)(duration * Rate);
+            int attackSamples = Math.Max(1, (int)(attack * Rate));
+            int releaseSamples = Math.Max(1, (int)(release * Rate));
+            double phase = random.NextDouble();
+            double frequency = hz * (1.0 + detune);
+            float held = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                phase += frequency / Rate;
+                double cycle = phase - Math.Floor(phase);
+                float value;
+                switch (wave)
+                {
+                    case Wave.Square: value = cycle < 0.5 ? 1f : -1f; break;
+                    case Wave.Saw: value = (float)(2.0 * cycle - 1.0); break;
+                    case Wave.Triangle: value = (float)(1.0 - 4.0 * Math.Abs(cycle - 0.5)); break;
+                    case Wave.Noise:
+                        if (cycle < frequency / Rate || i == 0)
+                            held = (float)(random.NextDouble() * 2.0 - 1.0);
+                        value = held;
+                        break;
+                    default: value = (float)Math.Sin(2.0 * Math.PI * cycle); break;
+                }
+
+                float envelope = Math.Min(1f, i / (float)attackSamples) * Math.Min(1f, (count - i) / (float)releaseSamples);
+                buffer[(first + i) % buffer.Length] += value * envelope * volume;
+            }
+        }
+
+        /// <summary>Mixes <paramref name="layer"/> into <paramref name="mix"/> at a gain.</summary>
+        public static void Mix(float[] mix, float[] layer, float gain)
+        {
+            for (int i = 0; i < mix.Length; i++)
+                mix[i] += layer[i] * gain;
+        }
+
+        /// <summary>A fixed low-pass for a looping buffer: a priming pass makes the filter state continuous over the loop point.</summary>
+        public static void LowPassLoop(float[] buffer, float hz)
+        {
+            float alpha = (float)(1.0 - Math.Exp(-2.0 * Math.PI * hz / Rate));
+            float state = 0f;
+            foreach (float sample in buffer)
+                state += alpha * (sample - state);
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                state += alpha * (buffer[i] - state);
+                buffer[i] = state;
+            }
+        }
+
+        /// <summary>Note frequency from a MIDI note number (69 = A4 = 440 Hz).</summary>
+        public static float Midi(int note) => 440f * (float)Math.Pow(2.0, (note - 69) / 12.0);
+
         /// <summary>One-pole low-pass whose cutoff sweeps across the buffer: bright attacks that dull as they fade.</summary>
         public static void LowPass(float[] buffer, float fromHz, float toHz)
         {
