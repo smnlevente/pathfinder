@@ -54,11 +54,18 @@ it to start a fresh profile.
 
 **Dev hotkeys** (Editor and development builds): **F1** cycle primary weapon, **F2** cycle secondary, **F3** god mode,
 **F4** kill all enemies, **F5** skip to the next wave, **F6** skip the current level (Run scene), **F7** offer 3 random equipment,
-**F8** +100 Scraps.
+**F8** +100 Scraps, **F9** reload the text files.
 
 Tuning lives in the ScriptableObjects under `Assets/_Project/Data`: ships, weapons, equipment (`Data/Equipment`), meta upgrades (`Data/Meta`), enemies, elites, and the wave config
 `Waves/Waves_ShatteredExpanse`. Behaviour tuning (bursts, charge speed, launch rates, the Quarry Maw's phases) is on the brain components in the
 enemy prefabs. To replay an exact run, set a seed code on **Combat World** in the Run scene.
+
+## Text and translations
+
+All player-facing text is in `Assets/StreamingAssets/Localization/en.loc`: one `key = value` per line, with `{placeholders}`
+for numbers. Edit a value and press **F9** in Play mode to see it at once. To add a language, copy `en.loc` to
+`<code>.loc`, change `@language`, and translate the values; it appears under Options > Language. Missing keys fall back to
+English. See GDD §12.5.
 
 ## Project layout
 

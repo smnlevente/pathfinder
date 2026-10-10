@@ -12,7 +12,7 @@ namespace Pathfinder.Game.Equipment
 
         public override EquipmentEffect CreateEffect() => new Effect(this);
 
-        public override string Describe(int level) => $"Kills reduce the secondary cooldown by {AtLevel(SecondsPerKill, level):0.##} s";
+        public override string Describe(int level) => Localization.Loc.T($"{Id}.desc", ("seconds", AtLevel(SecondsPerKill, level)));
 
         sealed class Effect : EquipmentEffect
         {

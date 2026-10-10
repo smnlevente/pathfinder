@@ -11,11 +11,11 @@ namespace Pathfinder.Game.Equipment
 
         public override EquipmentEffect CreateEffect() => new Effect(this);
 
-        public override string Describe(int level) => $"Every {Ordinal(IntervalAt(level))} shot fires 3 projectiles in a fan";
+        public override string Describe(int level) => Localization.Loc.T($"{Id}.desc", ("ordinal", Ordinal(IntervalAt(level))));
 
         int IntervalAt(int level) => Interval[Mathf.Clamp(level - 1, 0, Interval.Length - 1)];
 
-        static string Ordinal(int n) => n switch { 2 => "2nd", 3 => "3rd", _ => n + "th" };
+        static string Ordinal(int n) => Localization.Loc.Has($"ordinal.{n}") ? Localization.Loc.T($"ordinal.{n}") : Localization.Loc.T("ordinal.n", ("n", n));
 
         sealed class Effect : EquipmentEffect
         {

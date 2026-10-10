@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 2.0 (playtest 3: Lancer wind-down, boss shooting windows and pacing, debug Scraps) |
+| **Version** | 2.1 (localization: every player-facing string in editable .loc files) |
 | **Date** | 2026-10-10 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
@@ -591,6 +591,18 @@ dense bullet patterns blew out into glare and the Lancer's charge line looked li
 | **Player & allies** | **Cyan / blue** hull lights and projectiles. Player projectiles are elongated bolts, not orbs. | Cyan is never used by enemies. |
 | **Pickups** | **Gold** for Scraps; Dark Matter gets its own colour later. They spin and bob. | |
 | **Environment** | Teal/blue grid and walls, kept dim. Hazards use orange-yellow warning stripes. | |
+
+
+### 12.5 Localization
+Every player-facing string lives in plain-text **.loc files** in `Assets/StreamingAssets/Localization/`, one per language (`en.loc`, `de.loc`...). They ship next to the build as ordinary files, so text can be tuned or translated without code or a rebuild.
+
+- **Format:** one `key = value` per line. `#` starts a comment. `@language = English` names the language in the Options menu. Values are trimmed; wrap a value in double quotes to keep leading or trailing spaces. `\n` is a line break.
+- **Placeholders:** named, like `{amount}`, optionally with a number format: `{seconds:0.0}`. Translators can move them anywhere in the sentence. Numbers always use the invariant culture (a dot for decimals). An unknown placeholder stays visible instead of crashing.
+- **Keys:** UI text is grouped by screen (`hud.*`, `shop.*`, `hub.*`, `pause.*`, `options.*`, `objective.*`, `banner.*`...). Content uses its ID: `{id}.name` for everything, `{id}.desc` for item descriptions (with placeholders for the numbers), `{id}.trait` / `{id}.trait.desc` for ship traits, and `{id}.body`, `{id}.choice.N`, `{id}.result.N`, `{id}.fail.N` for Mystery events. Stat items build their descriptions from `stat.*` names and `stat.part.*` patterns.
+- **Fallbacks:** a key missing from the current language uses English; a key missing from English shows as `[key]` and logs a warning once. Content with no key falls back to the text authored on its asset, so new content works before it is localized.
+- **Languages:** the Options menu (Hub and pause) lists every .loc file in the folder. The choice is saved per machine. Menus rebuild in the new language at once.
+- **Editing live:** F9 (development builds and the Editor) reloads the files while the game runs.
+- **Safety net:** an EditMode test checks that every key the code uses, every built key (level types, stats, rarities, controls) and every piece of content's text exists in `en.loc`, and that the file parses without warnings.
 
 ---
 

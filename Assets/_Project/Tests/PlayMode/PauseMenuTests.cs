@@ -68,7 +68,7 @@ namespace Pathfinder.Tests.PlayMode
         public IEnumerator Options_ChangeSettings()
         {
             yield return LoadRun();
-            var master = SettingsOptions.All[0];
+            var master = SettingsOptions.All[1]; // after Language
             Assert.AreEqual("80%", master.Value());
 
             master.Change(-1, false);
@@ -81,7 +81,7 @@ namespace Pathfinder.Tests.PlayMode
             Assert.AreEqual(0f, GameSettings.MasterVolume, 0.001f, "Enter or click wraps past 100% to off.");
             Assert.AreEqual("OFF", master.Value());
 
-            var shake = SettingsOptions.All[3];
+            var shake = SettingsOptions.All[4];
             shake.Change(-1, false);
             Assert.AreEqual(0.75f, GameSettings.ScreenShake, 0.001f, "Screen shake steps by 25%.");
         }

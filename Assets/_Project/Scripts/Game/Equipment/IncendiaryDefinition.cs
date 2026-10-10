@@ -16,7 +16,7 @@ namespace Pathfinder.Game.Equipment
         public override EquipmentEffect CreateEffect() => new Effect(this);
 
         public override string Describe(int level) =>
-            $"Primary hits burn for {AtLevel(DamagePerSecond, level):0} damage/s over {Duration:0} s (stacks up to {MaxStacks}×)";
+            Localization.Loc.T($"{Id}.desc", ("dps", AtLevel(DamagePerSecond, level)), ("duration", Duration), ("stacks", MaxStacks));
 
         sealed class Effect : EquipmentEffect
         {

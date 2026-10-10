@@ -7,6 +7,7 @@ using Pathfinder.Game.Combat;
 using Pathfinder.Game.Content;
 using Pathfinder.Game.Enemies;
 using Pathfinder.Game.Equipment;
+using Pathfinder.Game.Localization;
 using Pathfinder.Game.Player;
 using Pathfinder.Game.Presentation;
 using Pathfinder.Game.Simulation;
@@ -216,7 +217,8 @@ namespace Pathfinder.Game.Run
                     throw new ArgumentOutOfRangeException(nameof(context), $"Unsupported level type {context.Type}.");
             }
 
-            ShowBanner(context.Ambush ? "AMBUSH!" : context.IsEvent ? "MYSTERY" : context.FromMystery ? $"MYSTERY: {LevelNames.Title(context.Type)}" : LevelNames.Title(context.Type));
+            ShowBanner(context.Ambush ? Loc.T("banner.ambush") : context.IsEvent ? Loc.T("banner.mystery")
+                : context.FromMystery ? Loc.T("banner.mystery_level", ("type", LevelNames.Title(context.Type))) : LevelNames.Title(context.Type));
             UpdateTexts();
         }
 
@@ -345,7 +347,7 @@ namespace Pathfinder.Game.Run
                 if (player.IsAlive)
                     player.AddScraps(bonus);
             }
-            ShowBanner($"LEVEL CLEAR   +{bonus} SCRAPS");
+            ShowBanner(Loc.T("banner.level_clear", ("bonus", bonus)));
             OpenExit();
         }
 
@@ -369,7 +371,7 @@ namespace Pathfinder.Game.Run
                 _cacheView = Instantiate(config.CachePrefab, PlaneMath.ToWorld(entity.Position), Quaternion.identity);
                 _spawnedObjects.Add(_cacheView);
             }
-            ShowBanner("EQUIPMENT CACHE DROPPED");
+            ShowBanner(Loc.T("banner.cache_dropped"));
         }
 
         void TickCache()
@@ -387,7 +389,7 @@ namespace Pathfinder.Game.Run
 
             // Mystery and ambush caches guarantee Rare or better (GDD §10.5).
             var minimum = Context.FromMystery ? Rarity.Rare : Rarity.Common;
-            OfferEquipment("EQUIPMENT CACHE", collector, minimum, took => TryCompleteEquipment());
+            OfferEquipment(Loc.T("choice.cache"), collector, minimum, took => TryCompleteEquipment());
         }
 
         void OnEquipmentWavesCleared(WaveDirector source) => TryCompleteEquipment();
@@ -489,7 +491,7 @@ namespace Pathfinder.Game.Run
                     _run?.AddDarkMatter(amount);
                     if (node.View != null)
                         node.View.SetActive(false);
-                    ShowBanner(DarkMatterHarvested == _nodes.Count ? "ALL DARK MATTER HARVESTED" : $"+{amount} DARK MATTER");
+                    ShowBanner(DarkMatterHarvested == _nodes.Count ? Loc.T("banner.darkmatter_all") : Loc.T("banner.darkmatter", ("amount", amount)));
                 }
             }
 
@@ -500,7 +502,7 @@ namespace Pathfinder.Game.Run
                 _escalated = true;
                 director.BudgetMultiplier = config.EscalatedBudgetMultiplier;
                 director.WaveTimeout = config.EscalatedWaveInterval;
-                ShowBanner("WORMHOLE UNSTABLE!");
+                ShowBanner(Loc.T("banner.unstable"));
             }
         }
 
@@ -542,24 +544,24 @@ namespace Pathfinder.Game.Run
         /// <summary>Repair station: restore 40% hull, or +15 max hull for the run. One use.</summary>
         void OpenRepair(PlayerShip pilot)
         {
-            dialog.Show("REPAIR STATION", () => $"Hull {Mathf.CeilToInt(pilot.Vitals.Hull)} / {pilot.Vitals.MaxHull:0}. Choose one.", () =>
+            dialog.Show(Loc.T("repair.title"), () => Loc.T("repair.body", ("hull", Mathf.CeilToInt(pilot.Vitals.Hull)), ("max", Mathf.RoundToInt(pilot.Vitals.MaxHull))), () =>
             {
                 float repair = pilot.Vitals.MaxHull * config.RepairFraction;
                 return new[]
                 {
                     new ChoiceDialog.Option
                     {
-                        Label = "Repair", Note = $"+{repair:0} HULL", NoteColor = new Color(0.45f, 1f, 0.6f),
-                        Detail = $"Restore {config.RepairFraction:P0} of your max hull.",
+                        Label = Loc.T("repair.repair"), Note = Loc.T("repair.repair.note", ("amount", Mathf.RoundToInt(repair))), NoteColor = new Color(0.45f, 1f, 0.6f),
+                        Detail = Loc.T("repair.repair.detail", ("percent", config.RepairFraction * 100f)),
                         OnChoose = () => { ApplyRepair(pilot, RepairChoice.Repair); return false; },
                     },
                     new ChoiceDialog.Option
                     {
-                        Label = "Reinforce", Note = $"+{config.ReinforceHull:0} MAX HULL", NoteColor = new Color(0.45f, 1f, 0.6f),
-                        Detail = "Raise your max hull for the rest of the run. Current damage stays.",
+                        Label = Loc.T("repair.reinforce"), Note = Loc.T("repair.reinforce.note", ("amount", Mathf.RoundToInt(config.ReinforceHull))), NoteColor = new Color(0.45f, 1f, 0.6f),
+                        Detail = Loc.T("repair.reinforce.detail"),
                         OnChoose = () => { ApplyRepair(pilot, RepairChoice.Reinforce); return false; },
                     },
-                    new ChoiceDialog.Option { Label = "Leave", OnChoose = () => false },
+                    new ChoiceDialog.Option { Label = Loc.T("common.leave"), OnChoose = () => false },
                 };
             });
         }
@@ -580,13 +582,13 @@ namespace Pathfinder.Game.Run
             _stationUsed = true;
             if (_stationMarker != null)
                 _stationMarker.SetSpent();
-            ShowBanner(choice == RepairChoice.Repair ? "HULL REPAIRED" : "HULL REINFORCED");
+            ShowBanner(Loc.T(choice == RepairChoice.Repair ? "banner.repaired" : "banner.reinforced"));
         }
 
         /// <summary>The Shop (GDD §10.6): buy equipment, upgrade equipped items, repair hull, reroll the catalog.</summary>
         void OpenShop(PlayerShip pilot)
         {
-            dialog.Show("SHOP", () => $"Scraps {pilot.Scraps}   ·   Hull {Mathf.CeilToInt(pilot.Vitals.Hull)} / {pilot.Vitals.MaxHull:0}", () =>
+            dialog.Show(Loc.T("shop.title"), () => Loc.T("shop.body", ("scraps", pilot.Scraps), ("hull", Mathf.CeilToInt(pilot.Vitals.Hull)), ("max", Mathf.RoundToInt(pilot.Vitals.MaxHull))), () =>
             {
                 var options = new List<ChoiceDialog.Option>();
                 for (int i = 0; i < _catalog.Count; i++)
@@ -595,16 +597,17 @@ namespace Pathfinder.Game.Run
                     var entry = _catalog[i];
                     int price = PriceOf(entry.Item);
                     var outcome = pilot.PreviewEquip(entry.Item);
-                    string state = entry.Sold ? "SOLD" : outcome == EquipOutcome.AlreadyMaxed ? "MAXED" : $"{price} SCRAPS";
+                    string state = entry.Sold ? Loc.T("shop.sold") : outcome == EquipOutcome.AlreadyMaxed ? Loc.T("shop.maxed") : Loc.T("common.price", ("amount", price));
                     var owned = pilot.Equipment.Find(entry.Item);
                     int level = owned != null ? owned.Level + 1 : 1;
-                    string action = outcome == EquipOutcome.LeveledUp ? $"level {EquipmentChoiceScreen.Roman(owned.Level)} → {EquipmentChoiceScreen.Roman(level)}"
-                        : outcome == EquipOutcome.NeedsSwap ? "slots full: swap" : "new";
+                    string action = outcome == EquipOutcome.LeveledUp ? Loc.T("shop.level_up", ("from", EquipmentChoiceScreen.Roman(owned.Level)), ("to", EquipmentChoiceScreen.Roman(level)))
+                        : outcome == EquipOutcome.NeedsSwap ? Loc.T("shop.swap") : Loc.T("shop.new");
                     options.Add(new ChoiceDialog.Option
                     {
-                        Section = i == 0 ? "Catalog" : null,
-                        Label = $"{entry.Item.DisplayName}",
-                        Detail = $"{entry.Item.Rarity} {EquipmentChoiceScreen.CategoryName(entry.Item.Category)}, {action}.  {entry.Item.Describe(level)}",
+                        Section = i == 0 ? Loc.T("shop.catalog") : null,
+                        Label = entry.Item.DisplayName,
+                        Detail = Loc.T("shop.item", ("rarity", EquipmentChoiceScreen.RarityName(entry.Item.Rarity)),
+                            ("category", EquipmentChoiceScreen.CategoryName(entry.Item.Category)), ("action", action), ("description", entry.Item.Describe(level))),
                         Note = state,
                         Accent = EquipmentChoiceScreen.RarityColor(entry.Item.Rarity),
                         Enabled = !entry.Sold && outcome != EquipOutcome.AlreadyMaxed && pilot.Scraps >= price,
@@ -625,10 +628,10 @@ namespace Pathfinder.Game.Run
                     int price = UpgradePrice(equipped.Level);
                     options.Add(new ChoiceDialog.Option
                     {
-                        Section = firstUpgrade ? "Upgrades" : null,
-                        Label = $"Upgrade {item.DisplayName} to {EquipmentChoiceScreen.Roman(equipped.Level + 1)}",
+                        Section = firstUpgrade ? Loc.T("shop.upgrades") : null,
+                        Label = Loc.T("shop.upgrade", ("item", item.DisplayName), ("level", EquipmentChoiceScreen.Roman(equipped.Level + 1))),
                         Detail = item.Describe(equipped.Level + 1),
-                        Note = $"{price} SCRAPS",
+                        Note = Loc.T("common.price", ("amount", price)),
                         Accent = EquipmentChoiceScreen.RarityColor(item.Rarity),
                         Enabled = pilot.Scraps >= price,
                         OnChoose = () => { UpgradeEquipment(pilot, item); return true; },
@@ -636,19 +639,19 @@ namespace Pathfinder.Game.Run
                     firstUpgrade = false;
                 }
 
-                var repair = RepairOffer(pilot, 25, "Repair 25 hull");
-                repair.Section = "Services";
+                var repair = RepairOffer(pilot, 25, Loc.T("shop.repair_25"));
+                repair.Section = Loc.T("shop.services");
                 options.Add(repair);
-                options.Add(RepairOffer(pilot, Mathf.CeilToInt(pilot.Vitals.MaxHull - pilot.Vitals.Hull), "Repair to full"));
+                options.Add(RepairOffer(pilot, Mathf.CeilToInt(pilot.Vitals.MaxHull - pilot.Vitals.Hull), Loc.T("shop.repair_full")));
                 options.Add(new ChoiceDialog.Option
                 {
-                    Label = "Reroll catalog",
-                    Detail = "Replace the unsold items. Each reroll costs 10 more.",
-                    Note = $"{RerollPrice} SCRAPS",
+                    Label = Loc.T("shop.reroll"),
+                    Detail = Loc.T("shop.reroll.detail"),
+                    Note = Loc.T("common.price", ("amount", RerollPrice)),
                     Enabled = pilot.Scraps >= RerollPrice,
                     OnChoose = () => { RerollCatalog(pilot); return true; },
                 });
-                options.Add(new ChoiceDialog.Option { Label = "Leave", OnChoose = () => false });
+                options.Add(new ChoiceDialog.Option { Label = Loc.T("common.leave"), OnChoose = () => false });
                 return options;
             });
         }
@@ -733,7 +736,7 @@ namespace Pathfinder.Game.Run
             return new ChoiceDialog.Option
             {
                 Label = label,
-                Note = amount > 0 ? $"{price} SCRAPS" : "HULL FULL",
+                Note = amount > 0 ? Loc.T("common.price", ("amount", price)) : Loc.T("shop.hull_full"),
                 Enabled = amount > 0 && pilot.Scraps >= price,
                 OnChoose = () =>
                 {
@@ -786,7 +789,7 @@ namespace Pathfinder.Game.Run
                 if (player.IsAlive)
                     player.Heal(player.Vitals.MaxHull * config.BossHealFraction);
             }
-            ShowBanner($"BOSS DEFEATED   +{cores} SINGULARITY CORE{(cores == 1 ? "" : "S")}");
+            ShowBanner(Loc.T(cores == 1 ? "banner.boss_defeated.one" : "banner.boss_defeated.many", ("cores", cores)));
             OpenExit();
             _bossRewardDelay = BossRewardDelay;
         }
@@ -796,7 +799,7 @@ namespace Pathfinder.Game.Run
         {
             var pilot = FirstLivingPilot();
             if (pilot != null)
-                OfferEquipment("BOSS REWARD", pilot, Rarity.Rare, null);
+                OfferEquipment(Loc.T("choice.boss_reward"), pilot, Rarity.Rare, null);
         }
 
         static PlayerShip FirstLivingPilot()
@@ -843,16 +846,17 @@ namespace Pathfinder.Game.Run
 
         void ShowEvent(PlayerShip pilot)
         {
-            dialog.Show(Event.DisplayName.ToUpperInvariant(), () => Event.Body, () =>
+            dialog.Show(Event.DisplayName.ToUpperInvariant(), () => Event.BodyText, () =>
             {
                 var options = new List<ChoiceDialog.Option>();
-                foreach (var choice in Event.Choices)
+                for (int i = 0; i < Event.Choices.Length; i++)
                 {
-                    var captured = choice;
+                    var choice = Event.Choices[i];
+                    int captured = i;
                     bool available = MysteryEvents.IsAvailable(choice, pilot);
                     options.Add(new ChoiceDialog.Option
                     {
-                        Label = choice.Label,
+                        Label = Event.ChoiceLabel(i),
                         Detail = MysteryEvents.Describe(choice),
                         Note = available ? null : MysteryEvents.RequirementText(choice),
                         NoteColor = Presentation.Ui.UiKit.Bad,
@@ -868,9 +872,9 @@ namespace Pathfinder.Game.Run
             });
         }
 
-        void ResolveEvent(EventChoice choice, PlayerShip pilot)
+        void ResolveEvent(int index, PlayerShip pilot)
         {
-            var result = MysteryEvents.Apply(choice, pilot, _run, _eventRandom);
+            var result = MysteryEvents.Apply(Event, index, pilot, _run, _eventRandom);
             LastEventResult = result;
             string lines = string.Join("\n", result.Lines);
             string body = string.IsNullOrEmpty(result.Text) ? lines : lines.Length > 0 ? $"{result.Text}\n\n{lines}" : result.Text;
@@ -878,11 +882,11 @@ namespace Pathfinder.Game.Run
             {
                 new ChoiceDialog.Option
                 {
-                    Label = result.Ambush ? "Fight" : "Continue",
+                    Label = Loc.T(result.Ambush ? "common.fight" : "common.continue"),
                     OnChoose = () =>
                     {
                         if (result.EquipmentOffer.HasValue)
-                            OfferEquipment("FOUND EQUIPMENT", pilot, result.EquipmentOffer.Value, _ => FinishEvent(result));
+                            OfferEquipment(Loc.T("choice.found"), pilot, result.EquipmentOffer.Value, _ => FinishEvent(result));
                         else
                             FinishEvent(result);
                         return false;
@@ -903,7 +907,7 @@ namespace Pathfinder.Game.Run
             RewardMultiplier = config.AmbushRewardMultiplier;
             director.Begin(Context.Seed, Context.GalaxyIndex, Context.Row + 1, config.EquipmentWaves, config.AmbushBudgetMultiplier);
             director.Completed += OnEventAmbushCleared;
-            ShowBanner("AMBUSH!");
+            ShowBanner(Loc.T("banner.ambush"));
         }
 
         void OnEventAmbushCleared(WaveDirector source)
@@ -916,7 +920,7 @@ namespace Pathfinder.Game.Run
                 if (player.IsAlive)
                     player.AddScraps(bonus);
             }
-            ShowBanner($"AMBUSH SURVIVED   +{bonus} SCRAPS");
+            ShowBanner(Loc.T("banner.ambush_survived", ("bonus", bonus)));
             OpenExit();
         }
 
@@ -965,74 +969,60 @@ namespace Pathfinder.Game.Run
         void UpdateTexts()
         {
             Prompt = string.Empty;
-            string exit = ExitOpen ? "   ·   EXIT OPEN" : string.Empty;
+            string exit = ExitOpen ? Loc.T("objective.exit_open") : string.Empty;
+            (string, object) wave = ("wave", director.Wave), count = ("count", director.WaveCount);
 
             switch (Context.Type)
             {
                 case MapNodeType.Scraps:
-                    Objective = ExitOpen ? "Level clear: fly into the wormhole" : $"Clear the waves   {director.Wave} / {director.WaveCount}";
+                    Objective = ExitOpen ? Loc.T("objective.level_clear") : Loc.T("objective.waves", wave, count);
                     break;
                 case MapNodeType.Equipment:
                     bool carrierAlive = _cacheCarrier != null && _cacheCarrier.IsAlive;
-                    Objective = ExitOpen ? "Cache secured: fly into the wormhole"
-                        : _cachePosition.HasValue && !_cacheCollected ? "Collect the Equipment Cache"
-                        : _cacheCollected ? "Cache secured   ·   clear the remaining enemies"
-                        : carrierAlive ? $"Destroy the Cache Carrier   ·   wave {director.Wave} / {director.WaveCount}"
-                        : $"Clear the waves   {director.Wave} / {director.WaveCount}";
+                    Objective = ExitOpen ? Loc.T("objective.cache_done")
+                        : _cachePosition.HasValue && !_cacheCollected ? Loc.T("objective.cache_collect")
+                        : _cacheCollected ? Loc.T("objective.cache_secured")
+                        : carrierAlive ? Loc.T("objective.cache_carrier", wave, count)
+                        : Loc.T("objective.waves", wave, count);
                     break;
                 case MapNodeType.DarkMatter:
                     int seconds = Mathf.CeilToInt(InstabilityRemaining);
-                    string timer = InstabilityRemaining > 0f ? $"Instability {seconds / 60}:{seconds % 60:00}" : "UNSTABLE";
-                    Objective = $"Harvest Dark Matter   {DarkMatterHarvested} / {_nodes.Count}   ·   {timer}{exit}";
+                    string timer = InstabilityRemaining > 0f ? Loc.T("objective.instability", ("minutes", seconds / 60), ("seconds", seconds % 60)) : Loc.T("objective.unstable");
+                    Objective = Loc.T("objective.darkmatter", ("harvested", DarkMatterHarvested), ("total", _nodes.Count), ("timer", timer), ("exit", exit));
                     break;
                 case MapNodeType.Repair:
-                    Objective = (_stationUsed ? "Repaired" : "Use the repair station") + exit;
+                    Objective = Loc.T(_stationUsed ? "objective.repaired" : "objective.repair") + exit;
                     if (!_stationUsed && AnyPilotWithin(_stationPosition, StationRadius))
-                        Prompt = "Press E / (Y) to use the repair station";
+                        Prompt = Loc.T("prompt.repair");
                     break;
                 case MapNodeType.Shop:
-                    Objective = "Spend Scraps at the shop, then face the boss" + exit;
+                    Objective = Loc.T("objective.shop") + exit;
                     if (AnyPilotWithin(_stationPosition, StationRadius))
-                        Prompt = "Press E / (Y) to open the shop";
+                        Prompt = Loc.T("prompt.shop");
                     break;
                 case MapNodeType.Boss:
-                    Objective = ExitOpen ? "Boss defeated: fly into the wormhole" : "Defeat the boss";
+                    Objective = Loc.T(ExitOpen ? "objective.boss_done" : "objective.boss");
                     if (!ExitOpen && _levelTime < 8f)
-                        Prompt = "Its shell deflects shots: hit the yellow crystals, and its maw when it opens";
+                        Prompt = Loc.T("prompt.boss_hint");
                     break;
                 case MapNodeType.Mystery:
-                    Objective = ExitOpen ? "Ambush survived: fly into the wormhole"
-                        : _ambushRunning ? $"Survive the ambush   {director.Wave} / {director.WaveCount}" : "Mystery";
+                    Objective = ExitOpen ? Loc.T("objective.ambush_done")
+                        : _ambushRunning ? Loc.T("objective.ambush", wave, count) : Loc.T("objective.mystery");
                     break;
             }
         }
     }
 
-    /// <summary>Display names for level types.</summary>
+    /// <summary>Display names for level types: <c>level.{type}</c> and <c>level.{type}.desc</c> in the .loc files.</summary>
     public static class LevelNames
     {
-        public static string Title(MapNodeType type) => type switch
-        {
-            MapNodeType.Scraps => "SCRAPS",
-            MapNodeType.Equipment => "EQUIPMENT",
-            MapNodeType.DarkMatter => "DARK MATTER",
-            MapNodeType.Repair => "REPAIR",
-            MapNodeType.Mystery => "MYSTERY",
-            MapNodeType.Shop => "SHOP",
-            MapNodeType.Boss => "BOSS",
-            _ => type.ToString().ToUpperInvariant(),
-        };
+        public static string Title(MapNodeType type) => Loc.T($"level.{Key(type)}");
 
-        public static string Description(MapNodeType type) => type switch
-        {
-            MapNodeType.Scraps => "Four dense waves with double Scraps drops, and a bonus at the end.",
-            MapNodeType.Equipment => "Three waves. Destroy the elite Cache Carrier and grab its cache: a choice of 3 equipment.",
-            MapNodeType.DarkMatter => "Harvest Dark Matter before the wormhole destabilises. Leave whenever you like.",
-            MapNodeType.Repair => "No enemies. Restore 40% hull, or reinforce for +15 max hull.",
-            MapNodeType.Mystery => "Usually an event: a choice with upsides and downsides. Sometimes a level with bigger rewards, or an ambush.",
-            MapNodeType.Shop => "Buy and upgrade equipment and repair your hull before the boss.",
-            MapNodeType.Boss => "The galaxy guardian. Defeat it to jump to the next galaxy.",
-            _ => string.Empty,
-        };
+        public static string Description(MapNodeType type) => Loc.T($"level.{Key(type)}.desc");
+
+        /// <summary>The map symbol for the type.</summary>
+        public static string Glyph(MapNodeType type) => Loc.T($"glyph.{Key(type)}");
+
+        static string Key(MapNodeType type) => type.ToString().ToLowerInvariant();
     }
 }

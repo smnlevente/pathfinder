@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Pathfinder.Game.Localization;
 using Pathfinder.Game.Presentation.Ui;
 using Pathfinder.Game.Run;
 using UnityEngine;
@@ -110,39 +111,55 @@ namespace Pathfinder.Game.Presentation
             switch (page)
             {
                 case Page.Main:
-                    _title.text = "PAUSED";
-                    AddRow("RESUME", null, null, Resume);
-                    AddRow("OPTIONS", null, "Volume, screen shake, fullscreen.", () => ShowPage(Page.Options));
-                    AddRow("CONTROLS", null, null, () => ShowPage(Page.Controls));
-                    AddRow(runDirector != null ? "ABANDON RUN" : "QUIT TO HUB", null,
-                        runDirector != null ? "Back to the Hub. The run counts as lost; its Dark Matter and Cores are banked." : "Back to the Hub.",
-                        Leave);
-                    _hint.text = "Up / Down: choose     Enter: confirm     Esc: resume";
+                    _title.text = Loc.T("pause.title");
+                    AddRow(Loc.T("pause.resume"), null, null, Resume);
+                    AddRow(Loc.T("pause.options"), null, Loc.T("pause.options.detail"), () => ShowPage(Page.Options));
+                    AddRow(Loc.T("pause.controls"), null, null, () => ShowPage(Page.Controls));
+                    string leave = runDirector != null ? "pause.abandon" : "pause.quit";
+                    AddRow(Loc.T(leave), null, Loc.T(leave + ".detail"), Leave);
+                    _hint.text = Loc.T("pause.hint");
                     break;
 
                 case Page.Options:
-                    _title.text = "OPTIONS";
+                    _title.text = Loc.T("pause.options.title");
                     foreach (var option in SettingsOptions.All)
                     {
                         var captured = option;
                         UiRow view = null;
                         view = AddRow(option.Label, option.Value(), option.Detail,
-                            () => { captured.Change(1, true); view.SetNote(captured.Value()); },
-                            step => { captured.Change(step, false); view.SetNote(captured.Value()); });
+                            () => ChangeOption(captured, view, 1, true),
+                            step => ChangeOption(captured, view, step, false));
                     }
-                    AddRow("BACK", null, null, () => ShowPage(Page.Main));
-                    _hint.text = "Up / Down: choose     Left / Right or click: change     Esc: back";
+                    AddRow(Loc.T("common.back"), null, null, () => ShowPage(Page.Main));
+                    _hint.text = Loc.T("pause.options.hint");
                     break;
 
                 case Page.Controls:
-                    _title.text = "CONTROLS";
+                    _title.text = Loc.T("pause.controls.title");
                     foreach (var (action, keyboard, gamepad) in SettingsOptions.Controls)
                         AddRow(action, keyboard, gamepad, null);
-                    AddRow("BACK", null, null, () => ShowPage(Page.Main));
-                    _hint.text = "Keyboard and mouse on the right, gamepad below     Esc: back";
+                    AddRow(Loc.T("common.back"), null, null, () => ShowPage(Page.Main));
+                    _hint.text = Loc.T("pause.controls.hint");
                     break;
             }
             LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_list.parent);
+        }
+
+        /// <summary>Changes an option. A new language rebuilds the page, so every row is in the new language.</summary>
+        void ChangeOption(SettingOption option, UiRow view, int step, bool wrap)
+        {
+            string language = Loc.Language;
+            option.Change(step, wrap);
+            if (Loc.Language != language)
+            {
+                int selected = _selected;
+                ShowPage(Page.Options);
+                _selected = selected;
+            }
+            else
+            {
+                view.SetNote(option.Value());
+            }
         }
 
         UiRow AddRow(string label, string note, string detail, Action activate, Action<int> step = null)

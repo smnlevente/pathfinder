@@ -14,7 +14,9 @@ namespace Pathfinder.Game.Content
         [SerializeField] string displayName;
 
         public string Id => id;
-        public string DisplayName => string.IsNullOrEmpty(displayName) ? name : displayName;
+
+        /// <summary>The localized name (<c>{id}.name</c> in the .loc files), or the name authored on the asset.</summary>
+        public string DisplayName => Localization.Loc.TOr($"{id}.name", string.IsNullOrEmpty(displayName) ? name : displayName);
 
         /// <summary>Default ID for an asset name: "Ship_Stormbringer" → "ship.stormbringer".</summary>
         public static string ToId(string assetName) => assetName.Trim().ToLowerInvariant().Replace('_', '.').Replace(' ', '.');

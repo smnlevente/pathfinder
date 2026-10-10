@@ -11,7 +11,7 @@ namespace Pathfinder.Game.Equipment
         public override EquipmentEffect CreateEffect() => new Effect(this);
 
         public override string Describe(int level) =>
-            $"Once per level, survive a lethal hit at 1 hull with {AtLevel(GraceSeconds, level):0.#} s of invulnerability";
+            Localization.Loc.T($"{Id}.desc", ("seconds", AtLevel(GraceSeconds, level)));
 
         sealed class Effect : EquipmentEffect
         {

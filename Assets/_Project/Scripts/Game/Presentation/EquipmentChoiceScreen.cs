@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Pathfinder.Core.Equipment;
 using Pathfinder.Game.Equipment;
+using Pathfinder.Game.Localization;
 using Pathfinder.Game.Player;
 using Pathfinder.Game.Presentation.Ui;
 using Pathfinder.Game.Simulation;
@@ -72,7 +73,7 @@ namespace Pathfinder.Game.Presentation
         /// <summary>Goes straight to the swap step for one item, e.g. a Shop purchase into a full category.</summary>
         public void ShowSwap(EquipmentDefinition item, PlayerShip ship, Action<bool> onClosed)
         {
-            _title = "REPLACE WHICH ITEM?";
+            _title = Loc.T("choice.replace_item");
             _options = new[] { item };
             _ship = ship;
             _allowSkip = false;
@@ -216,7 +217,7 @@ namespace Pathfinder.Game.Presentation
             UiKit.Place(skipHolder, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(520f, 0f));
             UiKit.Vertical(skipHolder, 0f);
             UiKit.FitContent(skipHolder);
-            _skipRow = new UiRow(skipHolder, "SKIP", string.Empty, null, null, UiKit.Gold);
+            _skipRow = new UiRow(skipHolder, string.Empty, string.Empty, null, null, UiKit.Gold);
             _skipRow.Pointer.Entered += () => _selected = _options.Count;
             _skipRow.Pointer.Clicked += Skip;
 
@@ -229,7 +230,7 @@ namespace Pathfinder.Game.Presentation
             _swapSubtitle = UiKit.Text(_swapRoot, "Subtitle", string.Empty, 21, UiKit.TextBody, TextAnchor.UpperCenter);
             _swapList = UiKit.Node("List", _swapRoot);
             UiKit.Vertical(_swapList, 8f);
-            UiKit.Text(_swapRoot, "Hint", "Up / Down: choose     Enter: confirm     Esc: back", 17, UiKit.TextDim, TextAnchor.MiddleCenter);
+            UiKit.Text(_swapRoot, "Hint", Loc.T("choice.hint"), 17, UiKit.TextDim, TextAnchor.MiddleCenter);
         }
 
         void EnterPick()
@@ -249,7 +250,7 @@ namespace Pathfinder.Game.Presentation
 
             _skipRow.Rect.parent.gameObject.SetActive(_allowSkip);
             if (_allowSkip)
-                _skipRow.SetLabel($"SKIP   (+{_skipScraps} SCRAPS)");
+                _skipRow.SetLabel(Loc.T("choice.skip", ("amount", _skipScraps)));
             LayoutRebuilder.ForceRebuildLayoutImmediate(_cards);
             RefreshSelection();
         }
@@ -275,12 +276,12 @@ namespace Pathfinder.Game.Presentation
             var outcome = _ship.PreviewEquip(item);
             var existing = _ship.Equipment.Find(item);
             int level = existing != null ? existing.Level + 1 : 1;
-            string status = outcome == EquipOutcome.LeveledUp ? $"LEVEL {Roman(existing.Level)}  →  {Roman(level)}"
-                : outcome == EquipOutcome.NeedsSwap ? $"NEW  ·  {CategoryName(item.Category).ToUpperInvariant()} SLOTS FULL: SWAP"
-                : "NEW";
+            string status = outcome == EquipOutcome.LeveledUp ? Loc.T("choice.level_up", ("from", Roman(existing.Level)), ("to", Roman(level)))
+                : outcome == EquipOutcome.NeedsSwap ? Loc.T("choice.slots_full", ("category", CategoryName(item.Category).ToUpperInvariant()))
+                : Loc.T("choice.new");
 
             UiKit.Text(background.transform, "Name", item.DisplayName, 30, UiKit.TextBright, TextAnchor.UpperLeft, FontStyle.Bold);
-            UiKit.Text(background.transform, "Kind", $"{item.Rarity.ToString().ToUpperInvariant()}  {CategoryName(item.Category).ToUpperInvariant()}",
+            UiKit.Text(background.transform, "Kind", Loc.T("choice.kind", ("rarity", RarityName(item.Rarity).ToUpperInvariant()), ("category", CategoryName(item.Category).ToUpperInvariant())),
                 18, RarityColor(item.Rarity), TextAnchor.UpperLeft, FontStyle.Bold);
             UiKit.Text(background.transform, "Status", status, 18, outcome == EquipOutcome.NeedsSwap ? UiKit.Gold : UiKit.Accent, TextAnchor.UpperLeft);
             var description = UiKit.Text(background.transform, "Description", item.Describe(level), 22, UiKit.TextBody);
@@ -288,7 +289,7 @@ namespace Pathfinder.Game.Presentation
 
             var take = UiKit.Image(background.transform, "Take", UiKit.RowSelected);
             UiKit.Layout(take, preferredHeight: 56f);
-            var takeLabel = UiKit.Text(take.transform, "Label", "TAKE", 24, UiKit.TextBright, TextAnchor.MiddleCenter, FontStyle.Bold);
+            var takeLabel = UiKit.Text(take.transform, "Label", Loc.T("choice.take"), 24, UiKit.TextBright, TextAnchor.MiddleCenter, FontStyle.Bold);
             UiKit.Stretch(takeLabel.rectTransform);
 
             var pointer = background.gameObject.AddComponent<UiPointer>();
@@ -304,9 +305,9 @@ namespace Pathfinder.Game.Presentation
             _selected = 0;
             _pickRoot.gameObject.SetActive(false);
             _swapRoot.gameObject.SetActive(true);
-            _swapTitle.text = $"REPLACE WHICH {CategoryName(item.Category).ToUpperInvariant()}?";
+            _swapTitle.text = Loc.T("choice.replace", ("category", CategoryName(item.Category).ToUpperInvariant()));
             _swapSubtitle.text = $"{UiKit.Colored(item.DisplayName, RarityColor(item.Rarity))}: {item.Describe(1)}\n" +
-                UiKit.Colored("The replaced item is lost.", UiKit.TextDim);
+                UiKit.Colored(Loc.T("choice.replaced_lost"), UiKit.TextDim);
 
             for (int i = _swapList.childCount - 1; i >= 0; i--)
                 Destroy(_swapList.GetChild(i).gameObject);
@@ -318,7 +319,7 @@ namespace Pathfinder.Game.Presentation
             {
                 bool back = i == equipped.Count;
                 var row = back
-                    ? new UiRow(_swapList, _allowSkip ? "BACK" : "CANCEL")
+                    ? new UiRow(_swapList, Loc.T(_allowSkip ? "common.back" : "common.cancel"))
                     : new UiRow(_swapList, $"{equipped[i].Item.DisplayName} {Roman(equipped[i].Level)}", null,
                         equipped[i].Item.Describe(equipped[i].Level), RarityColor(equipped[i].Item.Rarity));
                 int index = i;
@@ -358,13 +359,9 @@ namespace Pathfinder.Game.Presentation
 
         public static string Roman(int level) => level switch { 1 => "I", 2 => "II", 3 => "III", _ => level.ToString() };
 
-        public static string CategoryName(EquipmentCategory category) => category switch
-        {
-            EquipmentCategory.Dash => "Dash Module",
-            EquipmentCategory.Weapon => "Weapon Mod",
-            EquipmentCategory.Secondary => "Secondary Mod",
-            _ => "Hull System",
-        };
+        public static string CategoryName(EquipmentCategory category) => Loc.T($"category.{category.ToString().ToLowerInvariant()}");
+
+        public static string RarityName(Rarity rarity) => Loc.T($"rarity.{rarity.ToString().ToLowerInvariant()}");
 
         public static Color RarityColor(Rarity rarity) => rarity switch
         {

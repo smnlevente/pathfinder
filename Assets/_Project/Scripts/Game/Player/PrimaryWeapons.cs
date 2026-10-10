@@ -101,8 +101,8 @@ namespace Pathfinder.Game.Player
         }
 
         public PrimaryWeaponStatus Status => _magazine.IsReloading
-            ? new PrimaryWeaponStatus($"RELOADING {_magazine.ReloadProgress * 100f:0}%", _magazine.ReloadProgress, warning: true)
-            : new PrimaryWeaponStatus($"{_magazine.Ammo} / {_magazine.MagazineSize}", _magazine.Ammo / (float)_magazine.MagazineSize, warning: false);
+            ? new PrimaryWeaponStatus(Localization.Loc.T("weapon.reloading", ("percent", _magazine.ReloadProgress * 100f)), _magazine.ReloadProgress, warning: true)
+            : new PrimaryWeaponStatus(Localization.Loc.T("weapon.ammo", ("ammo", _magazine.Ammo), ("size", _magazine.MagazineSize)), _magazine.Ammo / (float)_magazine.MagazineSize, warning: false);
 
         public void Tick(float deltaTime, in ShipCommand command, PlayerShip ship, CombatWorld world)
         {
@@ -166,12 +166,12 @@ namespace Pathfinder.Game.Player
             get
             {
                 if (_charge.IsLockedOut)
-                    return new PrimaryWeaponStatus("OVERHEATED", 1f, warning: true);
+                    return new PrimaryWeaponStatus(Localization.Loc.T("weapon.overheated"), 1f, warning: true);
                 if (_charge.HeatFraction > 0f)
-                    return new PrimaryWeaponStatus($"RELEASE! {(1f - _charge.HeatFraction) * Definition.OverheatTime:0.0}s", 1f - _charge.HeatFraction, warning: true, charge: 1f);
+                    return new PrimaryWeaponStatus(Localization.Loc.T("weapon.release", ("seconds", (1f - _charge.HeatFraction) * Definition.OverheatTime)), 1f - _charge.HeatFraction, warning: true, charge: 1f);
                 if (_charge.IsCharging)
-                    return new PrimaryWeaponStatus($"CHARGE {_charge.ChargeFraction * 100f:0}%", _charge.ChargeFraction, warning: false, charge: _charge.ChargeFraction);
-                return new PrimaryWeaponStatus("HOLD TO CHARGE", 0f, warning: false);
+                    return new PrimaryWeaponStatus(Localization.Loc.T("weapon.charge", ("percent", _charge.ChargeFraction * 100f)), _charge.ChargeFraction, warning: false, charge: _charge.ChargeFraction);
+                return new PrimaryWeaponStatus(Localization.Loc.T("weapon.hold"), 0f, warning: false);
             }
         }
 

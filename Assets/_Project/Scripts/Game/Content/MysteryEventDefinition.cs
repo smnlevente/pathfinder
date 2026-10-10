@@ -13,6 +13,13 @@ namespace Pathfinder.Game.Content
     {
         [field: SerializeField, TextArea(3, 8)] public string Body { get; private set; }
         [field: SerializeField] public EventChoice[] Choices { get; private set; } = Array.Empty<EventChoice>();
+
+        // Localized text (GDD §12.5): {id}.body, {id}.choice.N, {id}.result.N and {id}.fail.N, falling back to the asset.
+        public string BodyText => Localization.Loc.TOr($"{Id}.body", Body);
+        public string ChoiceLabel(int index) => Localization.Loc.TOr($"{Id}.choice.{index}", Choices[index].Label);
+        public string ResultText(int index, bool succeeded) => succeeded
+            ? Localization.Loc.TOr($"{Id}.result.{index}", Choices[index].ResultText)
+            : Localization.Loc.TOr($"{Id}.fail.{index}", Choices[index].FailText);
     }
 
     public enum EventRequirement

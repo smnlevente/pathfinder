@@ -12,7 +12,7 @@ namespace Pathfinder.Game.Equipment
 
         public override EquipmentEffect CreateEffect() => new Effect(this);
 
-        public override string Describe(int level) => $"Dash end fires a ring of {CountAt(level)} primary projectiles";
+        public override string Describe(int level) => Localization.Loc.T($"{Id}.desc", ("count", CountAt(level)));
 
         int CountAt(int level) => Projectiles[Mathf.Clamp(level - 1, 0, Projectiles.Length - 1)];
 

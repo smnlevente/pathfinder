@@ -9,6 +9,13 @@ namespace Pathfinder.Game.Content
         [field: Header("Trait")]
         [field: SerializeField] public string TraitName { get; private set; } = string.Empty;
         [field: SerializeField, TextArea] public string TraitDescription { get; private set; } = string.Empty;
+
+        /// <summary>The localized trait name (<c>{id}.trait</c>), or the one authored on the asset.</summary>
+        public string TraitTitle => Localization.Loc.TOr($"{Id}.trait", TraitName);
+
+        /// <summary>The localized trait description (<c>{id}.trait.desc</c>), or the one authored on the asset.</summary>
+        public string TraitText => Localization.Loc.TOr($"{Id}.trait.desc", TraitDescription);
+
         [field: SerializeField, Tooltip("Optional always-on effect, e.g. the Stormbringer's Lightning Core. Stat-only traits live in the stats below.")]
         public Pathfinder.Game.Equipment.EquipmentDefinition Trait { get; private set; }
 

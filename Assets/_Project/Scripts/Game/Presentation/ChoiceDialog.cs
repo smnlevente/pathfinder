@@ -190,7 +190,7 @@ namespace Pathfinder.Game.Presentation
             scroll.viewport = _viewport;
             scroll.content = _content;
 
-            UiKit.Text(_panel, "Hint", "Up / Down: choose     Enter: confirm     Esc: close", 17, UiKit.TextDim, TextAnchor.MiddleCenter);
+            UiKit.Text(_panel, "Hint", Localization.Loc.T("dialog.hint"), 17, UiKit.TextDim, TextAnchor.MiddleCenter);
         }
 
         void RebuildRows()

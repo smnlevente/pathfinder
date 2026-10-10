@@ -1,0 +1,489 @@
+# Project Pathfinder: New Home. English text, and the fallback for every other language.
+#
+# One "key = value" per line. Lines starting with # are comments. Values are trimmed: wrap a value in double
+# quotes to keep leading or trailing spaces. \n is a line break.
+# {placeholders} are filled in by the game: keep them, but move them anywhere in the sentence. {seconds:0.0}
+# also sets the number format.
+# To translate, copy this file to <code>.loc (de.loc, fr.loc...), change @language, and translate the values.
+# Missing keys fall back to English. In a development build, F9 reloads the files while the game runs.
+
+@language = English
+
+## ------------------------------------------------------------------ common
+common.back = BACK
+common.cancel = CANCEL
+common.leave = Leave
+common.continue = Continue
+common.fight = Fight
+common.on = ON
+common.off = OFF
+common.percent = {value:0}%
+common.price = {amount} SCRAPS
+
+## ------------------------------------------------------------------ level types (map, HUD, banners)
+level.scraps = SCRAPS
+level.scraps.desc = Four dense waves with double Scraps drops, and a bonus at the end.
+level.equipment = EQUIPMENT
+level.equipment.desc = Three waves. Destroy the elite Cache Carrier and grab its cache: a choice of 3 equipment.
+level.darkmatter = DARK MATTER
+level.darkmatter.desc = Harvest Dark Matter before the wormhole destabilises. Leave whenever you like.
+level.repair = REPAIR
+level.repair.desc = No enemies. Restore 40% hull, or reinforce for +15 max hull.
+level.mystery = MYSTERY
+level.mystery.desc = Usually an event: a choice with upsides and downsides. Sometimes a level with bigger rewards, or an ambush.
+level.shop = SHOP
+level.shop.desc = Buy and upgrade equipment and repair your hull before the boss.
+level.boss = BOSS
+level.boss.desc = The galaxy guardian. Defeat it to jump to the next galaxy.
+
+# Map node symbols
+glyph.scraps = S
+glyph.equipment = E
+glyph.darkmatter = DM
+glyph.repair = +
+glyph.mystery = ?
+glyph.shop = $
+glyph.boss = !
+
+galaxy.0 = The Shattered Expanse
+galaxy.1 = The Graveyard Drift
+galaxy.2 = The Veil Nebula
+
+## ------------------------------------------------------------------ banners, objectives, prompts
+banner.ambush = AMBUSH!
+banner.mystery = MYSTERY
+banner.mystery_level = MYSTERY: {type}
+banner.level_clear = LEVEL CLEAR   +{bonus} SCRAPS
+banner.cache_dropped = EQUIPMENT CACHE DROPPED
+banner.darkmatter_all = ALL DARK MATTER HARVESTED
+banner.darkmatter = +{amount} DARK MATTER
+banner.unstable = WORMHOLE UNSTABLE!
+banner.repaired = HULL REPAIRED
+banner.reinforced = HULL REINFORCED
+banner.boss_defeated.one = BOSS DEFEATED   +{cores} SINGULARITY CORE
+banner.boss_defeated.many = BOSS DEFEATED   +{cores} SINGULARITY CORES
+banner.ambush_survived = AMBUSH SURVIVED   +{bonus} SCRAPS
+
+objective.exit_open = "   ·   EXIT OPEN"
+objective.level_clear = Level clear: fly into the wormhole
+objective.waves = Clear the waves   {wave} / {count}
+objective.cache_done = Cache secured: fly into the wormhole
+objective.cache_collect = Collect the Equipment Cache
+objective.cache_secured = Cache secured   ·   clear the remaining enemies
+objective.cache_carrier = Destroy the Cache Carrier   ·   wave {wave} / {count}
+objective.darkmatter = Harvest Dark Matter   {harvested} / {total}   ·   {timer}{exit}
+objective.instability = Instability {minutes}:{seconds:00}
+objective.unstable = UNSTABLE
+objective.repaired = Repaired
+objective.repair = Use the repair station
+objective.shop = Spend Scraps at the shop, then face the boss
+objective.boss = Defeat the boss
+objective.boss_done = Boss defeated: fly into the wormhole
+objective.ambush = Survive the ambush   {wave} / {count}
+objective.ambush_done = Ambush survived: fly into the wormhole
+objective.mystery = Mystery
+
+prompt.repair = Press E / (Y) to use the repair station
+prompt.shop = Press E / (Y) to open the shop
+prompt.boss_hint = Its shell deflects shots: hit the yellow crystals, and its maw when it opens
+
+## ------------------------------------------------------------------ repair station
+repair.title = REPAIR STATION
+repair.body = Hull {hull} / {max}. Choose one.
+repair.repair = Repair
+repair.repair.note = +{amount} HULL
+repair.repair.detail = Restore {percent:0}% of your max hull.
+repair.reinforce = Reinforce
+repair.reinforce.note = +{amount} MAX HULL
+repair.reinforce.detail = Raise your max hull for the rest of the run. Current damage stays.
+
+## ------------------------------------------------------------------ shop
+shop.title = SHOP
+shop.body = Scraps {scraps}   ·   Hull {hull} / {max}
+shop.catalog = Catalog
+shop.upgrades = Upgrades
+shop.services = Services
+shop.sold = SOLD
+shop.maxed = MAXED
+shop.new = new
+shop.level_up = level {from} → {to}
+shop.swap = slots full: swap
+shop.item = {rarity} {category}, {action}.  {description}
+shop.upgrade = Upgrade {item} to {level}
+shop.repair_25 = Repair 25 hull
+shop.repair_full = Repair to full
+shop.hull_full = HULL FULL
+shop.reroll = Reroll catalog
+shop.reroll.detail = Replace the unsold items. Each reroll costs 10 more.
+
+## ------------------------------------------------------------------ equipment choice
+choice.cache = EQUIPMENT CACHE
+choice.boss_reward = BOSS REWARD
+choice.found = FOUND EQUIPMENT
+choice.debug = DEBUG EQUIPMENT
+choice.take = TAKE
+choice.skip = SKIP   (+{amount} SCRAPS)
+choice.new = NEW
+choice.level_up = LEVEL {from}  →  {to}
+choice.slots_full = NEW  ·  {category} SLOTS FULL: SWAP
+choice.kind = {rarity}  {category}
+choice.replace = REPLACE WHICH {category}?
+choice.replace_item = REPLACE WHICH ITEM?
+choice.replaced_lost = The replaced item is lost.
+choice.hint = Up / Down: choose     Enter: confirm     Esc: back
+
+rarity.common = Common
+rarity.rare = Rare
+rarity.epic = Epic
+
+category.dash = Dash Module
+category.weapon = Weapon Mod
+category.secondary = Secondary Mod
+category.hull = Hull System
+
+## ------------------------------------------------------------------ dialogs and the galaxy map
+dialog.hint = Up / Down: choose     Enter: confirm     Esc: close
+
+map.title = GALAXY {index} / {count}:  {name}
+map.hint = Choose your next jump.   Left / Right + Enter, or click a pulsing node.
+map.footer = Levels cleared {levels}     ·     Dark Matter {darkmatter}     ·     Singularity Cores {cores}
+
+## ------------------------------------------------------------------ HUD
+hud.hull = HULL {hull} / {max}    SHIELD {shield}{god}
+hud.god = "    [GOD]"
+hud.ready = READY
+hud.cooldown = {seconds:0.0}s
+hud.scraps = SCRAPS {amount}
+hud.seed = SEED {seed}{fps}
+hud.fps = "    {fps:0} FPS"
+hud.currencies = DARK MATTER {darkmatter}    CORES {cores}
+hud.level = GALAXY {galaxy}   ·   ROW {row}   ·   {type}{kind}
+hud.level.ambush = " (AMBUSH)"
+hud.level.mystery = " (MYSTERY)"
+hud.wave = WAVE {wave}   ENEMIES {enemies}
+hud.victory = NEW HOME REACHED
+hud.run_over = RUN OVER
+hud.ship_destroyed = SHIP DESTROYED
+hud.galaxy_cleared = GALAXY CLEARED
+hud.jumping = Jumping to {galaxy}...
+hud.end_hint = Press E / (Y) for a new run    ·    Esc / Start for the Hub
+hud.restart_hint = Press E / (Y) to restart
+hud.summary = Galaxy {galaxy}    ·    Levels cleared {levels}    ·    Seed {seed}
+hud.banked = Banked: {total} Dark Matter ({harvested} harvested + {converted} from Scraps), {cores} Singularity Cores
+
+weapon.reloading = RELOADING {percent:0}%
+weapon.ammo = {ammo} / {size}
+weapon.overheated = OVERHEATED
+weapon.release = RELEASE! {seconds:0.0}s
+weapon.charge = CHARGE {percent:0}%
+weapon.hold = HOLD TO CHARGE
+
+## ------------------------------------------------------------------ Hub
+hub.title = PROJECT PATHFINDER
+hub.subtitle = NEW HOME
+hub.profile = DARK MATTER {darkmatter}    ·    SINGULARITY CORES {cores}    ·    RUNS {won} WON / {played}
+hub.start = START RUN
+hub.start.detail = Choose a ship and weapons, then jump into the Shattered Expanse.
+hub.lab = PATHFINDER LAB
+hub.lab.detail = Spend Dark Matter and Singularity Cores on permanent upgrades.
+hub.options = OPTIONS
+hub.options.detail = Language, volume, screen shake, fullscreen, and the controls.
+hub.sandbox = COMBAT SANDBOX
+hub.sandbox.detail = Endless waves for practice and tuning.
+hub.quit = QUIT
+hub.main.hint = Up / Down: choose     Enter: confirm
+hub.loadout = LOADOUT
+hub.loadout.ship = SHIP:   ‹ {name} ›
+hub.loadout.ship.detail = Hull {hull:0}   Shield {shield:0}   Speed {speed:0.#}\n{trait}: {description}
+hub.loadout.primary = PRIMARY:   ‹ {name} ›
+hub.loadout.secondary = SECONDARY:   ‹ {name} ›
+hub.loadout.secondary.detail = Cooldown {seconds:0} s
+hub.loadout.launch = LAUNCH
+hub.loadout.hint = Up / Down: choose row     Left / Right or click: change     Esc: back
+hub.weapon.charge = Hold to charge: {min:0}–{max:0} damage, pierces everything
+hub.weapon.auto = {damage:0}{pellets} damage   {rate:0.#}/s   magazine {magazine}
+hub.weapon.pellets = ×{count}
+hub.lab.title = PATHFINDER LAB
+hub.lab.tier = "   {tier} / {max}"
+hub.lab.owned = OWNED
+hub.lab.cost.darkmatter = {cost} DM
+hub.lab.cost.cores = {cost} CORES
+hub.lab.hint = Up / Down: choose     Enter: buy     Esc: back
+hub.options.title = OPTIONS
+hub.options.hint = Up / Down: choose     Left / Right or click: change     Esc: back
+
+meta.desc.stat = +{amount:0.#} {stat}
+meta.desc.stat.tiered = +{amount:0.#} {stat} per tier
+meta.desc.scraps = Start each run with +{amount:0} Scraps
+meta.desc.scraps.tiered = Start each run with +{amount:0} Scraps per tier
+meta.desc.unlock = Unlocks the {item}
+
+## ------------------------------------------------------------------ pause menu, options, controls
+pause.title = PAUSED
+pause.resume = RESUME
+pause.options = OPTIONS
+pause.options.detail = Language, volume, screen shake, fullscreen.
+pause.controls = CONTROLS
+pause.abandon = ABANDON RUN
+pause.abandon.detail = Back to the Hub. The run counts as lost; its Dark Matter and Cores are banked.
+pause.quit = QUIT TO HUB
+pause.quit.detail = Back to the Hub.
+pause.hint = Up / Down: choose     Enter: confirm     Esc: resume
+pause.options.title = OPTIONS
+pause.options.hint = Up / Down: choose     Left / Right or click: change     Esc: back
+pause.controls.title = CONTROLS
+pause.controls.hint = Keyboard and mouse on the right, gamepad below     Esc: back
+
+options.language = Language
+options.language.detail = Menus, items and events. Add a .loc file to StreamingAssets/Localization to translate.
+options.master = Master volume
+options.master.detail = Everything you hear.
+options.music = Music
+options.music.detail = The soundtrack, relative to the master volume.
+options.effects = Sound effects
+options.effects.detail = Weapons, hits, explosions and menus.
+options.shake = Screen shake
+options.shake.detail = Camera kicks on hits and explosions. Turn it down if motion bothers you.
+options.fullscreen = Fullscreen
+options.fps = Show FPS
+options.fps.detail = Frames per second, next to the run seed.
+
+controls.move = Move
+controls.move.keys = WASD / arrows
+controls.move.pad = Left stick
+controls.aim = Aim
+controls.aim.keys = Mouse
+controls.aim.pad = Right stick
+controls.fire = Fire primary (hold to charge)
+controls.fire.keys = Left mouse
+controls.fire.pad = Right trigger
+controls.secondary = Fire secondary
+controls.secondary.keys = Right mouse
+controls.secondary.pad = Left trigger
+controls.dash = Dash (invulnerable)
+controls.dash.keys = Space
+controls.dash.pad = A / Cross, RB
+controls.reload = Reload
+controls.reload.keys = R
+controls.reload.pad = X / Square
+controls.interact = Interact
+controls.interact.keys = E
+controls.interact.pad = Y / Triangle
+controls.pause = Pause
+controls.pause.keys = Esc
+controls.pause.pad = Start
+
+dev.hint = DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F6 skip level   F7 equipment   F8 +100 Scraps   F9 reload text
+dev.hint.sandbox = DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F7 equipment   F8 +100 Scraps   F9 reload text
+
+## ------------------------------------------------------------------ Mystery event effects
+effect.scraps = {signed} Scraps
+effect.hull = {signed} hull
+effect.hull_percent = Repair {amount}% hull
+effect.max_hull = {signed} max hull
+effect.darkmatter = +{amount} Dark Matter
+effect.equipment = Equipment choice
+effect.equipment_rarity = {rarity}+ equipment choice
+effect.upgrade = Upgrade a random item
+effect.lose_item = Lose a random item
+effect.ambush = A fight (double rewards)
+effect.stat = {signed}% {stat}
+effect.nothing = Nothing happens.
+effect.gamble = {chance:0}%: {success}     Otherwise: {fail}
+effect.gamble.nothing = nothing
+effect.separator = "  ·  "
+effect.upgraded = {item} upgraded to {level}
+effect.lost = Lost {item}
+need.item = NEEDS AN ITEM
+need.upgradable = NEEDS AN UPGRADABLE ITEM
+need.scraps_upgradable = NEEDS {amount} SCRAPS + AN UPGRADABLE ITEM
+need.scraps = NEEDS {amount} SCRAPS
+
+## ------------------------------------------------------------------ stats (stat items, upgrades, events)
+stat.MaxHull = max hull
+stat.MaxShield = shield
+stat.ShieldRegenDelay = shield regen delay
+stat.MoveSpeed = move speed
+stat.MagnetRadius = pickup magnet radius
+stat.DashCharges = dash charges
+stat.DashDistance = dash distance
+stat.DamageTaken = damage taken
+stat.FireRate = fire rate
+stat.MagazineSize = magazine size
+stat.ProjectileDamage = primary damage
+stat.Pierce = pierce
+stat.CritChance = critical hit chance
+stat.SecondaryCooldown = secondary cooldown
+stat.SecondaryDamage = secondary damage
+stat.SecondaryCharges = secondary charges
+stat.ScrapsGain = Scraps gained
+stat.part.flat = {signed}{unit} {stat}
+stat.part.percent = {signed}% {stat}
+stat.separator = ", "
+unit.seconds = " s"
+unit.units = " u"
+ordinal.2 = 2nd
+ordinal.3 = 3rd
+ordinal.n = {n}th
+
+## ------------------------------------------------------------------ ships
+ship.titan.name = Titan-Class Cruiser
+ship.titan.trait = Reinforced Hull
+ship.titan.trait.desc = +50% hull and 10% less damage taken. The beginner ship.
+ship.stormbringer.name = Stormbringer Battleship
+ship.stormbringer.trait = Lightning Core
+ship.stormbringer.trait.desc = Each primary hit has an 8% chance to call a lightning strike from above.
+
+## ------------------------------------------------------------------ weapons
+primary.photon-repeater.name = Photon Repeater
+primary.plasma-cutter.name = Plasma Cutter
+primary.quantum-charger.name = Quantum Charger
+secondary.seeker-swarm.name = Seeker Swarm
+secondary.nova-pulse.name = Nova Pulse
+
+## ------------------------------------------------------------------ enemies
+enemy.drone.name = Drone
+enemy.gunner.name = Gunner
+enemy.spinner.name = Spinner
+enemy.lancer.name = Lancer
+enemy.carrier.name = Carrier
+elite.armored.name = Armored
+elite.hasty.name = Hasty
+boss.quarry-maw.name = The Quarry Maw
+
+## ------------------------------------------------------------------ equipment (names and descriptions)
+# Stat items (Overclock, Armor Plating...) build their description from the stat lines above.
+equipment.adrenal-thrusters.name = Adrenal Thrusters
+equipment.amplifier.name = Amplifier
+equipment.armor-plating.name = Armor Plating
+equipment.capacitor.name = Capacitor
+equipment.critical-optics.name = Critical Optics
+equipment.extended-mag.name = Extended Mag
+equipment.overclock.name = Overclock
+equipment.piercing-rounds.name = Piercing Rounds
+equipment.rapid-cycler.name = Rapid Cycler
+equipment.salvage-magnet.name = Salvage Magnet
+equipment.twin-charge.name = Twin Charge
+equipment.blink-dash.name = Blink Dash
+equipment.blink-dash.desc = Dash teleports instantly, passing through enemies
+equipment.blink-dash.desc.further = Dash teleports instantly, {distance:0} u further
+equipment.bullet-dash.name = Bullet Dash
+equipment.bullet-dash.desc = Dash end fires a ring of {count} primary projectiles
+equipment.incendiary.name = Incendiary
+equipment.incendiary.desc = Primary hits burn for {dps:0} damage/s over {duration:0} s (stacks up to {stacks}×)
+equipment.kill-refund.name = Kill Refund
+equipment.kill-refund.desc = Kills reduce the secondary cooldown by {seconds:0.##} s
+equipment.last-stand.name = Last Stand
+equipment.last-stand.desc = Once per level, survive a lethal hit at 1 hull with {seconds:0.#} s of invulnerability
+equipment.phase-dash.name = Phase Dash
+equipment.phase-dash.desc = Dash i-frames last {seconds:0.#} s longer. Each bullet phased through restores {shield:0} shield
+equipment.pushback-dash.name = Pushback Dash
+equipment.pushback-dash.desc = Dash end knocks back enemies within {radius:0.#} u and deals {damage:0} damage
+equipment.ricochet.name = Ricochet
+equipment.ricochet.desc = Primary hits bounce to a nearby enemy for {percent:0}% damage
+equipment.split-shot.name = Split Shot
+equipment.split-shot.desc = Every {ordinal} shot fires 3 projectiles in a fan
+trait.lightning-core.name = Lightning Core
+trait.lightning-core.desc = Each primary hit has a {chance:0}% chance to call lightning: {damage:0} damage within {radius:0} u
+
+## ------------------------------------------------------------------ Pathfinder Lab upgrades
+meta.hull-plating.name = Hull Plating
+meta.shield-matrix.name = Shield Matrix
+meta.salvage-protocols.name = Salvage Protocols
+meta.second-dash.name = Second Dash Charge
+meta.unlock-quantum-charger.name = Quantum Charger
+
+## ------------------------------------------------------------------ Mystery events
+# {id}.name is the title; choice/result/fail are numbered in the order the choices appear.
+# Derelict Freighter
+event.derelict-freighter.name = Derelict Freighter
+event.derelict-freighter.body = A gutted freighter drifts in silence, its cargo bay half open. Your scanners pick up sealed crates inside, and a faint hum from its security grid.
+event.derelict-freighter.choice.0 = Strip the cargo bay
+event.derelict-freighter.result.0 = The turrets wake up as you cut the last crate loose. You get out with the salvage, and a few new scorch marks.
+event.derelict-freighter.choice.1 = Scan it from a safe distance
+event.derelict-freighter.result.1 = You tag a few loose containers and tow them clear.
+event.derelict-freighter.choice.2 = Leave it
+event.derelict-freighter.result.2 = Whatever it was guarding, it can keep.
+
+# Distress Beacon
+event.distress-beacon.name = Distress Beacon
+event.distress-beacon.body = An old Pathfinder beacon is looping a distress call. The signal looks genuine, but the Remnant have used lures like this before.
+event.distress-beacon.choice.0 = Answer the call
+event.distress-beacon.result.0 = You find a scout's escape pod, empty, its cargo still sealed. The crew left you something good.
+event.distress-beacon.fail.0 = The beacon goes dark. Remnant fighters drop out of the static around you.
+event.distress-beacon.choice.1 = Log it and move on
+event.distress-beacon.result.1 = You mark the coordinates for whoever comes next.
+
+# Unstable Singularity
+event.singularity.name = Unstable Singularity
+event.singularity.body = A pocket of collapsed space hums ahead. Its pull could tear the hull apart, or fold Dark Matter straight out of the void.
+event.singularity.choice.0 = Skim the event horizon
+event.singularity.result.0 = The hull groans and buckles, but the collectors come back full.
+event.singularity.choice.1 = Steer clear
+event.singularity.result.1 = Some risks aren't worth taking.
+
+# Wandering Engineer
+event.engineer.name = Wandering Engineer
+event.engineer.body = A lone engineer in a patched-up shuttle hails you. "Nice ship. I could make her sing, for the right price."
+event.engineer.choice.0 = Tune up an item
+event.engineer.result.0 = She works fast and talks faster. Your ship has never felt this sharp.
+event.engineer.choice.1 = Patch the hull
+event.engineer.result.1 = A few welds and a lot of sealant later, the hull is whole again.
+event.engineer.choice.2 = Decline
+event.engineer.result.2 = "Your loss," she says, and drifts off.
+
+# Spore Bloom
+event.spore-bloom.name = Spore Bloom
+event.spore-bloom.body = Glowing spores drift through the nebula and settle on the hull. Wherever they land, damaged plating knits itself back together.
+event.spore-bloom.choice.0 = Let them grow
+event.spore-bloom.result.0 = The hull is whole again, if a little heavier. The growth isn't coming off.
+event.spore-bloom.choice.1 = Burn them off
+event.spore-bloom.result.1 = The spores crisp into a fine, glittering ash. Traders pay well for it.
+
+# Remnant Toll Gate
+event.remnant-toll.name = Remnant Toll Gate
+event.remnant-toll.body = A Remnant checkpoint blocks the jump lane. "This sector is ours, Pathfinder. Pay the toll, or turn around."
+event.remnant-toll.choice.0 = Pay the toll
+event.remnant-toll.result.0 = They take the Scraps and wave you through. For now.
+event.remnant-toll.choice.1 = Run the blockade
+event.remnant-toll.result.1 = You punch the engines. The gate's guns light up behind you.
+
+# Sealed Weapons Cache
+event.weapons-cache.name = Sealed Weapons Cache
+event.weapons-cache.body = A military cache, still locked with an old access code. You could try to crack it, but the failsafe is explosive.
+event.weapons-cache.choice.0 = Crack the lock
+event.weapons-cache.result.0 = The lock clicks open. Whoever stashed this had good taste.
+event.weapons-cache.fail.0 = The failsafe goes off in your face.
+event.weapons-cache.choice.1 = Cut it open carefully
+event.weapons-cache.result.1 = Slow and steady. The cache opens without a spark.
+event.weapons-cache.choice.2 = Leave it
+event.weapons-cache.result.2 = You leave the cache to the next brave fool.
+
+# Echo of Earth
+event.earth-echo.name = Echo of Earth
+event.earth-echo.body = A fragment of an old Earth broadcast loops in the static: music, laughter, a weather report for a city that no longer exists. The cockpit goes quiet.
+event.earth-echo.choice.0 = Just listen
+event.earth-echo.result.0 = For a few minutes, you remember what you're fighting for.
+event.earth-echo.choice.1 = Record it for the archive
+event.earth-echo.result.1 = The Lab will want this. Every scrap of home matters.
+
+# Scrap Trader
+event.scrap-trader.name = Scrap Trader
+event.scrap-trader.body = A trader's barge, bristling with salvage, pulls alongside. "I deal in tech. One of yours for one of mine. Or I'll just buy yours."
+event.scrap-trader.choice.0 = Trade an item
+event.scrap-trader.result.0 = The trader picks something from your racks and hands over a crate in return.
+event.scrap-trader.choice.1 = Sell an item
+event.scrap-trader.result.1 = \"Pleasure doing business."
+event.scrap-trader.choice.2 = Move on
+event.scrap-trader.result.2 = The barge drifts back into the dark.
+
+# Gravity Well
+event.gravity-well.name = Gravity Well
+event.gravity-well.body = The jump drops you into a gravity well around a dead star. Breaking free will cost you something.
+event.gravity-well.choice.0 = Burn the engines hard
+event.gravity-well.result.0 = The hull shrieks, but you tear free.
+event.gravity-well.choice.1 = Jettison salvage
+event.gravity-well.result.1 = Lighter, you slip out of the well.
+event.gravity-well.choice.2 = Slingshot around the core
+event.gravity-well.result.2 = You whip around the core and come out trailing Dark Matter.
+event.gravity-well.fail.2 = The core nearly swallows you. You claw your way out, barely.

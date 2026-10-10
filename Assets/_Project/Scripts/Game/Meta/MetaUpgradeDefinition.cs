@@ -37,12 +37,12 @@ namespace Pathfinder.Game.Meta
 
         public string Describe()
         {
-            string perTier = MaxTiers > 1 ? " per tier" : string.Empty;
+            string tiered = MaxTiers > 1 ? ".tiered" : string.Empty;
             return Effect switch
             {
-                EffectKind.StatBonus => $"+{AmountPerTier:0.#} {Equipment.StatNames.Name(Stat)}{perTier}",
-                EffectKind.StartingScraps => $"Start each run with +{AmountPerTier:0} Scraps{perTier}",
-                _ => UnlockTarget != null ? $"Unlocks the {UnlockTarget.DisplayName}" : "Unlock",
+                EffectKind.StatBonus => Localization.Loc.T($"meta.desc.stat{tiered}", ("amount", AmountPerTier), ("stat", Equipment.StatNames.Name(Stat))),
+                EffectKind.StartingScraps => Localization.Loc.T($"meta.desc.scraps{tiered}", ("amount", AmountPerTier)),
+                _ => Localization.Loc.T("meta.desc.unlock", ("item", UnlockTarget != null ? UnlockTarget.DisplayName : "?")),
             };
         }
     }

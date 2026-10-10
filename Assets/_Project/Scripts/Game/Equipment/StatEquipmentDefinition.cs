@@ -31,17 +31,20 @@ namespace Pathfinder.Game.Equipment
             {
                 float flat = AtLevel(bonus.Flat, level);
                 float percent = AtLevel(bonus.Percent, level);
-                if (Math.Abs(flat) > 1e-4f && bonus.Stat == StatId.CritChance)
-                    parts.Add($"{Signed(flat * 100f, "0")}% {StatNames.Name(bonus.Stat)}"); // crit chance is a flat probability
+                string stat = StatNames.Name(bonus.Stat);
+                if (Math.Abs(flat) > 1e-4f && bonus.Stat == StatId.CritChance) // crit chance is a flat probability
+                    parts.Add(Localization.Loc.T("stat.part.percent", ("signed", Signed(flat * 100f, "0")), ("stat", stat)));
                 else if (Math.Abs(flat) > 1e-4f)
-                    parts.Add($"{Signed(flat, "0.#")}{StatNames.Unit(bonus.Stat)} {StatNames.Name(bonus.Stat)}");
+                    parts.Add(Localization.Loc.T("stat.part.flat", ("signed", Signed(flat, "0.#")), ("unit", StatNames.Unit(bonus.Stat)), ("stat", stat)));
                 if (Math.Abs(percent) > 1e-4f)
-                    parts.Add($"{Signed(percent * 100f, "0")}% {StatNames.Name(bonus.Stat)}");
+                    parts.Add(Localization.Loc.T("stat.part.percent", ("signed", Signed(percent * 100f, "0")), ("stat", stat)));
             }
-            return string.Join(", ", parts);
+            return string.Join(Localization.Loc.T("stat.separator"), parts);
         }
 
-        static string Signed(float value, string format) => (value >= 0f ? "+" : "−") + Math.Abs(value).ToString(format);
+        /// <summary>A number with its sign: +15, or −10 with a true minus sign.</summary>
+        public static string Signed(float value, string format) =>
+            (value >= 0f ? "+" : "−") + Math.Abs(value).ToString(format, System.Globalization.CultureInfo.InvariantCulture);
 
         sealed class Effect : EquipmentEffect
         {
@@ -57,36 +60,16 @@ namespace Pathfinder.Game.Equipment
         }
     }
 
-    /// <summary>Player-facing stat names for generated descriptions.</summary>
+    /// <summary>Player-facing stat names for generated descriptions: <c>stat.{StatId}</c> in the .loc files.</summary>
     public static class StatNames
     {
-        public static string Name(StatId stat) => stat switch
-        {
-            StatId.MaxHull => "max hull",
-            StatId.MaxShield => "shield",
-            StatId.ShieldRegenDelay => "shield regen delay",
-            StatId.MoveSpeed => "move speed",
-            StatId.MagnetRadius => "pickup magnet radius",
-            StatId.DashCharges => "dash charges",
-            StatId.DashDistance => "dash distance",
-            StatId.DamageTaken => "damage taken",
-            StatId.FireRate => "fire rate",
-            StatId.MagazineSize => "magazine size",
-            StatId.ProjectileDamage => "primary damage",
-            StatId.Pierce => "pierce",
-            StatId.CritChance => "critical hit chance",
-            StatId.SecondaryCooldown => "secondary cooldown",
-            StatId.SecondaryDamage => "secondary damage",
-            StatId.SecondaryCharges => "secondary charges",
-            StatId.ScrapsGain => "Scraps gained",
-            _ => stat.ToString(),
-        };
+        public static string Name(StatId stat) => Localization.Loc.TOr($"stat.{stat}", stat.ToString());
 
         public static string Unit(StatId stat) => stat switch
         {
-            StatId.ShieldRegenDelay => " s",
-            StatId.MagnetRadius => " u",
-            StatId.DashDistance => " u",
+            StatId.ShieldRegenDelay => Localization.Loc.T("unit.seconds"),
+            StatId.MagnetRadius => Localization.Loc.T("unit.units"),
+            StatId.DashDistance => Localization.Loc.T("unit.units"),
             _ => string.Empty,
         };
     }

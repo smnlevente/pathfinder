@@ -18,7 +18,6 @@ namespace Pathfinder.Game.Run
     {
         public enum Phase { Map, Level, GalaxyCleared, Victory, Defeat }
 
-        public static readonly string[] GalaxyNames = { "The Shattered Expanse", "The Graveyard Drift", "The Veil Nebula" };
 
         const float GalaxyClearedDelay = 2.5f;
 
@@ -34,7 +33,7 @@ namespace Pathfinder.Game.Run
         /// <summary>What the finished run banked into the meta progression. Set when the run ends.</summary>
         public RunRewards? BankedRewards { get; private set; }
         public LevelController Level => level;
-        public string GalaxyName => GalaxyNames[Mathf.Clamp(Run?.GalaxyIndex ?? 0, 0, GalaxyNames.Length - 1)];
+        public string GalaxyName => Localization.Loc.T($"galaxy.{Mathf.Clamp(Run?.GalaxyIndex ?? 0, 0, RunState.GalaxyCount - 1)}");
 
         /// <summary>Raised whenever the phase changes.</summary>
         public event Action<RunDirector> PhaseChanged;

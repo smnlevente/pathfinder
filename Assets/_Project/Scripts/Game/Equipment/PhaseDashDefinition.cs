@@ -12,7 +12,7 @@ namespace Pathfinder.Game.Equipment
         public override EquipmentEffect CreateEffect() => new Effect(this);
 
         public override string Describe(int level) =>
-            $"Dash i-frames last {AtLevel(ExtraSeconds, level):0.#} s longer. Each bullet phased through restores {ShieldPerBullet:0} shield";
+            Localization.Loc.T($"{Id}.desc", ("seconds", AtLevel(ExtraSeconds, level)), ("shield", ShieldPerBullet));
 
         sealed class Effect : EquipmentEffect
         {

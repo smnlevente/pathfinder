@@ -14,7 +14,7 @@ namespace Pathfinder.Game.Equipment
         public override EquipmentEffect CreateEffect() => new Effect(this);
 
         public override string Describe(int level) =>
-            $"Primary hits bounce to a nearby enemy for {AtLevel(BounceDamage, level) * 100f:0}% damage";
+            Localization.Loc.T($"{Id}.desc", ("percent", AtLevel(BounceDamage, level) * 100f));
 
         sealed class Effect : EquipmentEffect
         {

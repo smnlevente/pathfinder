@@ -3,6 +3,7 @@ using Pathfinder.Core.Run;
 using Pathfinder.Game.Boot;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Content;
+using Pathfinder.Game.Localization;
 using Pathfinder.Game.Meta;
 using Pathfinder.Game.Presentation.Ui;
 using Pathfinder.Game.Run;
@@ -19,16 +20,7 @@ namespace Pathfinder.Game.Presentation
     /// </summary>
     public sealed class HubMenu : MonoBehaviour
     {
-        static readonly string[] MainOptions = { "START RUN", "PATHFINDER LAB", "OPTIONS", "COMBAT SANDBOX", "QUIT" };
-
-        static readonly string[] MainDetails =
-        {
-            "Choose a ship and weapons, then jump into the Shattered Expanse.",
-            "Spend Dark Matter and Singularity Cores on permanent upgrades.",
-            "Volume, screen shake, fullscreen, and the controls.",
-            "Endless waves for practice and tuning.",
-            null,
-        };
+        static readonly string[] MainOptions = { "hub.start", "hub.lab", "hub.options", "hub.sandbox", "hub.quit" };
 
         public enum Page { Main, Loadout, Lab, Options }
 
@@ -39,7 +31,7 @@ namespace Pathfinder.Game.Presentation
         int _selected;
         int _ship, _primary, _secondary;
 
-        Text _meta, _pageTitle, _hint;
+        Text _title, _subtitle, _meta, _pageTitle, _hint;
         RectTransform _list;
         readonly List<UiRow> _rows = new List<UiRow>();
         readonly List<bool> _enabled = new List<bool>();
@@ -54,7 +46,12 @@ namespace Pathfinder.Game.Presentation
             _input = new MenuInput();
             Build();
             ShowPage(Page.Main);
+            Loc.Changed += OnLanguageChanged;
         }
+
+        void OnDestroy() => Loc.Changed -= OnLanguageChanged;
+
+        void OnLanguageChanged() => ShowPage(_page, keepSelection: true);
 
         void Update()
         {
@@ -191,9 +188,9 @@ namespace Pathfinder.Game.Presentation
             var background = UiKit.Image(root, "Background", new Color(0.012f, 0.02f, 0.045f, 1f));
             UiKit.Stretch(background.rectTransform);
 
-            var title = UiKit.Text(root, "Title", "PROJECT PATHFINDER", 76, new Color(0.5f, 0.9f, 1f), TextAnchor.MiddleCenter, FontStyle.Bold);
+            var title = _title = UiKit.Text(root, "Title", string.Empty, 76, new Color(0.5f, 0.9f, 1f), TextAnchor.MiddleCenter, FontStyle.Bold);
             UiKit.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -90f), new Vector2(1600f, 96f));
-            var subtitle = UiKit.Text(root, "Subtitle", "NEW HOME", 32, new Color(0.8f, 0.9f, 1f), TextAnchor.MiddleCenter, FontStyle.Bold);
+            var subtitle = _subtitle = UiKit.Text(root, "Subtitle", string.Empty, 32, new Color(0.8f, 0.9f, 1f), TextAnchor.MiddleCenter, FontStyle.Bold);
             UiKit.Place(subtitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -186f), new Vector2(1600f, 44f));
             _meta = UiKit.Text(root, "Profile", string.Empty, 20, UiKit.TextBody, TextAnchor.MiddleCenter);
             UiKit.Place(_meta.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -242f), new Vector2(1600f, 30f));
@@ -219,56 +216,58 @@ namespace Pathfinder.Game.Presentation
             _list.DetachChildren();
             _rows.Clear();
             _enabled.Clear();
+            _title.text = Loc.T("hub.title");
+            _subtitle.text = Loc.T("hub.subtitle");
 
             switch (page)
             {
                 case Page.Main:
                     _pageTitle.text = string.Empty;
-                    for (int i = 0; i < MainOptions.Length; i++)
-                        AddRow(MainOptions[i], null, MainDetails[i]);
-                    _hint.text = "Up / Down: choose     Enter: confirm";
+                    foreach (string key in MainOptions)
+                        AddRow(Loc.T(key), null, Loc.TOr(key + ".detail", null));
+                    _hint.text = Loc.T("hub.main.hint");
                     break;
 
                 case Page.Loadout:
                 {
-                    _pageTitle.text = "LOADOUT";
+                    _pageTitle.text = Loc.T("hub.loadout");
                     var ship = content.Ships[_ship];
                     var primary = content.PrimaryWeapons[_primary];
                     var secondary = content.SecondaryWeapons[_secondary];
-                    AddRow($"SHIP:   ‹ {ship.DisplayName} ›", null,
-                        $"Hull {ship.MaxHull:0}   Shield {ship.MaxShield:0}   Speed {ship.MoveSpeed:0.#}\n{ship.TraitName}: {ship.TraitDescription}");
-                    AddRow($"PRIMARY:   ‹ {primary.DisplayName} ›", null, PrimarySummary(primary));
-                    AddRow($"SECONDARY:   ‹ {secondary.DisplayName} ›", null, $"Cooldown {secondary.Cooldown:0} s");
-                    AddRow("LAUNCH", null, null, UiKit.Accent);
-                    _hint.text = "Up / Down: choose row     Left / Right or click: change     Esc: back";
+                    AddRow(Loc.T("hub.loadout.ship", ("name", ship.DisplayName)), null, Loc.T("hub.loadout.ship.detail",
+                        ("hull", ship.MaxHull), ("shield", ship.MaxShield), ("speed", ship.MoveSpeed), ("trait", ship.TraitTitle), ("description", ship.TraitText)));
+                    AddRow(Loc.T("hub.loadout.primary", ("name", primary.DisplayName)), null, PrimarySummary(primary));
+                    AddRow(Loc.T("hub.loadout.secondary", ("name", secondary.DisplayName)), null, Loc.T("hub.loadout.secondary.detail", ("seconds", secondary.Cooldown)));
+                    AddRow(Loc.T("hub.loadout.launch"), null, null, UiKit.Accent);
+                    _hint.text = Loc.T("hub.loadout.hint");
                     break;
                 }
 
                 case Page.Options:
-                    _pageTitle.text = "OPTIONS";
+                    _pageTitle.text = Loc.T("hub.options.title");
                     foreach (var option in SettingsOptions.All)
                         AddRow(option.Label, option.Value(), option.Detail, noteColor: UiKit.Accent);
-                    AddRow("BACK");
-                    _hint.text = "Up / Down: choose     Left / Right or click: change     Esc: back";
+                    AddRow(Loc.T("common.back"));
+                    _hint.text = Loc.T("hub.options.hint");
                     break;
 
                 case Page.Lab:
                 {
-                    _pageTitle.text = "PATHFINDER LAB";
+                    _pageTitle.text = Loc.T("hub.lab.title");
                     var meta = MetaProgression.Current;
                     foreach (var upgrade in content.MetaUpgrades)
                     {
                         int tier = upgrade.Effect == MetaUpgradeDefinition.EffectKind.Unlock ? (meta.IsUnlocked(upgrade.Id) ? 1 : 0) : meta.Tier(upgrade.Id);
                         bool maxed = tier >= upgrade.MaxTiers;
                         int cost = upgrade.CostOfTier(tier);
-                        string currency = upgrade.Currency == Core.Meta.MetaCurrency.DarkMatter ? "DM" : "CORES";
-                        string level = upgrade.MaxTiers > 1 ? $"   {tier} / {upgrade.MaxTiers}" : string.Empty;
-                        AddRow(upgrade.DisplayName + level, maxed ? "OWNED" : $"{cost} {currency}", upgrade.Describe(),
+                        string costKey = upgrade.Currency == Core.Meta.MetaCurrency.DarkMatter ? "hub.lab.cost.darkmatter" : "hub.lab.cost.cores";
+                        string level = upgrade.MaxTiers > 1 ? Loc.T("hub.lab.tier", ("tier", tier), ("max", upgrade.MaxTiers)) : string.Empty;
+                        AddRow(upgrade.DisplayName + level, maxed ? Loc.T("hub.lab.owned") : Loc.T(costKey, ("cost", cost)), upgrade.Describe(),
                             enabled: !maxed && meta.Balance(upgrade.Currency) >= cost,
                             noteColor: upgrade.Currency == Core.Meta.MetaCurrency.DarkMatter ? new Color(0.65f, 0.55f, 1f) : UiKit.Gold);
                     }
-                    AddRow("BACK");
-                    _hint.text = "Up / Down: choose     Enter: buy     Esc: back";
+                    AddRow(Loc.T("common.back"));
+                    _hint.text = Loc.T("hub.lab.hint");
                     break;
                 }
             }
@@ -290,11 +289,13 @@ namespace Pathfinder.Game.Presentation
         string MetaLine()
         {
             var meta = MetaProgression.Current;
-            return $"DARK MATTER {meta.DarkMatter}    ·    SINGULARITY CORES {meta.SingularityCores}    ·    RUNS {meta.RunsWon} WON / {meta.RunsPlayed}";
+            return Loc.T("hub.profile", ("darkmatter", meta.DarkMatter), ("cores", meta.SingularityCores), ("won", meta.RunsWon), ("played", meta.RunsPlayed));
         }
 
         static string PrimarySummary(PrimaryWeaponDefinition weapon) => weapon.FireMode == PrimaryFireMode.Charge
-            ? $"Hold to charge: {weapon.Damage:0}–{weapon.MaxChargeDamage:0} damage, pierces everything"
-            : $"{weapon.Damage:0}{(weapon.ProjectilesPerShot > 1 ? "×" + weapon.ProjectilesPerShot : "")} damage   {weapon.ShotsPerSecond:0.#}/s   magazine {weapon.MagazineSize}";
+            ? Loc.T("hub.weapon.charge", ("min", weapon.Damage), ("max", weapon.MaxChargeDamage))
+            : Loc.T("hub.weapon.auto", ("damage", weapon.Damage),
+                ("pellets", weapon.ProjectilesPerShot > 1 ? Loc.T("hub.weapon.pellets", ("count", weapon.ProjectilesPerShot)) : string.Empty),
+                ("rate", weapon.ShotsPerSecond), ("magazine", weapon.MagazineSize));
     }
 }

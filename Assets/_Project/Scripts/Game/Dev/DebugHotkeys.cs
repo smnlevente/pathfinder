@@ -25,9 +25,7 @@ namespace Pathfinder.Game.Dev
         [SerializeField] PrimaryWeaponDefinition[] primaryWeapons = new PrimaryWeaponDefinition[0];
         [SerializeField] SecondaryWeaponDefinition[] secondaryWeapons = new SecondaryWeaponDefinition[0];
 
-        public string HintText => level != null
-            ? "DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F6 skip level   F7 equipment   F8 +100 Scraps"
-            : "DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F7 equipment   F8 +100 Scraps";
+        public string HintText => Localization.Loc.T(level != null ? "dev.hint" : "dev.hint.sandbox");
 
         Pathfinder.Core.Random.IRandom _random = new Pathfinder.Core.Random.Pcg32(7UL, 7UL);
         public ContentDatabase Content => content;
@@ -64,6 +62,8 @@ namespace Pathfinder.Game.Dev
                 OfferRandomEquipment();
             if (keyboard.f8Key.wasPressedThisFrame)
                 GrantScraps(100);
+            if (keyboard.f9Key.wasPressedThisFrame)
+                Localization.Loc.Reload(); // pick up edits to the .loc files without restarting
         }
 
         /// <summary>Gives every local pilot Scraps, e.g. to try the Shop. Works while menus are open.</summary>
@@ -97,7 +97,7 @@ namespace Pathfinder.Game.Dev
                 offer.Add(pool[index]);
                 pool.RemoveAt(index);
             }
-            equipmentChoice.Show("DEV: EQUIPMENT", offer, pilot, 0, null);
+            equipmentChoice.Show(Localization.Loc.T("choice.debug"), offer, pilot, 0, null);
         }
 
         static T Next<T>(T[] options, T current) where T : Object

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Pathfinder.Core.Run;
+using Pathfinder.Game.Localization;
 using Pathfinder.Game.Presentation.Ui;
 using Pathfinder.Game.Run;
 using UnityEngine;
@@ -29,12 +30,6 @@ namespace Pathfinder.Game.Presentation
             { MapNodeType.Boss, new Color(1f, 0.3f, 0.25f) },
         };
 
-        static readonly Dictionary<MapNodeType, string> TypeGlyphs = new Dictionary<MapNodeType, string>
-        {
-            { MapNodeType.Scraps, "S" }, { MapNodeType.Equipment, "E" }, { MapNodeType.DarkMatter, "DM" }, { MapNodeType.Repair, "+" },
-            { MapNodeType.Mystery, "?" }, { MapNodeType.Shop, "$" }, { MapNodeType.Boss, "!" },
-        };
-
         sealed class NodeView
         {
             public MapNode Node;
@@ -48,7 +43,8 @@ namespace Pathfinder.Game.Presentation
         bool _wasOpen;
         Canvas _canvas;
         RectTransform _area, _edges, _nodes;
-        Text _title, _infoTitle, _infoBody, _footer;
+        Text _title, _hint, _infoTitle, _infoBody, _footer;
+        readonly List<(MapNodeType type, Text label)> _legend = new List<(MapNodeType, Text)>();
         readonly List<NodeView> _views = new List<NodeView>();
 
         public bool IsOpen => director != null && director.State == RunDirector.Phase.Map;
@@ -106,7 +102,7 @@ namespace Pathfinder.Game.Presentation
 
             _title = UiKit.Text(root, "Title", string.Empty, 40, UiKit.TextBright, TextAnchor.MiddleCenter, FontStyle.Bold);
             UiKit.Place(_title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(1600f, 56f));
-            var hint = UiKit.Text(root, "Hint", "Choose your next jump.   Left / Right + Enter, or click a pulsing node.", 19, UiKit.TextDim, TextAnchor.MiddleCenter);
+            var hint = _hint = UiKit.Text(root, "Hint", string.Empty, 19, UiKit.TextDim, TextAnchor.MiddleCenter);
             UiKit.Place(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -84f), new Vector2(1600f, 30f));
 
             _area = UiKit.Node("Map", root);
@@ -133,7 +129,7 @@ namespace Pathfinder.Game.Presentation
                 UiKit.Horizontal(entry, 14f, null, TextAnchor.MiddleLeft);
                 var dot = UiKit.Image(entry, "Dot", pair.Value, UiKit.Circle);
                 UiKit.Layout(dot, preferredWidth: 24f, preferredHeight: 24f);
-                UiKit.Text(entry, "Name", LevelNames.Title(pair.Key), 20, UiKit.TextBody, TextAnchor.MiddleLeft);
+                _legend.Add((pair.Key, UiKit.Text(entry, "Name", string.Empty, 20, UiKit.TextBody, TextAnchor.MiddleLeft)));
             }
 
             _footer = UiKit.Text(root, "Footer", string.Empty, 20, UiKit.TextDim, TextAnchor.MiddleCenter);
@@ -145,8 +141,11 @@ namespace Pathfinder.Game.Presentation
             var run = director.Run;
             var map = run.Map;
             _selected = 0;
-            _title.text = $"GALAXY {run.GalaxyIndex + 1} / {RunState.GalaxyCount}:  {director.GalaxyName.ToUpperInvariant()}";
-            _footer.text = $"Levels cleared {run.LevelsCleared}     ·     Dark Matter {run.DarkMatter}     ·     Singularity Cores {run.SingularityCores}";
+            _title.text = Loc.T("map.title", ("index", run.GalaxyIndex + 1), ("count", RunState.GalaxyCount), ("name", director.GalaxyName.ToUpperInvariant()));
+            _hint.text = Loc.T("map.hint");
+            _footer.text = Loc.T("map.footer", ("levels", run.LevelsCleared), ("darkmatter", run.DarkMatter), ("cores", run.SingularityCores));
+            foreach (var (type, label) in _legend)
+                label.text = LevelNames.Title(type);
 
             Clear(_edges);
             Clear(_nodes);
@@ -186,7 +185,7 @@ namespace Pathfinder.Game.Presentation
                 float alpha = isAvailable ? 1f : isVisited ? 0.8f : 0.4f;
                 var fill = UiKit.Image(rect, "Fill", new Color(color.r, color.g, color.b, alpha), UiKit.Circle, raycast: isAvailable);
                 UiKit.Stretch(fill.rectTransform);
-                var glyph = UiKit.Text(rect, "Glyph", TypeGlyphs[node.Type], node.Type == MapNodeType.DarkMatter ? 20 : 26,
+                var glyph = UiKit.Text(rect, "Glyph", LevelNames.Glyph(node.Type), node.Type == MapNodeType.DarkMatter ? 20 : 26,
                     new Color(0.02f, 0.03f, 0.06f, alpha), TextAnchor.MiddleCenter, FontStyle.Bold);
                 UiKit.Stretch(glyph.rectTransform);
 

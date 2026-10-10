@@ -4,6 +4,7 @@ using Pathfinder.Core.Random;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Dev;
 using Pathfinder.Game.Enemies;
+using Pathfinder.Game.Localization;
 using Pathfinder.Game.Player;
 using Pathfinder.Game.Presentation.Ui;
 using Pathfinder.Game.Run;
@@ -85,7 +86,8 @@ namespace Pathfinder.Game.Presentation
             _hull.Set(vitals.Hull / vitals.MaxHull);
             _shield.Rect.gameObject.SetActive(vitals.MaxShield > 0f);
             _shield.Set(vitals.MaxShield > 0f ? vitals.Shield / vitals.MaxShield : 0f);
-            _hullText.text = $"HULL {Mathf.CeilToInt(vitals.Hull)} / {vitals.MaxHull:0}    SHIELD {Mathf.CeilToInt(vitals.Shield)}{(player.GodMode ? "    [GOD]" : "")}";
+            _hullText.text = Loc.T("hud.hull", ("hull", Mathf.CeilToInt(vitals.Hull)), ("max", Mathf.RoundToInt(vitals.MaxHull)),
+                ("shield", Mathf.CeilToInt(vitals.Shield)), ("god", player.GodMode ? Loc.T("hud.god") : string.Empty));
 
             // Primary: name, state, and a gauge for ammo, reload or charge.
             var status = player.Primary.Status;
@@ -98,7 +100,7 @@ namespace Pathfinder.Game.Presentation
             if (hasSecondary)
             {
                 var cooldown = player.SecondaryCooldown;
-                _secondaryText.text = $"{player.SecondaryWeapon.DisplayName.ToUpperInvariant()}   {(cooldown.IsReady ? "READY" : $"{cooldown.TimeUntilReady:0.0}s")}";
+                _secondaryText.text = $"{player.SecondaryWeapon.DisplayName.ToUpperInvariant()}   {(cooldown.IsReady ? Loc.T("hud.ready") : Loc.T("hud.cooldown", ("seconds", cooldown.TimeUntilReady)))}";
                 _secondary.Set(cooldown.IsReady ? 1f : cooldown.RechargeProgress, cooldown.IsReady ? WeaponColor : WarningColor);
             }
 
@@ -113,32 +115,34 @@ namespace Pathfinder.Game.Presentation
 
             // Ship trait and equipped items (GDD §8), coloured by rarity.
             _builder.Clear();
-            if (!string.IsNullOrEmpty(player.Definition.TraitName))
-                _builder.Append(player.Definition.DisplayName.ToUpperInvariant()).Append("   ·   ").Append(player.Definition.TraitName).Append('\n');
+            if (!string.IsNullOrEmpty(player.Definition.TraitTitle))
+                _builder.Append(player.Definition.DisplayName.ToUpperInvariant()).Append("   ·   ").Append(player.Definition.TraitTitle).Append('\n');
             foreach (var entry in player.Equipment.All)
             {
                 _builder.Append("<color=#").Append(UiKit.Hex(EquipmentChoiceScreen.RarityColor(entry.Item.Rarity))).Append('>')
                     .Append(entry.Item.DisplayName).Append(' ').Append(EquipmentChoiceScreen.Roman(entry.Level)).Append("</color>\n");
             }
             _loadoutText.text = _builder.ToString();
-            _scraps.text = $"SCRAPS {player.Scraps}";
+            _scraps.text = Loc.T("hud.scraps", ("amount", player.Scraps));
         }
 
         void RefreshStatus(PlayerShip player)
         {
             _scraps.gameObject.SetActive(player != null);
-            _seed.text = world != null ? $"SEED {RunSeed.ToCode(world.Seed)}{(Settings.GameSettings.ShowFps ? $"    {_fps:0} FPS" : "")}" : string.Empty;
+            _seed.text = world != null
+                ? Loc.T("hud.seed", ("seed", RunSeed.ToCode(world.Seed)), ("fps", Settings.GameSettings.ShowFps ? Loc.T("hud.fps", ("fps", _fps)) : string.Empty))
+                : string.Empty;
 
             var run = runDirector != null ? runDirector.Run : null;
-            _darkMatter.text = run != null ? $"DARK MATTER {run.DarkMatter}    CORES {run.SingularityCores}" : string.Empty;
+            _darkMatter.text = run != null ? Loc.T("hud.currencies", ("darkmatter", run.DarkMatter), ("cores", run.SingularityCores)) : string.Empty;
             _debug.text = debugHotkeys != null && debugHotkeys.isActiveAndEnabled ? debugHotkeys.HintText : string.Empty;
 
             var level = runDirector != null ? runDirector.Level : null;
             if (level != null && level.IsActive)
             {
                 var context = level.Context;
-                string kind = context.Ambush ? " (AMBUSH)" : context.FromMystery && !context.IsEvent ? " (MYSTERY)" : "";
-                _header.text = $"GALAXY {context.GalaxyIndex + 1}   ·   ROW {context.Row + 1}   ·   {LevelNames.Title(context.Type)}{kind}";
+                string kind = context.Ambush ? Loc.T("hud.level.ambush") : context.FromMystery && !context.IsEvent ? Loc.T("hud.level.mystery") : string.Empty;
+                _header.text = Loc.T("hud.level", ("galaxy", context.GalaxyIndex + 1), ("row", context.Row + 1), ("type", LevelNames.Title(context.Type)), ("kind", kind));
                 _objective.text = level.Objective;
                 _banner.text = level.Banner;
                 _prompt.text = level.Prompt;
@@ -153,7 +157,9 @@ namespace Pathfinder.Game.Presentation
             }
             else
             {
-                _header.text = runDirector == null && waveDirector != null ? $"WAVE {waveDirector.Wave}   ENEMIES {CombatRegistry.Enemies.Count}" : string.Empty;
+                _header.text = runDirector == null && waveDirector != null
+                    ? Loc.T("hud.wave", ("wave", waveDirector.Wave), ("enemies", CombatRegistry.Enemies.Count))
+                    : string.Empty;
                 _objective.text = _banner.text = _prompt.text = string.Empty;
                 _bossPanel.SetActive(false);
             }
@@ -164,18 +170,18 @@ namespace Pathfinder.Game.Presentation
             string title = null, hint = null;
             if (runFlow != null && runFlow.IsVictory)
             {
-                title = "NEW HOME REACHED";
-                hint = $"{RunSummary()}\n\nPress E / (Y) for a new run    ·    Esc / Start for the Hub";
+                title = Loc.T("hud.victory");
+                hint = $"{RunSummary()}\n\n{Loc.T("hud.end_hint")}";
             }
             else if (runFlow != null && runFlow.IsGameOver)
             {
-                title = runDirector != null ? "RUN OVER" : "SHIP DESTROYED";
-                hint = runDirector != null ? $"{RunSummary()}\n\nPress E / (Y) for a new run    ·    Esc / Start for the Hub" : "Press E / (Y) to restart";
+                title = Loc.T(runDirector != null ? "hud.run_over" : "hud.ship_destroyed");
+                hint = runDirector != null ? $"{RunSummary()}\n\n{Loc.T("hud.end_hint")}" : Loc.T("hud.restart_hint");
             }
             else if (runDirector != null && runDirector.State == RunDirector.Phase.GalaxyCleared)
             {
-                title = "GALAXY CLEARED";
-                hint = $"Jumping to {runDirector.GalaxyName}...";
+                title = Loc.T("hud.galaxy_cleared");
+                hint = Loc.T("hud.jumping", ("galaxy", runDirector.GalaxyName));
             }
 
             _overlay.SetActive(title != null);
@@ -234,9 +240,10 @@ namespace Pathfinder.Game.Presentation
             if (run == null)
                 return string.Empty;
             string banked = runDirector.BankedRewards is { } rewards
-                ? $"\nBanked: {rewards.TotalDarkMatter} Dark Matter ({rewards.DarkMatter} harvested + {rewards.ConvertedScraps} from Scraps), {rewards.SingularityCores} Singularity Cores"
+                ? "\n" + Loc.T("hud.banked", ("total", rewards.TotalDarkMatter), ("harvested", rewards.DarkMatter),
+                    ("converted", rewards.ConvertedScraps), ("cores", rewards.SingularityCores))
                 : string.Empty;
-            return $"Galaxy {run.GalaxyIndex + 1}    ·    Levels cleared {run.LevelsCleared}    ·    Seed {RunSeed.ToCode(run.Seed)}{banked}";
+            return Loc.T("hud.summary", ("galaxy", run.GalaxyIndex + 1), ("levels", run.LevelsCleared), ("seed", RunSeed.ToCode(run.Seed))) + banked;
         }
 
         // ---------------------------------------------------------------- hull-hit flash

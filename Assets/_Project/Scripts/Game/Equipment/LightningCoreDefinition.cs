@@ -25,7 +25,7 @@ namespace Pathfinder.Game.Equipment
         public override EquipmentEffect CreateEffect() => new Effect(this);
 
         public override string Describe(int level) =>
-            $"Each primary hit has a {Chance * 100f:0}% chance to call lightning: {Damage:0} damage within {Radius:0} u";
+            Localization.Loc.T($"{Id}.desc", ("chance", Chance * 100f), ("damage", Damage), ("radius", Radius));
 
         sealed class Effect : EquipmentEffect
         {

@@ -21,7 +21,7 @@ namespace Pathfinder.Game.Equipment
         public override EquipmentEffect CreateEffect() => new Effect(this);
 
         public override string Describe(int level) =>
-            $"Dash end knocks back enemies within {AtLevel(Radius, level):0.#} u and deals {AtLevel(Damage, level):0} damage";
+            Localization.Loc.T($"{Id}.desc", ("radius", AtLevel(Radius, level)), ("damage", AtLevel(Damage, level)));
 
         sealed class Effect : EquipmentEffect
         {

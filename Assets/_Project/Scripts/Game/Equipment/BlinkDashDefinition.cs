@@ -15,7 +15,7 @@ namespace Pathfinder.Game.Equipment
         public override string Describe(int level)
         {
             float extra = AtLevel(ExtraDistance, level);
-            return extra > 0f ? $"Dash teleports instantly, {extra:0} u further" : "Dash teleports instantly, passing through enemies";
+            return extra > 0f ? Localization.Loc.T($"{Id}.desc.further", ("distance", extra)) : Localization.Loc.T($"{Id}.desc");
         }
 
         sealed class Effect : EquipmentEffect

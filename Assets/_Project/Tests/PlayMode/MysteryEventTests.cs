@@ -98,14 +98,14 @@ namespace Pathfinder.Tests.PlayMode
             int scraps = _player.Scraps;
             float hull = _player.Vitals.Hull;
 
-            var result = MysteryEvents.Apply(freighter.Choices[0], _player, _director.Run, new Pcg32(1, 1));
+            var result = MysteryEvents.Apply(freighter, 0, _player, _director.Run, new Pcg32(1, 1));
             Assert.AreEqual(scraps + 45, _player.Scraps);
             Assert.AreEqual(hull - 15f, _player.Vitals.Hull, 0.01f, "Hull costs skip the shield.");
             Assert.AreEqual(2, result.Lines.Count, "The result lists what changed.");
 
             var singularity = Event("event.singularity");
             float maxHull = _player.Vitals.MaxHull;
-            MysteryEvents.Apply(singularity.Choices[0], _player, _director.Run, new Pcg32(1, 1));
+            MysteryEvents.Apply(singularity, 0, _player, _director.Run, new Pcg32(1, 1));
             Assert.AreEqual(30, _director.Run.DarkMatter);
             Assert.AreEqual(maxHull - 10f, _player.Vitals.MaxHull, 0.01f);
         }
@@ -117,7 +117,7 @@ namespace Pathfinder.Tests.PlayMode
             _player.DrainHull(_player.Vitals.Hull - 5f);
             var well = Event("event.gravity-well");
 
-            MysteryEvents.Apply(well.Choices[0], _player, _director.Run, new Pcg32(1, 1));
+            MysteryEvents.Apply(well, 0, _player, _director.Run, new Pcg32(1, 1));
             Assert.AreEqual(1f, _player.Vitals.Hull, 0.01f, "An event can hurt, but never end a run.");
             Assert.IsTrue(_player.IsAlive);
         }

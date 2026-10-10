@@ -5,6 +5,7 @@ using Pathfinder.Core.Random;
 using Pathfinder.Core.Run;
 using Pathfinder.Game.Content;
 using Pathfinder.Game.Equipment;
+using Pathfinder.Game.Localization;
 using Pathfinder.Game.Player;
 using Pathfinder.Game.Presentation.Ui;
 
@@ -49,10 +50,10 @@ namespace Pathfinder.Game.Run
         /// <summary>What a choice needs, e.g. "NEEDS 40 SCRAPS". Shown when it's unavailable.</summary>
         public static string RequirementText(EventChoice choice) => choice.Requirement switch
         {
-            EventRequirement.AnyItem => "NEEDS AN ITEM",
-            EventRequirement.UpgradeableItem when choice.RequiredScraps > 0 => $"NEEDS {choice.RequiredScraps} SCRAPS + AN UPGRADABLE ITEM",
-            EventRequirement.UpgradeableItem => "NEEDS AN UPGRADABLE ITEM",
-            _ => choice.RequiredScraps > 0 ? $"NEEDS {choice.RequiredScraps} SCRAPS" : string.Empty,
+            EventRequirement.AnyItem => Loc.T("need.item"),
+            EventRequirement.UpgradeableItem when choice.RequiredScraps > 0 => Loc.T("need.scraps_upgradable", ("amount", choice.RequiredScraps)),
+            EventRequirement.UpgradeableItem => Loc.T("need.upgradable"),
+            _ => choice.RequiredScraps > 0 ? Loc.T("need.scraps", ("amount", choice.RequiredScraps)) : string.Empty,
         };
 
         /// <summary>The choice's effects, gains in green and costs in red, e.g. "+40 Scraps · −15 hull".</summary>
@@ -60,49 +61,48 @@ namespace Pathfinder.Game.Run
         {
             string success = Describe(choice.Outcomes);
             if (choice.Chance >= 1f)
-                return success.Length > 0 ? success : UiKit.Colored("Nothing happens.", UiKit.TextDim);
+                return success.Length > 0 ? success : UiKit.Colored(Loc.T("effect.nothing"), UiKit.TextDim);
             string fail = Describe(choice.FailOutcomes);
-            return $"{choice.Chance:P0}: {success}     Otherwise: {(fail.Length > 0 ? fail : "nothing")}";
+            return Loc.T("effect.gamble", ("chance", choice.Chance * 100f), ("success", success), ("fail", fail.Length > 0 ? fail : Loc.T("effect.gamble.nothing")));
         }
 
         static string Describe(IEnumerable<EventOutcome> outcomes) =>
-            string.Join("  ·  ", outcomes.Select(Describe).Where(text => text.Length > 0));
+            string.Join(Loc.T("effect.separator"), outcomes.Select(Describe).Where(text => text.Length > 0));
 
         public static string Describe(EventOutcome outcome)
         {
             int amount = UnityEngine.Mathf.RoundToInt(outcome.Amount);
-            string Signed(string what, bool goodWhenPositive = true)
-            {
-                bool good = amount >= 0 == goodWhenPositive;
-                string text = amount >= 0 ? $"+{amount} {what}" : $"−{-amount} {what}";
-                return UiKit.Colored(text, good ? UiKit.Good : UiKit.Bad);
-            }
+            string signed = StatEquipmentDefinition.Signed(amount, "0");
+            string Colored(string key, bool good, params (string, object)[] args) => UiKit.Colored(Loc.T(key, args), good ? UiKit.Good : UiKit.Bad);
 
             return outcome.Kind switch
             {
-                EventOutcomeKind.Scraps => Signed("Scraps"),
-                EventOutcomeKind.Hull => Signed("hull"),
-                EventOutcomeKind.HullPercent => UiKit.Colored($"Repair {amount}% hull", UiKit.Good),
-                EventOutcomeKind.MaxHull => Signed("max hull"),
-                EventOutcomeKind.DarkMatter => UiKit.Colored($"+{amount} Dark Matter", UiKit.Good),
-                EventOutcomeKind.Equipment => UiKit.Colored(outcome.Rarity == Rarity.Common ? "Equipment choice" : $"{outcome.Rarity}+ equipment choice", UiKit.Good),
-                EventOutcomeKind.UpgradeRandomItem => UiKit.Colored("Upgrade a random item", UiKit.Good),
-                EventOutcomeKind.LoseRandomItem => UiKit.Colored("Lose a random item", UiKit.Bad),
-                EventOutcomeKind.Ambush => UiKit.Colored("A fight (double rewards)", UiKit.Gold),
-                EventOutcomeKind.StatPercent => Signed($"% {StatNames.Name(outcome.Stat)}", goodWhenPositive: outcome.Stat != StatId.DamageTaken),
+                EventOutcomeKind.Scraps => Colored("effect.scraps", amount >= 0, ("signed", signed)),
+                EventOutcomeKind.Hull => Colored("effect.hull", amount >= 0, ("signed", signed)),
+                EventOutcomeKind.HullPercent => Colored("effect.hull_percent", true, ("amount", amount)),
+                EventOutcomeKind.MaxHull => Colored("effect.max_hull", amount >= 0, ("signed", signed)),
+                EventOutcomeKind.DarkMatter => Colored("effect.darkmatter", true, ("amount", amount)),
+                EventOutcomeKind.Equipment => outcome.Rarity == Rarity.Common
+                    ? Colored("effect.equipment", true)
+                    : Colored("effect.equipment_rarity", true, ("rarity", Presentation.EquipmentChoiceScreen.RarityName(outcome.Rarity))),
+                EventOutcomeKind.UpgradeRandomItem => Colored("effect.upgrade", true),
+                EventOutcomeKind.LoseRandomItem => Colored("effect.lose_item", false),
+                EventOutcomeKind.Ambush => UiKit.Colored(Loc.T("effect.ambush"), UiKit.Gold),
+                EventOutcomeKind.StatPercent => Colored("effect.stat", amount >= 0 == (outcome.Stat != StatId.DamageTaken), ("signed", signed), ("stat", StatNames.Name(outcome.Stat))),
                 _ => string.Empty,
             };
         }
 
-        /// <summary>Applies the choice. A gamble rolls with <paramref name="random"/>. Authority only.</summary>
-        public static EventResult Apply(EventChoice choice, PlayerShip pilot, RunState run, IRandom random)
+        /// <summary>Applies choice <paramref name="index"/> of the event. A gamble rolls with <paramref name="random"/>. Authority only.</summary>
+        public static EventResult Apply(MysteryEventDefinition definition, int index, PlayerShip pilot, RunState run, IRandom random)
         {
+            var choice = definition.Choices[index];
             var result = new EventResult();
             if (choice.Chance < 1f)
                 result.Succeeded = random.Chance(choice.Chance);
 
             var outcomes = result.Succeeded ? choice.Outcomes : choice.FailOutcomes;
-            result.Text = result.Succeeded ? choice.ResultText : choice.FailText;
+            result.Text = definition.ResultText(index, result.Succeeded);
             foreach (var outcome in outcomes)
                 Apply(outcome, pilot, run, random, result);
             return result;
@@ -117,23 +117,23 @@ namespace Pathfinder.Game.Run
                     if (amount >= 0)
                     {
                         pilot.AddScraps(amount);
-                        result.Lines.Add(UiKit.Colored($"+{amount} Scraps", UiKit.Good));
+                        result.Lines.Add(Line("effect.scraps", amount));
                     }
                     else
                     {
-                        result.Lines.Add(UiKit.Colored($"−{pilot.LoseScraps(-amount)} Scraps", UiKit.Bad));
+                        result.Lines.Add(Line("effect.scraps", -pilot.LoseScraps(-amount)));
                     }
                     break;
 
                 case EventOutcomeKind.Hull:
                     if (amount >= 0)
-                        result.Lines.Add(UiKit.Colored($"+{UnityEngine.Mathf.RoundToInt(pilot.Heal(amount))} hull", UiKit.Good));
+                        result.Lines.Add(Line("effect.hull", UnityEngine.Mathf.RoundToInt(pilot.Heal(amount))));
                     else
-                        result.Lines.Add(UiKit.Colored($"−{UnityEngine.Mathf.RoundToInt(pilot.DrainHull(-amount))} hull", UiKit.Bad));
+                        result.Lines.Add(Line("effect.hull", -UnityEngine.Mathf.RoundToInt(pilot.DrainHull(-amount))));
                     break;
 
                 case EventOutcomeKind.HullPercent:
-                    result.Lines.Add(UiKit.Colored($"+{UnityEngine.Mathf.RoundToInt(pilot.Heal(pilot.Vitals.MaxHull * outcome.Amount / 100f))} hull", UiKit.Good));
+                    result.Lines.Add(Line("effect.hull", UnityEngine.Mathf.RoundToInt(pilot.Heal(pilot.Vitals.MaxHull * outcome.Amount / 100f))));
                     break;
 
                 case EventOutcomeKind.MaxHull:
@@ -158,7 +158,8 @@ namespace Pathfinder.Game.Run
                     var entry = candidates[random.Range(0, candidates.Count)];
                     var item = entry.Item;
                     pilot.UpgradeEquipment(item);
-                    result.Lines.Add(UiKit.Colored($"{item.DisplayName} upgraded to {Presentation.EquipmentChoiceScreen.Roman(pilot.Equipment.Find(item).Level)}", UiKit.Good));
+                    result.Lines.Add(UiKit.Colored(Loc.T("effect.upgraded", ("item", item.DisplayName),
+                        ("level", Presentation.EquipmentChoiceScreen.Roman(pilot.Equipment.Find(item).Level))), UiKit.Good));
                     break;
                 }
 
@@ -169,7 +170,7 @@ namespace Pathfinder.Game.Run
                         break;
                     var item = candidates[random.Range(0, candidates.Count)].Item;
                     pilot.RemoveEquipment(item);
-                    result.Lines.Add(UiKit.Colored($"Lost {item.DisplayName}", UiKit.Bad));
+                    result.Lines.Add(UiKit.Colored(Loc.T("effect.lost", ("item", item.DisplayName)), UiKit.Bad));
                     break;
                 }
 
@@ -183,5 +184,9 @@ namespace Pathfinder.Game.Run
                     break;
             }
         }
+
+        /// <summary>A result line such as "+40 Scraps" or "−15 hull", green for gains and red for losses.</summary>
+        static string Line(string key, int amount) =>
+            UiKit.Colored(Loc.T(key, ("signed", StatEquipmentDefinition.Signed(amount, "0"))), amount >= 0 ? UiKit.Good : UiKit.Bad);
     }
 }
