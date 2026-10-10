@@ -38,7 +38,8 @@ flowchart LR
     lost --> bank --> hub
 ```
 
-1. **In the Hub**, choose **Start Run**, then a ship, a primary and a secondary weapon.
+1. **In the Hub**, choose **Start Run**, then a ship, a primary and a secondary weapon. (Or choose **Survival**: one
+   arena against the clock, with an upgrade every minute. See [Survival](survival.md).)
 2. **On the galaxy map**, pick a node from the bottom row. Each row narrows toward the **Shop** and the **Boss** at the
    top. Node types are shown, except Mystery (?) nodes. See [Run structure](run-structure.md).
 3. **In a level**, complete the objective (clear the waves, harvest Dark Matter, use the station...), then fly into

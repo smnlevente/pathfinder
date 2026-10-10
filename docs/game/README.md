@@ -9,6 +9,7 @@ What everything in the game does, as it plays today. Every number is a starting 
 |---|---|
 | [How to play](how-to-play.md) | Controls, the HUD, a run from start to finish, options |
 | [Run structure](run-structure.md) | The three galaxies, the galaxy map, the seven level types, Mystery events |
+| [Survival](survival.md) | The clock, an upgrade every minute, a guardian every five, and what it pays |
 | [Ships & weapons](ships-and-weapons.md) | Ships and their traits, primary and secondary weapons, the dash |
 | [Equipment](equipment.md) | Slots, rarity, levels, how offers are rolled, and all 21 items |
 | [Enemies](enemies.md) | All the enemies (and the Matriarch's Broodlings), elites, spawning and scaling, and how to beat each |

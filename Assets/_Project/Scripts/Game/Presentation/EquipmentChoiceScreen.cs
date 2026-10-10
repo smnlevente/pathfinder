@@ -13,7 +13,7 @@ namespace Pathfinder.Game.Presentation
 {
     /// <summary>
     /// Equipment choice (GDD §8.1, §12.2): a row of cards, plus a swap step when the item's category is full. Gameplay is
-    /// paused while it is open. Skipping grants Scraps instead.
+    /// paused while it is open. Skipping grants Scraps instead, or whatever the caller offers (Survival repairs the hull).
     /// </summary>
     public sealed class EquipmentChoiceScreen : MonoBehaviour
     {
@@ -32,7 +32,8 @@ namespace Pathfinder.Game.Presentation
         PlayerShip _ship;
         Action<bool> _onClosed;
         string _title;
-        int _skipScraps;
+        string _skipLabel;
+        Action _onSkip;
         bool _allowSkip;
         Step _step;
         EquipmentDefinition _pending;
@@ -58,12 +59,17 @@ namespace Pathfinder.Game.Presentation
         }
 
         /// <summary>Offers a choice of items. <paramref name="onClosed"/> receives true if an item was taken.</summary>
-        public void Show(string title, IReadOnlyList<EquipmentDefinition> options, PlayerShip ship, int skipScraps, Action<bool> onClosed)
+        public void Show(string title, IReadOnlyList<EquipmentDefinition> options, PlayerShip ship, int skipScraps, Action<bool> onClosed) =>
+            Show(title, options, ship, Loc.T("choice.skip", ("amount", skipScraps)), () => ship.AddScraps(skipScraps), onClosed);
+
+        /// <summary>Offers a choice of items where skipping does something else, described by <paramref name="skipLabel"/>.</summary>
+        public void Show(string title, IReadOnlyList<EquipmentDefinition> options, PlayerShip ship, string skipLabel, Action onSkip, Action<bool> onClosed)
         {
             _title = title;
             _options = options;
             _ship = ship;
-            _skipScraps = skipScraps;
+            _skipLabel = skipLabel;
+            _onSkip = onSkip;
             _allowSkip = true;
             _onClosed = onClosed;
             Open();
@@ -126,7 +132,9 @@ namespace Pathfinder.Game.Presentation
         {
             if (!IsOpen || !_allowSkip)
                 return;
-            _ship.AddScraps(_skipScraps);
+            var onSkip = _onSkip;
+            _onSkip = null;
+            onSkip?.Invoke();
             Close(false);
         }
 
@@ -250,7 +258,7 @@ namespace Pathfinder.Game.Presentation
 
             _skipRow.Rect.parent.gameObject.SetActive(_allowSkip);
             if (_allowSkip)
-                _skipRow.SetLabel(Loc.T("choice.skip", ("amount", _skipScraps)));
+                _skipRow.SetLabel(_skipLabel);
             LayoutRebuilder.ForceRebuildLayoutImmediate(_cards);
             RefreshSelection();
         }

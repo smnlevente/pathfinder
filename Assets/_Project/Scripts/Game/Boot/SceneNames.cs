@@ -6,6 +6,9 @@ namespace Pathfinder.Game.Boot
         public const string Boot = "Boot";
         public const string Hub = "Hub";
         public const string Run = "Run";
+        public const string Survival = "Survival";
+
+        /// <summary>The endless combat playground, for tuning and tests. Not reachable from the Hub.</summary>
         public const string Sandbox = "Sandbox";
     }
 }

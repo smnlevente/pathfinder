@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 2.4 (playtest 6, the first external playtest: an eruption you dash out of, a ship-mounted HUD readout and a 16:9 HUD area, the Precision Loader active-reload item, the Hive Matriarch) |
+| **Version** | 2.4 (playtest 6, the first external playtest: an eruption you dash out of, a ship-mounted HUD readout and a 16:9 HUD area, the Precision Loader active-reload item, the Hive Matriarch, Survival mode replacing the sandbox) |
 | **Date** | 2026-10-10 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
@@ -97,6 +97,23 @@ Later in production, each tier can draw from a **pool of themes** (for example, 
 | Current hull HP | Unlocked ships and weapons |
 | Galaxy progress | Hub upgrades |
 | | Lore and codex entries |
+
+### 3.2 Survival mode
+*Playtest 6.* The first external playtest asked for a "survive X minutes" mode. Endless waves in the sandbox gave no upgrades and got boring. **Survival** replaces the Combat Sandbox in the Hub; the Sandbox scene stays for tuning and tests. See [Survival](game/survival.md).
+- **Start:** pick a ship and loadout as for a run; Lab upgrades apply. One arena, endless waves, and a **clock**.
+- **Upgrades:** every **60 s** on the clock, a choice of 3 items (plus the ship's bonus choices) with the current tier's rarity odds. **Skipping repairs 20% of max hull**, since there's no Shop to spend Scraps in. **[tune]**
+- **Guardians:** at **5:00, 10:00 and 15:00**, the three galaxy bosses arrive in order (Quarry Maw, Binary Wardens, Hive Matriarch), each at its own galaxy's health, after a 3 s warning.
+  - **The clock holds while a guardian is alive.** Waves drop to 35% budget, at most every 18 s.
+  - A fallen guardian pays its galaxy's Singularity Cores (1/2/3), heals 30%, re-arms once-per-level items (Last Stand), pulls in the Scraps, and offers a Rare-or-better item. That reward replaces the upgrade due the same minute.
+  - The waves then move on to the next galaxy's enemies, rarity odds and music.
+- **Pressure follows the clock, not the wave count:** **[tune]**
+  - Each wave's budget is 6 × (1 + 0.35 per minute): about 16 at 5:00, 27 at 10:00, 38 at 15:00.
+  - Enemy health goes ×1.0 → ×1.6 at 5:00 → ×2.4 at 10:00 → ×3.2 at 15:00, then keeps climbing.
+  - Each enemy's elite chance is 3% + 1.5% per minute, up to 30%.
+  - The next wave comes at 80% dead or after 15 s, but no timed wave starts while 45 enemies are alive.
+- **Win:** the Hive Matriarch's fall at 15:00. Her Swarm and every remaining enemy die with her.
+- **Rewards:** Dark Matter for every minute on the clock (4 / 6 / 8 per tier, 90 for a full 15 minutes), the guardians' 6 Cores, and 10% of the Scraps. They're banked on victory, death, or leaving from the pause menu. The **best time** is saved and shown in the Hub. Survival isn't counted in the Hub's run statistics.
+- **Implementation:** `SurvivalController` drives the clock and the `WaveDirector` through `FixedBudget`, `FixedEliteChance`, `MaxEnemies` and `SetGalaxy`. Tuning is in `Data/Run/SurvivalConfig`; the guardians come from `RunConfig`.
 
 ---
 
@@ -218,7 +235,7 @@ Enemy spawns are driven by a **budget**:
 - **Budget:** `round(6 × galaxy[1.0 / 1.4 / 1.8] × (1 + 0.15 × (row − 1)) × (1 + 0.25 × (wave − 1)))`. Each pick is weighted among the enemies that are unlocked and still affordable (Shattered Expanse pool: Drone 5, Gunner 3, Spinner 2 from wave 2, Lancer 2 from wave 2, Carrier 1 from wave 4). A wave holds at most 40 spawns.
 - **Galaxy gating:** each pool entry has a first galaxy. From galaxy 2 the pool adds the Scorcher (weight 2), Arc Drone (3) and Crusher (1.5, from wave 2). The endless combat sandbox (galaxy 1) brings them in from wave 6, so they can be tried there.
 - **Elite chance:** `min(0.35, 0.03 + 0.02 × (wave − 1) + 0.04 × (row − 1) + 0.05 × galaxy)`. An elite costs ×2 budget.
-- **Pacing:** the first wave comes after 1.5 s. The next wave starts at 80% dead or after 25 s. Levels have a fixed wave count; the combat sandbox is endless.
+- **Pacing:** the first wave comes after 1.5 s. The next wave starts at 80% dead or after 25 s. Levels have a fixed wave count; the combat sandbox and [Survival](#32-survival-mode) are endless. Survival sets the budget, elite odds and galaxy from its clock instead.
 - The director's randomness is a seeded stream keyed by galaxy and row, and every enemy gets its own AI and loot streams keyed by spawn order. Seeded replays therefore match exactly.
 
 ### 7.3 Enemy archetypes
@@ -585,9 +602,11 @@ Boot → Main Menu → Hub ──► Ship Select → Loadout Select → Galaxy M
 ```
 *M5 state:* Boot → Hub (menu: **Start Run** → loadout page, **Pathfinder Lab**, **Combat Sandbox**) → Run scene (galaxy map ⇄ levels → galaxy cleared → … → victory or defeat summary with banked rewards) → back to the Hub. The **Sandbox** scene keeps the endless combat playground for tuning.
 
+*Playtest 6:* the Hub's menu is **Start Run**, **Survival**, **Pathfinder Lab**, **Options**, **Quit**. Survival uses the same loadout page (launching the **Survival** scene, [§3.2](#32-survival-mode)) and ends on a summary with the time survived, guardians defeated, a new-best note and what was banked; E tries again with the same loadout. The Sandbox scene is no longer in the Hub: open it in the Editor.
+
 *UI tech (playtest 2):* the galaxy map, station and event dialogs, and equipment cards are **uGUI built from code** on a 1920×1080 reference canvas that scales to fit. Layout groups size rows and cards to their text, so descriptions wrap instead of being cut off, and long lists (a full Shop) scroll. Dialog rows show a label, a right-aligned price or state, and a detail line; the Shop groups them under Catalog, Upgrades and Services. Since M6 the HUD and Hub are uGUI too, so no IMGUI is left; menus sort above the HUD.
 
-*Pause and options (M6):* Esc / Start opens the **pause menu** (also over the galaxy map, but not over a dialog or choice cards, which use Esc themselves): Resume, **Options**, **Controls** (keyboard and gamepad), and **Abandon run** (back to the Hub; the run counts as lost and banks what it earned) or Quit to Hub in the Sandbox. The Hub has the same Options page. Options: master, music and sound-effect volume, **sound in background**, screen shake (off to 100% in 25% steps, for motion-sensitive players), fullscreen, and an FPS counter. *Playtest 5:* volumes and screen shake are draggable **sliders** (click steps up 10%, right click steps down, arrows step either way), on/off options are **tickboxes**, and volume changes act at once (music set to off used to fade out over most of a minute). Sound in background (off by default) keeps the music and sounds playing while the window isn't focused; switching away mid-fight pauses the game either way. They belong to the machine, so they live in PlayerPrefs, not the meta save.
+*Pause and options (M6):* Esc / Start opens the **pause menu** (also over the galaxy map, but not over a dialog or choice cards, which use Esc themselves): Resume, **Options**, **Controls** (keyboard and gamepad), and **Abandon run** (back to the Hub; the run counts as lost and banks what it earned) **Leave Survival** (banks what was earned so far), or Quit to Hub in the Sandbox. The Hub has the same Options page. Options: master, music and sound-effect volume, **sound in background**, screen shake (off to 100% in 25% steps, for motion-sensitive players), fullscreen, and an FPS counter. *Playtest 5:* volumes and screen shake are draggable **sliders** (click steps up 10%, right click steps down, arrows step either way), on/off options are **tickboxes**, and volume changes act at once (music set to off used to fade out over most of a minute). Sound in background (off by default) keeps the music and sounds playing while the window isn't focused; switching away mid-fight pauses the game either way. They belong to the machine, so they live in PlayerPrefs, not the meta save.
 
 ### 12.2 HUD (in level)
 - **On the ship** *(playtest 6: players watch their ship, not the cursor or the corners)*: an ammo/reload ring around the ship (charge for the Quantum Charger; the Precision Loader's gold window while reloading), with a thin shield bar and the hull bar under it. Faint while all is well; bright when reloading, low on ammo or hull, or just hit.

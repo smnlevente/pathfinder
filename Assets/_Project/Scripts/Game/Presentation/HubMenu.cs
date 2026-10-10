@@ -14,13 +14,13 @@ using UnityEngine.UI;
 namespace Pathfinder.Game.Presentation
 {
     /// <summary>
-    /// The Hub (GDD §11.2, §12.1): start a run after choosing a ship and loadout (GDD §5.4), spend Dark Matter and
-    /// Singularity Cores in the Pathfinder Lab, or open the combat sandbox. Locked weapons are skipped in the loadout until
-    /// bought. Mouse, keyboard and gamepad all work.
+    /// The Hub (GDD §11.2, §12.1): start a run or Survival (GDD §3.2) after choosing a ship and loadout (GDD §5.4), or spend
+    /// Dark Matter and Singularity Cores in the Pathfinder Lab. Locked weapons are skipped in the loadout until bought.
+    /// Mouse, keyboard and gamepad all work.
     /// </summary>
     public sealed class HubMenu : MonoBehaviour
     {
-        static readonly string[] MainOptions = { "hub.start", "hub.lab", "hub.options", "hub.sandbox", "hub.quit" };
+        static readonly string[] MainOptions = { "hub.start", "hub.survival", "hub.lab", "hub.options", "hub.quit" };
 
         public enum Page { Main, Loadout, Lab, Options }
 
@@ -30,6 +30,7 @@ namespace Pathfinder.Game.Presentation
         Page _page;
         int _selected;
         int _ship, _primary, _secondary;
+        bool _survival; // the loadout page launches Survival rather than a run
 
         Text _title, _subtitle, _meta, _pageTitle, _hint;
         RectTransform _list, _panel;
@@ -95,7 +96,9 @@ namespace Pathfinder.Game.Presentation
                     ChooseMain(index);
                     break;
                 case Page.Loadout:
-                    if (index == 3)
+                    if (index == 3 && _survival)
+                        StartSurvival();
+                    else if (index == 3)
                         StartRun();
                     else
                         Cycle(index, 1);
@@ -139,24 +142,29 @@ namespace Pathfinder.Game.Presentation
             switch (index)
             {
                 case 0:
-                    _primary = NextAvailable(content.PrimaryWeapons, _primary, 0);
-                    _secondary = NextAvailable(content.SecondaryWeapons, _secondary, 0);
-                    ShowPage(Page.Loadout);
-                    _selected = 3;
-                    break;
                 case 1:
-                    ShowPage(Page.Lab);
+                    OpenLoadout(survival: index == 1);
                     break;
                 case 2:
-                    ShowPage(Page.Options);
+                    ShowPage(Page.Lab);
                     break;
                 case 3:
-                    SceneManager.LoadScene(SceneNames.Sandbox);
+                    ShowPage(Page.Options);
                     break;
                 default:
                     Application.Quit();
                     break;
             }
+        }
+
+        /// <summary>The loadout page, launching a run or Survival.</summary>
+        public void OpenLoadout(bool survival)
+        {
+            _survival = survival;
+            _primary = NextAvailable(content.PrimaryWeapons, _primary, 0);
+            _secondary = NextAvailable(content.SecondaryWeapons, _secondary, 0);
+            ShowPage(Page.Loadout);
+            _selected = 3;
         }
 
         void Cycle(int row, int step)
@@ -188,13 +196,17 @@ namespace Pathfinder.Game.Presentation
 
         static int Wrap(int value, int count) => count == 0 ? 0 : (value % count + count) % count;
 
-        public void StartRun()
+        public void StartRun() => Launch(SceneNames.Run);
+
+        public void StartSurvival() => Launch(SceneNames.Survival);
+
+        void Launch(string scene)
         {
             // The run seed also seeds the arena, so the whole run replays from a single code.
             var loadout = new PilotLoadout(content.Ships[_ship].Id, content.PrimaryWeapons[_primary].Id, content.SecondaryWeapons[_secondary].Id);
             var run = RunSession.Begin(loadout: loadout);
             CombatWorld.NextSeedOverride = run.Seed;
-            SceneManager.LoadScene(SceneNames.Run);
+            SceneManager.LoadScene(scene);
         }
 
         // ---------------------------------------------------------------- view
@@ -245,13 +257,13 @@ namespace Pathfinder.Game.Presentation
                 case Page.Main:
                     _pageTitle.text = string.Empty;
                     foreach (string key in MainOptions)
-                        AddRow(Loc.T(key), null, Loc.TOr(key + ".detail", null));
+                        AddRow(Loc.T(key), null, key == "hub.survival" ? SurvivalDetail() : Loc.TOr(key + ".detail", null));
                     _hint.text = Loc.T("hub.main.hint");
                     break;
 
                 case Page.Loadout:
                 {
-                    _pageTitle.text = Loc.T("hub.loadout");
+                    _pageTitle.text = Loc.T(_survival ? "hub.loadout.survival" : "hub.loadout");
                     var ship = content.Ships[_ship];
                     var primary = content.PrimaryWeapons[_primary];
                     var secondary = content.SecondaryWeapons[_secondary];
@@ -259,7 +271,7 @@ namespace Pathfinder.Game.Presentation
                         ("hull", ship.MaxHull), ("shield", ship.MaxShield), ("speed", ship.MoveSpeed), ("trait", ship.TraitTitle), ("description", ship.TraitText)));
                     AddRow(Loc.T("hub.loadout.primary", ("name", primary.DisplayName)), null, PrimarySummary(primary));
                     AddRow(Loc.T("hub.loadout.secondary", ("name", secondary.DisplayName)), null, Loc.T("hub.loadout.secondary.detail", ("seconds", secondary.Cooldown)));
-                    AddRow(Loc.T("hub.loadout.launch"), null, null, UiKit.Accent);
+                    AddRow(Loc.T(_survival ? "hub.loadout.launch_survival" : "hub.loadout.launch"), null, null, UiKit.Accent);
                     _hint.text = Loc.T("hub.loadout.hint");
                     break;
                 }
@@ -322,6 +334,12 @@ namespace Pathfinder.Game.Presentation
         {
             var meta = MetaProgression.Current;
             return Loc.T("hub.profile", ("darkmatter", meta.DarkMatter), ("cores", meta.SingularityCores), ("won", meta.RunsWon), ("played", meta.RunsPlayed));
+        }
+
+        static string SurvivalDetail()
+        {
+            int best = MetaProgression.Current.BestSurvivalSeconds;
+            return Loc.T("hub.survival.detail", ("best", best > 0 ? Loc.T("hub.survival.best", ("time", SurvivalController.FormatClock(best))) : string.Empty));
         }
 
         static string PrimarySummary(PrimaryWeaponDefinition weapon) => weapon.FireMode == PrimaryFireMode.Charge

@@ -197,6 +197,8 @@ The brains:
 | `CrusherBrain` | Crusher | Approach, ring wind-up, slam, recover |
 | `QuarryMawBrain` | The Quarry Maw | Three phases; segmented body with weak points |
 | `WardenBrain` | The Binary Wardens | Two linked cores, tether, offline and reboot |
+| `MatriarchBrain` | The Hive Matriarch | Three phases; broods, spore clouds, charges, bloom rings; heart open between attacks |
+| `BroodlingBrain` | Broodling | Weaving chase with darts |
 
 ## The wave director
 
@@ -204,14 +206,16 @@ The brains:
 
 1. **Budget** = base × galaxy multiplier × row factor × wave factor, times the level's multiplier.
 2. **Pool**: each `WaveDirectorConfig` entry has a weight, a first wave and a first galaxy. Entries from a later
-   galaxy stay out, except late in endless mode (the Sandbox).
+   galaxy stay out, except late in endless mode (the Sandbox). Survival keeps to its galaxy (`keepToGalaxy`) and moves
+   on with `SetGalaxy` as each guardian falls.
 3. **Compose** (`WaveComposer`, in Core): pick weighted among affordable, unlocked entries until the budget runs out;
    each pick may roll as an elite at double cost.
 4. **Spawn**: each order gets a point clear of every player and a 1 s red floor telegraph, staggered within the wave.
 5. **Next wave** when 80% of the wave is dead, or after the timeout.
 
 The level controller configures the director per level (wave count, budget, first-wave delay, timeout) and listens
-for `WaveStarted` and `Completed`.
+for `WaveStarted` and `Completed`. Survival drives it from its clock instead: `FixedBudget` and `FixedEliteChance`
+replace the per-wave growth, and `MaxEnemies` holds timed waves back while the arena is crowded.
 
 ## The run
 
@@ -232,6 +236,9 @@ stateDiagram-v2
   loads.
 - `RunDirector` drives the states above, plays the matching music, banks rewards into the profile and appends the run
   log.
+- `SurvivalController` runs the Survival scene instead ([GDD §3.2](../GDD.md#32-survival-mode)): the clock, an
+  equipment choice every minute, a guardian every five (the clock holds while it lives), and banking when it ends.
+  Its tuning is in `SurvivalConfig`.
 - `LevelController` sets up each level type's objective and rewards (Scraps, Equipment, Dark Matter, Repair, Shop,
   Mystery, Boss), opens the exit wormhole and reports when a pilot flies in. Its tuning lives in `RunConfig`, including
   each galaxy's boss.

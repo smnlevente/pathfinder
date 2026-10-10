@@ -6,8 +6,8 @@ About 250 automated tests guard the rules, the content and the game itself. Run 
 
 | Suite | Where | Runs | Count |
 |---|---|---|---|
-| **EditMode** | `Assets/_Project/Tests/EditMode` | Without entering play mode: pure rules, content checks, localization coverage | ~140 |
-| **PlayMode** | `Assets/_Project/Tests/PlayMode` | In the real Sandbox, Run and Hub scenes, with scripted pilots | ~110 |
+| **EditMode** | `Assets/_Project/Tests/EditMode` | Without entering play mode: pure rules, content checks, localization coverage | ~150 |
+| **PlayMode** | `Assets/_Project/Tests/PlayMode` | In the real Sandbox, Run, Survival and Hub scenes, with scripted pilots | ~140 |
 
 Run them from **Window › General › Test Runner**, or from the command line (Editor closed):
 
@@ -27,7 +27,7 @@ Add `-testFilter "WardenTests|GalaxyTwoEnemyTests"` to run a subset.
 |---|---|
 | Combat rules (Core) | `VitalsTests`, `MagazineWeaponTests`, `ChargeWeaponTests`, `CooldownTests`, `DashStateTests`, `WaveComposerTests` |
 | Randomness | `Pcg32Tests` (reference outputs), `SeedTests`, `RandomExtensionsTests`, `RunSeedTests` |
-| Run structure | `GalaxyMapGeneratorTests` (every map rule over 500 seeds), `RunStateTests` |
+| Run structure | `GalaxyMapGeneratorTests` (every map rule over 500 seeds), `RunStateTests`, `SurvivalConfigTests` |
 | Equipment and meta | `EquipmentCoreTests` (stat formula, slots, offers), `MetaStateTests` |
 | Content | `ContentDefinitionTests` (unique IDs), `GalaxyContentTests` (galaxy gating, each galaxy's boss), `PlaneMathTests` |
 | Text | `LocTableTests` (the parser), `LocalizationCoverageTests` (every key the game uses exists in English) |
@@ -38,9 +38,9 @@ Add `-testFilter "WardenTests|GalaxyTwoEnemyTests"` to run a subset.
 |---|---|
 | Ship and weapons | `CombatSandboxTests`, `WeaponTests` |
 | Enemies | `EnemyTests`, `GalaxyTwoEnemyTests` |
-| Bosses | `BossTests` (the Quarry Maw), `WardenTests` (the Binary Wardens) |
+| Bosses | `BossTests` (the Quarry Maw), `WardenTests` (the Binary Wardens), `MatriarchTests` (the Hive Matriarch) |
 | Equipment | `EquipmentTests` |
-| Run flow | `RunTests`, `MysteryEventTests`, `EconomyAndWaveTests` |
+| Run flow | `RunTests`, `MysteryEventTests`, `EconomyAndWaveTests`, `SurvivalTests` |
 | Meta and menus | `MetaTests`, `HubTests`, `PauseMenuTests`, `AudioTests` |
 | Determinism | `DeterminismAndScreenshotTests` (the same seed gives the same fight, tick for tick) |
 | Balance probes | `BalanceTests` (what levels pay), `Balance_TimeToKill` in the boss tests |

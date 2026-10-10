@@ -93,6 +93,9 @@ namespace Pathfinder.Editor.Setup
             return run;
         }
 
+        /// <summary>Survival's tuning (GDD §3.2). Its defaults live in the class.</summary>
+        static SurvivalConfig BuildSurvivalConfig() => Definition<SurvivalConfig>("Run/SurvivalConfig", "survival.config", "Survival Config");
+
         static RunConfig BuildRunConfig(Data data, RunArt runArt)
         {
             var config = Definition<RunConfig>("Run/RunConfig", "run.config", "Run Config", so =>

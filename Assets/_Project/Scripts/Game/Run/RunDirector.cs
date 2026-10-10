@@ -180,6 +180,7 @@ namespace Pathfinder.Game.Run
             RunLog.Append(new RunLog.Entry
             {
                 timeUtc = DateTime.UtcNow.ToString("u"),
+                mode = "run",
                 seed = RunLog.SeedCode(Run.Seed),
                 ship = pilot != null ? pilot.Definition.Id : Run.Loadout.ShipId,
                 primary = pilot != null ? pilot.PrimaryWeapon.Id : Run.Loadout.PrimaryId,

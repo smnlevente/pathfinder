@@ -15,7 +15,7 @@ namespace Pathfinder.Game.Enemies
     /// when most of the current wave is dead or a timeout passes. Spawns are telegraphed and never land on a
     /// player. Authority only.
     /// The run's level controller reconfigures the director for each level. The combat sandbox lets it start
-    /// itself in endless mode.
+    /// itself in endless mode. Survival runs it endlessly too, with a budget set from its clock.
     /// </summary>
     [DefaultExecutionOrder(-50)]
     public sealed class WaveDirector : MonoBehaviour
@@ -44,8 +44,10 @@ namespace Pathfinder.Game.Enemies
         readonly List<WaveEntry> _entries = new List<WaveEntry>();
         IRandom _random;
         float _waveTimer;
+        float _firstWaveDelay;
         int _waveSize;
         bool _running;
+        bool _keepToGalaxy;
 
         public WaveDirectorConfig Config => config;
         public CombatWorld World => world;
@@ -60,6 +62,18 @@ namespace Pathfinder.Game.Enemies
 
         /// <summary>Seconds before the next wave starts anyway. Lower values keep pressure constant.</summary>
         public float WaveTimeout { get; set; }
+
+        /// <summary>
+        /// When above 0, every wave spends this budget (times <see cref="BudgetMultiplier"/>) instead of one that grows with
+        /// each wave. Survival sets it from its clock, so pressure follows time rather than how fast waves are cleared.
+        /// </summary>
+        public int FixedBudget { get; set; }
+
+        /// <summary>When 0 or more, each enemy's chance to be an elite, instead of one that grows with each wave. Survival sets it from its clock.</summary>
+        public float FixedEliteChance { get; set; } = -1f;
+
+        /// <summary>When above 0, no timed wave starts while this many enemies are alive. Keeps an endless arena from flooding.</summary>
+        public int MaxEnemies { get; set; }
 
         /// <summary>Living enemies of the current wave, plus those still telegraphing.</summary>
         public int RemainingInWave => _waveEnemies.Count + _pending.Count;
@@ -76,12 +90,15 @@ namespace Pathfinder.Game.Enemies
             WaveTimeout = config.WaveTimeout;
         }
 
-        /// <summary>The pool for the current galaxy: enemies from later galaxies stay out (GDD §7.2).</summary>
+        /// <summary>
+        /// The pool for the current galaxy: enemies from later galaxies stay out (GDD §7.2), except that endless waves bring
+        /// them in after a few waves, unless told to keep to the galaxy.
+        /// </summary>
         void BuildEntries()
         {
             _entries.Clear();
             foreach (var entry in config.Enemies)
-                _entries.Add(new WaveEntry(entry.Enemy.BudgetCost, entry.Weight, config.FirstWave(entry, galaxyIndex, endless: waveCount == 0)));
+                _entries.Add(new WaveEntry(entry.Enemy.BudgetCost, entry.Weight, config.FirstWave(entry, galaxyIndex, endless: waveCount == 0 && !_keepToGalaxy)));
         }
 
         void Start()
@@ -92,24 +109,44 @@ namespace Pathfinder.Game.Enemies
 
         /// <summary>
         /// Starts spawning for a level. <paramref name="waves"/> = 0 is endless. The first wave arrives after
-        /// <paramref name="firstWaveDelay"/> seconds (config default when negative).
+        /// <paramref name="firstWaveDelay"/> seconds (config default when negative). Endless waves keep to the galaxy's own
+        /// enemies when <paramref name="keepToGalaxy"/> is set (Survival moves on with <see cref="SetGalaxy"/>).
         /// </summary>
-        public void Begin(Seed levelSeed, int galaxy, int mapRow, int waves, float budgetMultiplier = 1f, float firstWaveDelay = -1f)
+        public void Begin(Seed levelSeed, int galaxy, int mapRow, int waves, float budgetMultiplier = 1f, float firstWaveDelay = -1f,
+            bool keepToGalaxy = false)
         {
             Stop();
             _random = levelSeed.CreateRandom(SeedLabels.Waves);
             galaxyIndex = galaxy;
             row = mapRow;
             waveCount = waves;
+            _keepToGalaxy = keepToGalaxy;
             BuildEntries();
             BudgetMultiplier = budgetMultiplier;
+            FixedBudget = 0;
+            FixedEliteChance = -1f;
+            MaxEnemies = 0;
             WaveTimeout = config.WaveTimeout;
             Wave = 0;
             IsComplete = false;
             _waveSize = 0;
-            _waveTimer = WaveTimeout - (firstWaveDelay >= 0f ? firstWaveDelay : config.FirstWaveDelay);
+            // Timed on its own, so changing the wave timeout after Begin doesn't bring the first wave forward.
+            _waveTimer = 0f;
+            _firstWaveDelay = firstWaveDelay >= 0f ? firstWaveDelay : config.FirstWaveDelay;
             _running = true;
         }
+
+        /// <summary>
+        /// Moves the waves on to another galaxy's enemies and elite odds without restarting the wave count. Survival steps it
+        /// up as each guardian falls.
+        /// </summary>
+        public void SetGalaxy(int galaxy)
+        {
+            galaxyIndex = Mathf.Max(0, galaxy);
+            BuildEntries();
+        }
+
+        public int GalaxyIndex => galaxyIndex;
 
         /// <summary>Stops spawning and cancels pending telegraphs. Enemies already spawned are left alone.</summary>
         public void Stop()
@@ -146,7 +183,9 @@ namespace Pathfinder.Game.Enemies
             }
 
             _waveTimer += deltaTime;
-            if (_waveTimer >= WaveTimeout || (Wave > 0 && IsWaveMostlyCleared()))
+            bool crowded = MaxEnemies > 0 && CombatRegistry.Enemies.Count >= MaxEnemies;
+            float due = Wave == 0 ? _firstWaveDelay : WaveTimeout;
+            if ((_waveTimer >= due && !crowded) || (Wave > 0 && IsWaveMostlyCleared()))
                 StartNextWave();
         }
 
@@ -167,8 +206,9 @@ namespace Pathfinder.Game.Enemies
         {
             Wave++;
             _waveTimer = 0f;
-            CurrentBudget = Mathf.Max(1, Mathf.RoundToInt(config.Budget(Wave, galaxyIndex, row) * BudgetMultiplier));
-            float eliteChance = config.Elites.Length > 0 ? config.EliteChance(Wave, galaxyIndex, row) : 0f;
+            int budget = FixedBudget > 0 ? FixedBudget : config.Budget(Wave, galaxyIndex, row);
+            CurrentBudget = Mathf.Max(1, Mathf.RoundToInt(budget * BudgetMultiplier));
+            float eliteChance = config.Elites.Length == 0 ? 0f : FixedEliteChance >= 0f ? FixedEliteChance : config.EliteChance(Wave, galaxyIndex, row);
 
             var orders = WaveComposer.Compose(_entries, CurrentBudget, Wave, eliteChance, config.EliteCostMultiplier, _random);
             _waveSize = orders.Count;

@@ -20,7 +20,7 @@ built and how to extend it, what every enemy, item and currency does, and the wo
 | M6 Slice polish | ✅ except the external playtest: synthesized SFX and music, explosions and camera kicks, crosshair ammo ring, uGUI HUD and Hub, economy probe |
 | Playtest 4 fixes | ✅ per-enemy wind-up sounds, audio centred on the ship, wormhole pull after the boss reward, Scrap vacuum, Esc closes menus cleanly |
 | Galaxy 2 content | ✅ Scorcher, Arc Drone and Crusher enemies; the Binary Wardens twin boss |
-| Playtest 6 (first external) | ✅ an eruption you dash out of, a ship-mounted HUD readout, 16:9 HUD area, Precision Loader active reload, the Hive Matriarch (galaxy 3 boss) |
+| Playtest 6 (first external) | ✅ an eruption you dash out of, a ship-mounted HUD readout, 16:9 HUD area, Precision Loader active reload, the Hive Matriarch (galaxy 3 boss), Survival mode |
 
 ## Playing
 
@@ -41,6 +41,12 @@ then finish them together.
 
 Mystery (?) nodes are usually **events**: a short scene and a choice with upsides and downsides.
 
+**Survival:** choose **Survival** in the Hub (or open `Survival.unity`). One arena, endless waves and a clock: an
+equipment choice every minute (skipping repairs the hull), and a guardian every five minutes (the Quarry Maw, the Binary
+Wardens, then the Hive Matriarch, whose fall wins). The clock holds while a guardian lives; the waves, enemy health and
+elites grow with the clock. Dark Matter, Cores and your best time are banked when it ends. See
+[docs/game/survival.md](docs/game/survival.md).
+
 ![The enraged Quarry Maw: yellow weak-point bands on its body, a magenta bullet fan aimed at the ship](docs/images/m5-quarry-maw.png)
 
 When a run ends, the Dark Matter and Singularity Cores you earned are banked, plus 10% of the Scraps you collected.
@@ -50,7 +56,7 @@ it to start a fresh profile.
 
 ![A generated galaxy map: entries at the bottom converge to the Shop and Boss](docs/images/m3-map-graph.png)
 
-**The combat sandbox:** open `Assets/_Project/Scenes/Sandbox.unity` and press Play. The wave director sends endless, escalating waves of Drones, Gunners, Spinners, Lancers and Carriers (and galaxy 2's Scorchers, Arc Drones and Crushers from wave 6), with the occasional gold-ringed elite, until the ship is destroyed. Enemies drop gold Scraps that fly to the ship.
+**The combat sandbox** (for tuning; not in the Hub): open `Assets/_Project/Scenes/Sandbox.unity` and press Play. The wave director sends endless, escalating waves of Drones, Gunners, Spinners, Lancers and Carriers (and galaxy 2's Scorchers, Arc Drones and Crushers from wave 6), with the occasional gold-ringed elite, until the ship is destroyed. Enemies drop gold Scraps that fly to the ship.
 
 | Action | Keyboard & Mouse | Gamepad |
 |---|---|---|
@@ -65,7 +71,7 @@ it to start a fresh profile.
 | Galaxy map: choose a node | Left/Right + Enter, or click | D-pad / stick + A |
 
 **Dev hotkeys** (Editor and development builds): **F1** cycle primary weapon, **F2** cycle secondary, **F3** god mode,
-**F4** kill all enemies, **F5** skip to the next wave, **F6** skip the current level (Run scene), **F7** offer 3 random equipment,
+**F4** kill all enemies, **F5** skip to the next wave, **F6** skip the current level (Run scene) or move the clock on a minute (Survival), **F7** offer 3 random equipment,
 **F8** +100 Scraps, **F9** reload the text files, **F10** spawn the next enemy type (every enemy and boss, in turn).
 
 Tuning lives in the ScriptableObjects under `Assets/_Project/Data`: ships, weapons, equipment (`Data/Equipment`), meta upgrades (`Data/Meta`), enemies, elites, and the wave config
@@ -94,8 +100,8 @@ Assets/_Project/
 ## Editor tools
 
 - **Pathfinder > Setup > Apply M0 Project Setup**: converts a fresh template into the 3D URP setup. Safe to rerun.
-- **Pathfinder > Setup > Build Content**: regenerates the placeholder art and prefabs, and the wiring of the Sandbox, Run
-  and Hub scenes. ScriptableObject data is never overwritten. New definitions are created when missing.
+- **Pathfinder > Setup > Build Content**: regenerates the placeholder art and prefabs, and the wiring of the Sandbox, Run,
+  Survival and Hub scenes. ScriptableObject data is never overwritten. New definitions are created when missing.
   Run tuning is in `Data/Run/RunConfig`.
 
 ## Playtest builds

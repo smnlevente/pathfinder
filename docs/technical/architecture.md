@@ -89,8 +89,9 @@ Assets/StreamingAssets/Localization/   en.loc and other languages
 
 ## How a scene is put together
 
-The Run scene, as wired by the content builder. The Sandbox has the same core without the run objects; the Hub has
-only the menu, audio and camera.
+The Run scene, as wired by the content builder. The Sandbox has the same core without the run objects. Survival has
+the same core too, with a `SurvivalController` in place of the run director and level controller. The Hub has only the
+menu, audio and camera.
 
 ```mermaid
 flowchart TD

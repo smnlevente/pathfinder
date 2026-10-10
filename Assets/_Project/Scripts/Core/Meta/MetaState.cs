@@ -49,6 +49,9 @@ namespace Pathfinder.Core.Meta
         /// <summary>Highest galaxy reached (1-based), for the Hub's statistics.</summary>
         public int BestGalaxy { get; private set; }
 
+        /// <summary>The longest time survived in Survival, in seconds on its clock.</summary>
+        public int BestSurvivalSeconds { get; private set; }
+
         public int Balance(MetaCurrency currency) => currency == MetaCurrency.DarkMatter ? DarkMatter : SingularityCores;
 
         public int Tier(string upgradeId) => _tiers.TryGetValue(upgradeId, out int tier) ? tier : 0;
@@ -79,13 +82,27 @@ namespace Pathfinder.Core.Meta
         /// <summary>Banks a finished run, won or lost. Persistent currencies are always kept (GDD §3.1).</summary>
         public RunRewards BankRun(int darkMatter, int singularityCores, int scrapsCollected, bool won, int galaxyReached)
         {
-            var rewards = new RunRewards(Math.Max(0, darkMatter), (int)(Math.Max(0, scrapsCollected) * ScrapsConversion), Math.Max(0, singularityCores));
-            DarkMatter += rewards.TotalDarkMatter;
-            SingularityCores += rewards.SingularityCores;
+            var rewards = Bank(darkMatter, singularityCores, scrapsCollected);
             RunsPlayed++;
             if (won)
                 RunsWon++;
             BestGalaxy = Math.Max(BestGalaxy, galaxyReached);
+            return rewards;
+        }
+
+        /// <summary>Banks a Survival attempt: its currencies the same way as a run's, and the best time. It isn't counted as a run.</summary>
+        public RunRewards BankSurvival(int darkMatter, int singularityCores, int scrapsCollected, int secondsSurvived)
+        {
+            var rewards = Bank(darkMatter, singularityCores, scrapsCollected);
+            BestSurvivalSeconds = Math.Max(BestSurvivalSeconds, secondsSurvived);
+            return rewards;
+        }
+
+        RunRewards Bank(int darkMatter, int singularityCores, int scrapsCollected)
+        {
+            var rewards = new RunRewards(Math.Max(0, darkMatter), (int)(Math.Max(0, scrapsCollected) * ScrapsConversion), Math.Max(0, singularityCores));
+            DarkMatter += rewards.TotalDarkMatter;
+            SingularityCores += rewards.SingularityCores;
             return rewards;
         }
 
@@ -110,6 +127,7 @@ namespace Pathfinder.Core.Meta
                 RunsPlayed = RunsPlayed,
                 RunsWon = RunsWon,
                 BestGalaxy = BestGalaxy,
+                BestSurvivalSeconds = BestSurvivalSeconds,
             };
             save.Unlocks.AddRange(_unlocks);
             save.Unlocks.Sort(StringComparer.Ordinal);
@@ -132,6 +150,7 @@ namespace Pathfinder.Core.Meta
             state.RunsPlayed = save.RunsPlayed;
             state.RunsWon = save.RunsWon;
             state.BestGalaxy = save.BestGalaxy;
+            state.BestSurvivalSeconds = Math.Max(0, save.BestSurvivalSeconds);
             foreach (string id in save.Unlocks)
                 state._unlocks.Add(id);
             for (int i = 0; i < Math.Min(save.UpgradeIds.Count, save.UpgradeTiers.Count); i++)
@@ -155,6 +174,7 @@ namespace Pathfinder.Core.Meta
         public int RunsPlayed;
         public int RunsWon;
         public int BestGalaxy;
+        public int BestSurvivalSeconds;
         public List<string> Unlocks = new List<string>();
         public List<string> UpgradeIds = new List<string>();
         public List<int> UpgradeTiers = new List<int>();

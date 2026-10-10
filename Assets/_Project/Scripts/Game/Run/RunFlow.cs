@@ -15,12 +15,13 @@ namespace Pathfinder.Game.Run
     {
         [SerializeField] CombatWorld world;
         [SerializeField, Tooltip("Optional. In the Run scene, victory also ends the run.")] RunDirector runDirector;
+        [SerializeField, Tooltip("Optional. In the Survival scene, felling the last guardian also ends it.")] SurvivalController survival;
 
         InputAction _pause;
         InputAction _restart;
 
         public bool IsDefeat => world != null && world.IsOver;
-        public bool IsVictory => runDirector != null && runDirector.Run != null && runDirector.Run.IsWon;
+        public bool IsVictory => (runDirector != null && runDirector.Run != null && runDirector.Run.IsWon) || (survival != null && survival.IsWon);
         public bool IsGameOver => IsDefeat || IsVictory;
         public bool IsPaused => GameClock.IsPausedBy(this);
 
@@ -62,9 +63,11 @@ namespace Pathfinder.Game.Run
                 GameClock.Resume(this);
         }
 
+        /// <summary>Plays the scene again with a fresh seed. A run or Survival keeps the loadout chosen in the Hub.</summary>
         public void Restart()
         {
-            RunSession.Clear();
+            if (RunSession.Current != null)
+                CombatWorld.NextSeedOverride = RunSession.Begin(loadout: RunSession.Current.Loadout).Seed;
             GameClock.ResumeAll();
             SceneManager.LoadScene(gameObject.scene.name);
         }

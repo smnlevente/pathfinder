@@ -152,6 +152,12 @@ namespace Pathfinder.Game.Combat
             ScrapsDropMultiplier = scrapsDropMultiplier;
         }
 
+        /// <summary>
+        /// Changes the health of enemies spawned from now on, without restarting the level's random streams: Survival's
+        /// ramp as the clock runs.
+        /// </summary>
+        public void SetEnemyHealthMultiplier(float multiplier) => EnemyHealthMultiplier = Mathf.Max(0.1f, multiplier);
+
         /// <summary>Removes everything a level left behind. Leftover Scraps go to the collector, if given.</summary>
         public void ClearLevel(PlayerShip collector)
         {

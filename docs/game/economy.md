@@ -48,6 +48,9 @@ When a run ends, win or lose, it banks:
 
 The run summary shows what was banked. The profile also counts runs played, runs won and the best galaxy reached.
 
+[Survival](survival.md) banks the same way when it ends (Dark Matter for each minute on the clock, the guardians'
+Cores, 10% of Scraps) and keeps your best time, but doesn't count as a run.
+
 ## The Pathfinder Lab
 
 Permanent upgrades, bought in the Hub.

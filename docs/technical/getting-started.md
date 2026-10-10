@@ -25,11 +25,12 @@ only need the content builder when you change something it generates (see below)
 | Scene | What it is | Open it to... |
 |---|---|---|
 | `Boot` | The entry point: hands over to the Hub (persistent services will start here) | play the game as a player would |
-| `Hub` | Menu: Start Run (loadout), Pathfinder Lab, Options, Combat Sandbox | test the meta loop and menus |
+| `Hub` | Menu: Start Run, Survival (both through the loadout page), Pathfinder Lab, Options | test the meta loop and menus |
 | `Run` | Galaxy map and levels, with the level controller and run director | play a run directly, skipping the Hub |
-| `Sandbox` | One arena with an endless wave director | tune combat, try enemies (F10 spawns any of them) |
+| `Survival` | One arena, endless waves and a clock, driven by the Survival controller | play Survival directly (F6 moves the clock on a minute) |
+| `Sandbox` | One arena with an endless wave director; not in the Hub | tune combat, try enemies (F10 spawns any of them) |
 
-All four live in `Assets/_Project/Scenes`.
+All five live in `Assets/_Project/Scenes`.
 
 ### Dev hotkeys
 
@@ -53,7 +54,7 @@ To replay an exact run, set a seed code on the **Combat World** component in the
 
 | Menu | What it does |
 |---|---|
-| **Pathfinder › Setup › Build Content** | Regenerates the placeholder art, prefabs, effects, sounds and music, and rewires the Sandbox, Run and Hub scenes. Creates any content definition that is missing, but **never overwrites tuning** in an existing one. See [Content pipeline](content-pipeline.md). |
+| **Pathfinder › Setup › Build Content** | Regenerates the placeholder art, prefabs, effects, sounds and music, and rewires the Sandbox, Run, Survival and Hub scenes. Creates any content definition that is missing, but **never overwrites tuning** in an existing one. See [Content pipeline](content-pipeline.md). |
 | **Pathfinder › Setup › Apply M0 Project Setup** | Converts a fresh template project to the 3D URP setup. Safe to rerun; you won't normally need it. |
 | **Pathfinder › Build › Windows Playtest Build** | Writes `Builds/Windows/ProjectPathfinder.exe` without dev hotkeys. |
 | **Pathfinder › Build › Windows Dev Build** | The same, with dev hotkeys. |

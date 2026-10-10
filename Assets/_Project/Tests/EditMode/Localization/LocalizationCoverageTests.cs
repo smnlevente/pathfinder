@@ -94,7 +94,7 @@ namespace Pathfinder.Tests.EditMode.Localization
             foreach (string guid in AssetDatabase.FindAssets("t:ContentDefinition", new[] { "Assets/_Project/Data" }))
             {
                 var content = AssetDatabase.LoadAssetAtPath<ContentDefinition>(AssetDatabase.GUIDToAssetPath(guid));
-                if (content == null || content is WaveDirectorConfig || content is Pathfinder.Game.Run.RunConfig)
+                if (content == null || content is WaveDirectorConfig || content is Pathfinder.Game.Run.RunConfig || content is Pathfinder.Game.Run.SurvivalConfig)
                     continue;
                 keys.Add($"{content.Id}.name");
 

@@ -29,6 +29,7 @@ namespace Pathfinder.Game.Presentation
         [SerializeField] WaveDirector waveDirector;
         [SerializeField, Tooltip("Optional. Shows the debug key hints when present and enabled.")] DebugHotkeys debugHotkeys;
         [SerializeField, Tooltip("Optional. In the Run scene: level, objective and run status.")] RunDirector runDirector;
+        [SerializeField, Tooltip("Optional. In the Survival scene: the clock, what comes next, and the guardian.")] SurvivalController survival;
 
         static readonly Color HullColor = new Color(0.95f, 0.35f, 0.3f);
         static readonly Color ShieldColor = new Color(0.3f, 0.85f, 1f);
@@ -160,12 +161,20 @@ namespace Pathfinder.Game.Presentation
                 ? Loc.T("hud.seed", ("seed", RunSeed.ToCode(world.Seed)), ("fps", Settings.GameSettings.ShowFps ? Loc.T("hud.fps", ("fps", _fps)) : string.Empty))
                 : string.Empty;
 
-            var run = runDirector != null ? runDirector.Run : null;
+            var run = runDirector != null ? runDirector.Run : survival != null ? survival.Run : null;
             _darkMatter.text = run != null ? Loc.T("hud.currencies", ("darkmatter", run.DarkMatter), ("cores", run.SingularityCores)) : string.Empty;
             _debug.text = debugHotkeys != null && debugHotkeys.isActiveAndEnabled ? debugHotkeys.HintText : string.Empty;
 
             var level = runDirector != null ? runDirector.Level : null;
-            if (level != null && level.IsActive)
+            if (survival != null)
+            {
+                _header.text = survival.Header;
+                _objective.text = survival.Objective;
+                _banner.text = survival.Banner;
+                _prompt.text = survival.Prompt;
+                ShowBoss(survival.Guardian);
+            }
+            else if (level != null && level.IsActive)
             {
                 var context = level.Context;
                 string kind = context.Ambush ? Loc.T("hud.level.ambush") : context.FromMystery && !context.IsEvent ? Loc.T("hud.level.mystery") : string.Empty;
@@ -173,14 +182,7 @@ namespace Pathfinder.Game.Presentation
                 _objective.text = level.Objective;
                 _banner.text = level.Banner;
                 _prompt.text = level.Prompt;
-
-                var boss = level.Boss;
-                _bossPanel.SetActive(boss != null && boss.IsAlive);
-                if (_bossPanel.activeSelf)
-                {
-                    _bossName.text = boss.Definition.DisplayName.ToUpperInvariant();
-                    RefreshBossBars(boss);
-                }
+                ShowBoss(level.Boss);
             }
             else
             {
@@ -189,6 +191,16 @@ namespace Pathfinder.Game.Presentation
                     : string.Empty;
                 _objective.text = _banner.text = _prompt.text = string.Empty;
                 _bossPanel.SetActive(false);
+            }
+        }
+
+        void ShowBoss(Enemy boss)
+        {
+            _bossPanel.SetActive(boss != null && boss.IsAlive);
+            if (_bossPanel.activeSelf)
+            {
+                _bossName.text = boss.Definition.DisplayName.ToUpperInvariant();
+                RefreshBossBars(boss);
             }
         }
 
@@ -220,7 +232,12 @@ namespace Pathfinder.Game.Presentation
         void RefreshOverlay()
         {
             string title = null, hint = null;
-            if (runFlow != null && runFlow.IsVictory)
+            if (survival != null && survival.IsOver)
+            {
+                title = Loc.T(survival.IsWon ? "hud.survival.victory" : "hud.ship_destroyed");
+                hint = $"{SurvivalSummary()}\n\n{Loc.T("hud.survival.end_hint")}";
+            }
+            else if (runFlow != null && runFlow.IsVictory)
             {
                 title = Loc.T("hud.victory");
                 hint = $"{RunSummary()}\n\n{Loc.T("hud.end_hint")}";
@@ -343,6 +360,18 @@ namespace Pathfinder.Game.Presentation
                     ("converted", rewards.ConvertedScraps), ("cores", rewards.SingularityCores))
                 : string.Empty;
             return Loc.T("hud.summary", ("galaxy", run.GalaxyIndex + 1), ("levels", run.LevelsCleared), ("seed", RunSeed.ToCode(run.Seed))) + banked;
+        }
+
+        string SurvivalSummary()
+        {
+            string summary = Loc.T("hud.survival.summary", ("time", SurvivalController.FormatClock(survival.Clock)),
+                ("guardians", survival.GuardiansDefeated), ("total", SurvivalController.GuardianCount), ("seed", RunSeed.ToCode(survival.Run.Seed)));
+            if (survival.IsNewBest)
+                summary += "\n" + Loc.T("hud.survival.best");
+            if (survival.BankedRewards is { } rewards)
+                summary += "\n" + Loc.T("hud.banked", ("total", rewards.TotalDarkMatter), ("harvested", rewards.DarkMatter),
+                    ("converted", rewards.ConvertedScraps), ("cores", rewards.SingularityCores));
+            return summary;
         }
 
         // ---------------------------------------------------------------- hull-hit flash

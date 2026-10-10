@@ -16,12 +16,14 @@ namespace Pathfinder.Game.Run
         public struct Entry
         {
             public string timeUtc;
+            public string mode; // "run" or "survival"
             public string seed;
             public string ship, primary, secondary;
             public bool won;
             public int galaxyReached, levelsCleared;
             public int darkMatter, singularityCores, scrapsCollected;
             public float minutes;
+            public float survivedSeconds; // Survival: seconds on its clock
             public string killedBy;
         }
 

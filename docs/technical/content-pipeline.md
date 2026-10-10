@@ -51,7 +51,7 @@ placeholder content in one pass. It is split into partial classes by area under 
 | `ContentBuilder.Events.cs` | The Mystery events |
 | `ContentBuilder.Run.cs` | Run objects (wormhole, crystals, stations, cache) and the run config |
 | `ContentBuilder.Audio.cs`, `.Music.cs`, `Synth.cs` | Synthesized sound effects and music, and the sound library |
-| `ContentBuilder.Scene.cs` | Wires the Sandbox, Run and Hub scenes |
+| `ContentBuilder.Scene.cs` | Wires the Sandbox, Run, Survival and Hub scenes |
 
 ```mermaid
 flowchart LR

@@ -414,6 +414,12 @@ namespace Pathfinder.Game.Player
             Velocity = Vector2.zero;
             AimDirection = Vector2.up;
             Heading = 0f;
+            RefreshPerLevelEffects();
+        }
+
+        /// <summary>Re-arms once-per-level equipment such as Last Stand: at each level, and after each Survival guardian.</summary>
+        public void RefreshPerLevelEffects()
+        {
             foreach (var effect in _effects)
                 effect.OnLevelStart();
         }

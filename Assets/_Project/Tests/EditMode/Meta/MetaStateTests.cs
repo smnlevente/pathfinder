@@ -93,5 +93,21 @@ namespace Pathfinder.Tests.Meta
             Assert.AreEqual(0, MetaState.FromSave(save).DarkMatter, "Negative balances are clamped.");
             Assert.AreEqual(0, MetaState.FromSave(save).Tier("orphan"), "Mismatched lists are ignored safely.");
         }
+
+        [Test]
+        public void BankSurvival_KeepsCurrenciesAndTheBestTime_ButIsNotARun()
+        {
+            var state = new MetaState();
+
+            var rewards = state.BankSurvival(darkMatter: 30, singularityCores: 3, scrapsCollected: 120, secondsSurvived: 640);
+            state.BankSurvival(darkMatter: 0, singularityCores: 0, scrapsCollected: 0, secondsSurvived: 200);
+
+            Assert.AreEqual(42, rewards.TotalDarkMatter);
+            Assert.AreEqual(42, state.DarkMatter);
+            Assert.AreEqual(3, state.SingularityCores);
+            Assert.AreEqual(640, state.BestSurvivalSeconds, "A shorter attempt doesn't replace the best.");
+            Assert.AreEqual(0, state.RunsPlayed, "Survival isn't counted as a run.");
+            Assert.AreEqual(640, MetaState.FromSave(state.ToSave()).BestSurvivalSeconds, "The best time is saved.");
+        }
     }
 }

@@ -77,6 +77,29 @@ namespace Pathfinder.Tests.PlayMode
             Assert.AreEqual(RunSession.Current.Loadout.ShipId, CombatRegistry.Players[0].Definition.Id, "The run flies the ship picked in the Hub.");
         }
 
+        /// <summary>Survival took the combat sandbox's place in the Hub (playtest 6): same loadout page, its own launch.</summary>
+        [UnityTest]
+        public IEnumerator Survival_ChoosesALoadoutAndLaunches()
+        {
+            yield return LoadHub();
+            var menu = Object.FindAnyObjectByType<HubMenu>();
+            Assert.AreEqual(Pathfinder.Game.Localization.Loc.T("hub.survival"), menu.Rows[1].LabelText, "Survival is second, under Start Run.");
+
+            menu.OpenLoadout(survival: true);
+            Assert.AreEqual(HubMenu.Page.Loadout, menu.CurrentPage);
+            Assert.AreEqual(Pathfinder.Game.Localization.Loc.T("hub.loadout.launch_survival"), menu.Rows[3].LabelText);
+
+            menu.StartSurvival();
+            float deadline = Time.realtimeSinceStartup + 5f;
+            while (SceneManager.GetActiveScene().name != SceneNames.Survival && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            yield return null;
+
+            Assert.AreEqual(SceneNames.Survival, SceneManager.GetActiveScene().name);
+            Assert.IsNotNull(Object.FindAnyObjectByType<SurvivalController>());
+            Assert.AreEqual(RunSession.Current.Loadout.ShipId, CombatRegistry.Players[0].Definition.Id, "Survival flies the ship picked in the Hub.");
+        }
+
         [UnityTest, Category("Screenshot")]
         public IEnumerator CapturePages()
         {

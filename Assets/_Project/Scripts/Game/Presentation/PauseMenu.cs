@@ -19,6 +19,7 @@ namespace Pathfinder.Game.Presentation
 
         [SerializeField] RunFlow runFlow;
         [SerializeField, Tooltip("Optional. In a run, leaving counts the run as lost and banks what it earned.")] RunDirector runDirector;
+        [SerializeField, Tooltip("Optional. In Survival, leaving banks what was earned so far.")] SurvivalController survival;
 
         sealed class Row
         {
@@ -97,6 +98,7 @@ namespace Pathfinder.Game.Presentation
         public void Leave()
         {
             runDirector?.Abandon();
+            survival?.Abandon();
             runFlow.ReturnToHub();
         }
 
@@ -126,7 +128,7 @@ namespace Pathfinder.Game.Presentation
                     AddRow(Loc.T("pause.resume"), null, null, Resume);
                     AddRow(Loc.T("pause.options"), null, Loc.T("pause.options.detail"), () => ShowPage(Page.Options));
                     AddRow(Loc.T("pause.controls"), null, null, () => ShowPage(Page.Controls));
-                    string leave = runDirector != null ? "pause.abandon" : "pause.quit";
+                    string leave = runDirector != null ? "pause.abandon" : survival != null ? "pause.survival_leave" : "pause.quit";
                     AddRow(Loc.T(leave), null, Loc.T(leave + ".detail"), Leave);
                     _hint.text = Loc.T("pause.hint");
                     break;

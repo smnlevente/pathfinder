@@ -19,13 +19,14 @@ namespace Pathfinder.Game.Dev
     {
         [SerializeField] WaveDirector waveDirector;
         [SerializeField, Tooltip("Optional. In the Run scene, F6 skips the current level.")] LevelController level;
+        [SerializeField, Tooltip("Optional. In Survival, F6 moves the clock on a minute.")] SurvivalController survival;
         [SerializeField, Tooltip("F7 offers a choice of 3 random items from here.")] ContentDatabase content;
         [SerializeField] EquipmentChoiceScreen equipmentChoice;
         [SerializeField, Tooltip("Optional. Refreshed after F8 so newly affordable Shop items light up.")] ChoiceDialog dialog;
         [SerializeField] PrimaryWeaponDefinition[] primaryWeapons = new PrimaryWeaponDefinition[0];
         [SerializeField] SecondaryWeaponDefinition[] secondaryWeapons = new SecondaryWeaponDefinition[0];
 
-        public string HintText => Localization.Loc.T(level != null ? "dev.hint" : "dev.hint.sandbox");
+        public string HintText => Localization.Loc.T(level != null ? "dev.hint" : survival != null ? "dev.hint.survival" : "dev.hint.sandbox");
 
         Pathfinder.Core.Random.IRandom _random = new Pathfinder.Core.Random.Pcg32(7UL, 7UL);
         public ContentDatabase Content => content;
@@ -59,6 +60,8 @@ namespace Pathfinder.Game.Dev
                 waveDirector.SkipToNextWave();
             if (keyboard.f6Key.wasPressedThisFrame && level != null && level.IsActive)
                 level.DebugTakeExit();
+            if (keyboard.f6Key.wasPressedThisFrame && survival != null)
+                survival.DebugAdvance(60f);
             if (keyboard.f7Key.wasPressedThisFrame)
                 OfferRandomEquipment();
             if (keyboard.f8Key.wasPressedThisFrame)

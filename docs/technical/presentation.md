@@ -30,12 +30,12 @@ Every string goes through `Loc.T`, and menus rebuild when the language changes (
 
 | Screen | Where | What it shows |
 |---|---|---|
-| `HubMenu` | Hub | Start Run (ship, primary, secondary), Pathfinder Lab, Options, Combat Sandbox |
+| `HubMenu` | Hub | Start Run and Survival (ship, primary, secondary), Pathfinder Lab, Options |
 | `GalaxyMapScreen` | Run | The node graph; walked path in cyan, open lanes white, next nodes pulse |
 | `ChoiceDialog` | Run | Repair station, Shop (Catalog, Upgrades, Services) and Mystery events |
-| `EquipmentChoiceScreen` | Run | A row of item cards, plus the swap step when a category is full |
-| `PauseMenu` | Run, Sandbox | Resume, options, controls, abandon run |
-| `CombatHud` | Run, Sandbox | See below |
+| `EquipmentChoiceScreen` | Run, Survival | A row of item cards, plus the swap step when a category is full. The skip row pays Scraps, or does what the caller asks (Survival repairs) |
+| `PauseMenu` | Run, Survival, Sandbox | Resume, options, controls, abandon run (leave Survival) |
+| `CombatHud` | Run, Survival, Sandbox | See below. In Survival its top centre shows the clock, the next upgrade and guardian, and the guardian's bar |
 
 ### The HUD
 

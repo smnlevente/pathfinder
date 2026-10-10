@@ -21,6 +21,7 @@ namespace Pathfinder.Editor.Setup
     {
         const string ScenesDir = Root + "/Scenes";
         const string SandboxScenePath = ScenesDir + "/Sandbox.unity";
+        const string SurvivalScenePath = ScenesDir + "/Survival.unity";
         const string HubScenePath = ScenesDir + "/Hub.unity";
 
         /// <summary>Strong bloom sells the neon look (GDD §13.1): emissive parts are authored well above 1.0.</summary>
@@ -52,12 +53,16 @@ namespace Pathfinder.Editor.Setup
             }
             if (!System.IO.File.Exists(RunScenePath) && !AssetDatabase.CopyAsset(SandboxScenePath, RunScenePath))
                 throw new InvalidOperationException("Could not create the Run scene from Sandbox.");
+            // Playtest 6: Survival took the sandbox's place in the Hub. It starts as a copy of the same arena.
+            if (!System.IO.File.Exists(SurvivalScenePath) && !AssetDatabase.CopyAsset(SandboxScenePath, SurvivalScenePath))
+                throw new InvalidOperationException("Could not create the Survival scene from Sandbox.");
 
-            var scenes = new[] { SceneNames.Boot, SceneNames.Hub, SceneNames.Run, SceneNames.Sandbox };
+            var scenes = new[] { SceneNames.Boot, SceneNames.Hub, SceneNames.Run, SceneNames.Survival, SceneNames.Sandbox };
             EditorBuildSettings.scenes = scenes.Select(name => new EditorBuildSettingsScene($"{ScenesDir}/{name}.unity", true)).ToArray();
         }
 
-        static void PopulateScenes(Art art, Actors actors, Data data, RunArt runArt, RunConfig runConfig, EquipmentContent equipment, SoundLibrary audio)
+        static void PopulateScenes(Art art, Actors actors, Data data, RunArt runArt, RunConfig runConfig, SurvivalConfig survivalConfig, EquipmentContent equipment,
+            SoundLibrary audio)
         {
             // Opening a scene can unload assets that nothing references yet, which invalidates the in-memory
             // handles from the build steps above. Capture paths first and reload afterwards.
@@ -65,27 +70,33 @@ namespace Pathfinder.Editor.Setup
             {
                 Player = AssetPathOf(actors.Player), Telegraph = AssetPathOf(art.SpawnTelegraph), Scrap = AssetPathOf(art.ScrapVisual), Deflect = AssetPathOf(art.Deflect),
                 Floor = AssetPathOf(art.Floor), Wall = AssetPathOf(art.Wall), Ship = AssetPathOf(data.Ship), Waves = AssetPathOf(data.Waves),
-                RunConfig = AssetPathOf(runConfig), Database = AssetPathOf(equipment.Database), Audio = AssetPathOf(audio),
+                RunConfig = AssetPathOf(runConfig), SurvivalConfig = AssetPathOf(survivalConfig), Database = AssetPathOf(equipment.Database), Audio = AssetPathOf(audio),
                 Primaries = Array.ConvertAll(data.Primaries, p => AssetPathOf(p)),
                 Secondaries = Array.ConvertAll(data.Secondaries, s => AssetPathOf(s)),
             };
 
-            PopulateCombatScene(SandboxScenePath, assets, isRun: false);
-            PopulateCombatScene(RunScenePath, assets, isRun: true);
+            PopulateCombatScene(SandboxScenePath, assets, CombatScene.Sandbox);
+            PopulateCombatScene(RunScenePath, assets, CombatScene.Run);
+            PopulateCombatScene(SurvivalScenePath, assets, CombatScene.Survival);
             PopulateHubScene(assets);
         }
 
+        /// <summary>The scenes built on the combat arena: the endless sandbox (tuning and tests), the full run, and Survival.</summary>
+        enum CombatScene { Sandbox, Run, Survival }
+
         sealed class ScenePaths
         {
-            public string Player, Telegraph, Scrap, Deflect, Floor, Wall, Ship, Waves, RunConfig, Database, Audio;
+            public string Player, Telegraph, Scrap, Deflect, Floor, Wall, Ship, Waves, RunConfig, SurvivalConfig, Database, Audio;
             public string[] Primaries, Secondaries;
         }
 
         static string AssetPathOf(Object asset) => AssetDatabase.GetAssetPath(asset);
 
-        static void PopulateCombatScene(string scenePath, ScenePaths assets, bool isRun)
+        static void PopulateCombatScene(string scenePath, ScenePaths assets, CombatScene kind)
         {
             var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            bool isRun = kind == CombatScene.Run;
+            bool usesHubLoadout = kind != CombatScene.Sandbox; // and the Lab's upgrades
 
             var world = FindOrCreate<CombatWorld>("Combat World");
             SetFields(world, ("arenaSize", ArenaSize), ("scrapPickupPrefab", Load<GameObject>(assets.Scrap)), ("deflectEffectPrefab", Load<GameObject>(assets.Deflect)));
@@ -102,7 +113,7 @@ namespace Pathfinder.Editor.Setup
             var database = Load<ContentDatabase>(assets.Database);
             var spawner = FindOrCreate<PlayerSpawner>("Player Spawner");
             SetFields(spawner, ("world", world), ("shipPrefab", Load<PlayerShip>(assets.Player)), ("ship", Load<ShipDefinition>(assets.Ship)),
-                ("primaryWeapon", primaries[0]), ("secondaryWeapon", secondaries[0]), ("useRunLoadout", isRun), ("content", database));
+                ("primaryWeapon", primaries[0]), ("secondaryWeapon", secondaries[0]), ("useRunLoadout", usesHubLoadout), ("content", database));
 
             // M2 replaced the M1 test spawner with the wave director. Its script no longer exists.
             var oldSpawner = GameObject.Find("Wave Spawner");
@@ -111,7 +122,7 @@ namespace Pathfinder.Editor.Setup
 
             var director = FindOrCreate<WaveDirector>("Wave Director");
             SetFields(director, ("world", world), ("config", Load<WaveDirectorConfig>(assets.Waves)), ("telegraphPrefab", Load<GameObject>(assets.Telegraph)),
-                ("autoStart", !isRun));
+                ("autoStart", kind == CombatScene.Sandbox));
 
             var flow = FindOrCreate<RunFlow>("Run Flow");
             var hud = GetOrAdd<CombatHud>(flow.gameObject);
@@ -137,11 +148,21 @@ namespace Pathfinder.Editor.Setup
                     RequireReferences(component);
             }
 
-            SetFields(flow, ("world", world), ("runDirector", (Object)runDirector));
-            SetFields(pause, ("runFlow", flow), ("runDirector", (Object)runDirector));
-            SetFields(hud, ("world", world), ("runFlow", flow), ("waveDirector", director), ("debugHotkeys", debug), ("runDirector", (Object)runDirector));
+            SurvivalController survival = null;
+            if (kind == CombatScene.Survival)
+            {
+                survival = FindOrCreate<SurvivalController>("Survival");
+                SetFields(survival, ("world", world), ("director", director), ("config", Load<SurvivalConfig>(assets.SurvivalConfig)),
+                    ("runConfig", Load<RunConfig>(assets.RunConfig)), ("equipmentChoice", equipmentChoice), ("content", database));
+                RequireReferences(survival);
+            }
+
+            SetFields(flow, ("world", world), ("runDirector", (Object)runDirector), ("survival", (Object)survival));
+            SetFields(pause, ("runFlow", flow), ("runDirector", (Object)runDirector), ("survival", (Object)survival));
+            SetFields(hud, ("world", world), ("runFlow", flow), ("waveDirector", director), ("debugHotkeys", debug), ("runDirector", (Object)runDirector),
+                ("survival", (Object)survival));
             SetFields(debug, ("waveDirector", director), ("primaryWeapons", primaries), ("secondaryWeapons", secondaries), ("level", (Object)level),
-                ("content", database), ("equipmentChoice", equipmentChoice), ("dialog", (Object)dialog));
+                ("survival", (Object)survival), ("content", database), ("equipmentChoice", equipmentChoice), ("dialog", (Object)dialog));
 
             var camera = Camera.main;
             if (camera == null)
@@ -151,9 +172,9 @@ namespace Pathfinder.Editor.Setup
 
             foreach (var component in new Component[] { world, spawner, director, rig })
                 RequireReferences(component);
-            RequireReferences(flow, optional: "runDirector");
-            RequireReferences(hud, optional: "runDirector");
-            RequireReferences(debug, "level", "dialog");
+            RequireReferences(flow, "runDirector", "survival");
+            RequireReferences(hud, "runDirector", "survival");
+            RequireReferences(debug, "level", "dialog", "survival");
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);

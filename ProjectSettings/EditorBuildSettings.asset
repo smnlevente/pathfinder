@@ -15,6 +15,9 @@ EditorBuildSettings:
     path: Assets/_Project/Scenes/Run.unity
     guid: 9188e33afbd7604429898a55103fe161
   - enabled: 1
+    path: Assets/_Project/Scenes/Survival.unity
+    guid: b5215f00cb0df394bad2292b78c7c87a
+  - enabled: 1
     path: Assets/_Project/Scenes/Sandbox.unity
     guid: db8d8a60f6b8254429fed19c1ab97062
   m_configObjects:
