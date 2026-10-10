@@ -195,10 +195,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   library: {fileID: 11400000, guid: afc24af5d417c584cb7d939cb647a55c, type: 2}
   voices: 28
-  masterVolume: 0.8
+  masterVolume: 1
   panDistance: 20
   startTrack: 1
-  musicVolume: 0.35
+  musicVolume: 0.55
   musicFade: 1
 --- !u!4 &97563901
 Transform:

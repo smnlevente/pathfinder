@@ -27,7 +27,7 @@ namespace Pathfinder.Game.Content
         [field: SerializeField, Min(0f)] public float MaxShield { get; private set; } = 25f;
         [field: SerializeField, Min(0f), Tooltip("Shield points per second while regenerating.")] public float ShieldRegenRate { get; private set; } = 10f;
         [field: SerializeField, Min(0f), Tooltip("Seconds without damage before the shield regenerates.")] public float ShieldRegenDelay { get; private set; } = 3f;
-        [field: SerializeField, Min(0f), Tooltip("Invulnerability after a hull hit.")] public float HitInvulnerability { get; private set; } = 0.5f;
+        [field: SerializeField, Min(0f), Tooltip("Invulnerability after a hull hit.")] public float HitInvulnerability { get; private set; } = 0.3f;
         [field: SerializeField, Min(0f)] public float DamageTakenMultiplier { get; private set; } = 1f;
 
         [field: Header("Movement")]

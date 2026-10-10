@@ -67,6 +67,24 @@ namespace Pathfinder.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator Music_IsAudible()
+        {
+            yield return LoadRun();
+            if (AudioSettings.outputSampleRate <= 0)
+                Assert.Ignore("No audio device in this environment.");
+
+            float until = Time.realtimeSinceStartup + 1.5f; // past the fade-in
+            while (Time.realtimeSinceStartup < until)
+                yield return null;
+
+            var music = Library().Music(MusicTrack.Combat);
+            var source = Object.FindAnyObjectByType<GameAudio>().GetComponents<AudioSource>().FirstOrDefault(s => s.clip == music);
+            Assert.IsNotNull(source, "A music voice holds the combat track.");
+            Assert.IsTrue(source.isPlaying, "The music is playing.");
+            Assert.Greater(source.volume, 0.2f, "Loud enough to hear at default settings.");
+        }
+
+        [UnityTest]
         public IEnumerator GameplayRuns_WithoutADirector()
         {
             yield return LoadRun();

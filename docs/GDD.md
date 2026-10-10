@@ -133,7 +133,7 @@ All ships derive from these values; ship traits modify them. **[tune]**
 | Pickup magnet radius | 3 u | |
 | Dash | 1 charge, see [§5.2](#52-dash) | |
 
-**Damage model:** Damage hits Shield first, then Hull. At 0 Hull the ship is destroyed and the run ends. After any Hull hit the ship gets **0.5 s of invulnerability** to prevent instant multi-hit deaths.
+**Damage model:** Damage hits Shield first, then Hull. At 0 Hull the ship is destroyed and the run ends. After any Hull hit the ship gets **0.3 s of invulnerability** to prevent instant multi-hit deaths *(0.5 s until playtest 4, which found it too forgiving)*.
 
 ### 5.2 Dash
 Every ship has the Dash. It is the main defensive tool.

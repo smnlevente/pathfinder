@@ -174,7 +174,7 @@ namespace Pathfinder.Editor.Setup
         static void AddAudio(ScenePaths assets, MusicTrack startTrack)
         {
             var audio = FindOrCreate<GameAudio>("Audio");
-            SetFields(audio, ("library", Load<SoundLibrary>(assets.Audio)), ("startTrack", (int)startTrack));
+            SetFields(audio, ("library", Load<SoundLibrary>(assets.Audio)), ("startTrack", (int)startTrack), ("masterVolume", 1f), ("musicVolume", 0.55f));
             RequireReferences(audio);
         }
 

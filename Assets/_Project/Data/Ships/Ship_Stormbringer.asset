@@ -23,7 +23,7 @@ MonoBehaviour:
   <MaxShield>k__BackingField: 25
   <ShieldRegenRate>k__BackingField: 10
   <ShieldRegenDelay>k__BackingField: 3
-  <HitInvulnerability>k__BackingField: 0.5
+  <HitInvulnerability>k__BackingField: 0.3
   <DamageTakenMultiplier>k__BackingField: 1
   <MoveSpeed>k__BackingField: 8
   <AccelerationTime>k__BackingField: 0.08

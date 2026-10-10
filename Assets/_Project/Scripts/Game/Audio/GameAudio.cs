@@ -20,10 +20,10 @@ namespace Pathfinder.Game.Audio
 
         [SerializeField] SoundLibrary library;
         [SerializeField, Min(4)] int voices = 28;
-        [SerializeField, Range(0f, 1f)] float masterVolume = 0.8f;
+        [SerializeField, Range(0f, 1f)] float masterVolume = 1f;
         [SerializeField, Min(1f), Tooltip("Horizontal distance from the camera at which sounds pan fully to one side.")] float panDistance = 20f;
         [SerializeField, Tooltip("What plays when the scene starts.")] MusicTrack startTrack;
-        [SerializeField, Range(0f, 1f)] float musicVolume = 0.35f;
+        [SerializeField, Range(0f, 1f)] float musicVolume = 0.55f;
         [SerializeField, Min(0.01f)] float musicFade = 1f;
 
         readonly List<AudioSource> _sources = new List<AudioSource>();
@@ -65,7 +65,17 @@ namespace Pathfinder.Game.Audio
             _musicB = MusicSource();
         }
 
-        void Start() => SwitchMusic(startTrack);
+        void Start()
+        {
+            SwitchMusic(startTrack);
+
+            // One line to diagnose silence: no output device, or everything turned down.
+            if (AudioSettings.outputSampleRate <= 0)
+                Debug.LogWarning("[Audio] Unity has no audio output device. Check the system's sound output and restart the Editor.");
+            else if (Debug.isDebugBuild && !Application.isBatchMode)
+                Debug.Log($"[Audio] {AudioSettings.outputSampleRate} Hz, music: {startTrack}, volume: master {Settings.GameSettings.MasterVolume:P0}, " +
+                    $"music {Settings.GameSettings.MusicVolume:P0}, effects {Settings.GameSettings.EffectsVolume:P0}. Silent in the Editor? Check Mute Audio in the Game view.");
+        }
 
         AudioSource MusicSource()
         {
