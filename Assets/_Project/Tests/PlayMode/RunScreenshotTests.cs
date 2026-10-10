@@ -131,6 +131,48 @@ namespace Pathfinder.Tests.PlayMode
             Screenshots.CaptureCamera(Path.Combine(directory, "boss_enraged.png"));
         }
 
+        /// <summary>The Binary Wardens in galaxy 2: linked, and with one core offline, with their twin health bars.</summary>
+        [UnityTest, Category("Screenshot")]
+        public IEnumerator CaptureBinaryWardens()
+        {
+            string directory = Screenshots.Directory();
+            yield return LoadRun(23);
+            while (_director.Run.GalaxyIndex == 0)
+            {
+                yield return WaitRealtime(() => _director.State == RunDirector.Phase.Map, 5f);
+                _director.ChooseNode(_director.Run.AvailableNodes[0]);
+                _director.Level.DebugTakeExit();
+                yield return WaitRealtime(() => _director.State != RunDirector.Phase.Level, 3f);
+            }
+            yield return WaitRealtime(() => _director.State == RunDirector.Phase.Map, 5f);
+
+            _director.StartTestLevel(MapNodeType.Boss);
+            yield return null;
+            var alpha = _director.Level.Boss;
+            var brain = alpha.GetComponent<WardenBrain>();
+            _player.PlaceForLevel(new Vector2(0f, -2f)); // near the middle, where both cores are in view
+
+            // Linked: both cores circling, the tether between them, and a health bar for each.
+            yield return WaitTicks(() => brain.TetherActive, 400);
+            yield return WaitTicks(() => false, 50);
+            yield return null;
+            Screenshots.CaptureWithUi(Path.Combine(directory, "wardens_linked.png"));
+
+            // One core offline: sunk and dark, its reboot ring filling, the HUD counting down.
+            var beta = brain.TwinEnemy;
+            beta.ApplyDamage(new DamageInfo(1_000_000f, Team.Player, _player.EntityId, beta.Position, Vector2.up));
+            yield return WaitTicks(() => false, 100);
+            yield return null;
+            Screenshots.CaptureWithUi(Path.Combine(directory, "wardens_offline.png"));
+        }
+
+        static IEnumerator WaitRealtime(Func<bool> condition, float seconds)
+        {
+            float deadline = Time.realtimeSinceStartup + seconds;
+            while (!condition() && Time.realtimeSinceStartup < deadline)
+                yield return null;
+        }
+
         /// <summary>The galaxy map at the start and mid-run, the Shop dialog and the equipment choice cards (GDD §12).</summary>
         [UnityTest, Category("Screenshot")]
         public IEnumerator CaptureMenus()

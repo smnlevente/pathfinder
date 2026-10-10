@@ -16,6 +16,7 @@ namespace Pathfinder.Game.Content
         [field: SerializeField, Min(1), Tooltip("Wave director budget cost.")] public int BudgetCost { get; private set; } = 1;
         [field: SerializeField, Min(0), Tooltip("Scraps dropped on death (GDD §7.4). Elites multiply this.")] public int ScrapsDrop { get; private set; } = 1;
         [field: SerializeField, Range(0f, 1f)] public float ScrapsDropChance { get; private set; } = 0.5f;
+        [field: SerializeField, Range(0f, 1f), Tooltip("How far knockback moves it: 1 = fully, 0 = immovable.")] public float KnockbackMultiplier { get; private set; } = 1f;
         [field: SerializeField] public Enemy Prefab { get; private set; }
     }
 }

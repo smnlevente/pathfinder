@@ -175,6 +175,54 @@ MonoBehaviour:
     PitchJitter: 0.08
     MinInterval: 0.4
     MaxVoices: 1
+  - Cue: 27
+    Clip: {fileID: 8300000, guid: e791ec1dc0ee4f0438f183f86535cc8d, type: 3}
+    Volume: 0.35
+    PitchJitter: 0.12
+    MinInterval: 0.25
+    MaxVoices: 2
+  - Cue: 28
+    Clip: {fileID: 8300000, guid: ce55f1d26e75ab544bab842475ed3cc9, type: 3}
+    Volume: 0.35
+    PitchJitter: 0.12
+    MinInterval: 0.2
+    MaxVoices: 2
+  - Cue: 29
+    Clip: {fileID: 8300000, guid: 6669c4a244a5ae843bafc3be40a47312, type: 3}
+    Volume: 0.5
+    PitchJitter: 0.1
+    MinInterval: 0.3
+    MaxVoices: 2
+  - Cue: 30
+    Clip: {fileID: 8300000, guid: 0b9bb5c51747cba45a5d123dee5b0732, type: 3}
+    Volume: 0.4
+    PitchJitter: 0.1
+    MinInterval: 0.3
+    MaxVoices: 3
+  - Cue: 31
+    Clip: {fileID: 8300000, guid: 1553e6c22fc77c5499a9076f4dfe9ed3, type: 3}
+    Volume: 0.55
+    PitchJitter: 0.1
+    MinInterval: 0.08
+    MaxVoices: 3
+  - Cue: 32
+    Clip: {fileID: 8300000, guid: bacf780a5b67a85418a81c0f31d4bd7e, type: 3}
+    Volume: 0.8
+    PitchJitter: 0.08
+    MinInterval: 0.15
+    MaxVoices: 2
+  - Cue: 33
+    Clip: {fileID: 8300000, guid: c765a9c8fb5d0a54d9a4d7761086dc80, type: 3}
+    Volume: 0.8
+    PitchJitter: 0
+    MinInterval: 0.3
+    MaxVoices: 1
+  - Cue: 34
+    Clip: {fileID: 8300000, guid: 2a6e0101404d53941b6f90a1606472db, type: 3}
+    Volume: 0.7
+    PitchJitter: 0
+    MinInterval: 0.3
+    MaxVoices: 1
   <HubMusic>k__BackingField: {fileID: 8300000, guid: 959ace4af4b4f39419a6d4267f7477e5, type: 3}
   <CombatMusic>k__BackingField: {fileID: 8300000, guid: bb5cf62707a5a8b498628ecaf1b5ff62, type: 3}
   <BossMusic>k__BackingField: {fileID: 8300000, guid: 9438c99484f9142448d207bb0a3cad7f, type: 3}

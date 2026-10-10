@@ -20,7 +20,7 @@ namespace Pathfinder.Editor.Setup
             public ContentDatabase Database;
         }
 
-        static EquipmentContent BuildEquipment(Art art, Data data, EnemyDefinition quarryMaw)
+        static EquipmentContent BuildEquipment(Art art, Data data, EnemyDefinition[] bosses)
         {
             var content = new EquipmentContent();
             var fx = BuildEquipmentEffects(art);
@@ -65,7 +65,7 @@ namespace Pathfinder.Editor.Setup
                 ("TraitName", "Reinforced Hull"), ("TraitDescription", "+50% hull and 10% less damage taken. The beginner ship.")));
             UpgradeStormbringer(data.Ship, content.LightningCore);
 
-            content.Database = BuildContentDatabase(data, content, quarryMaw);
+            content.Database = BuildContentDatabase(data, content, bosses);
             return content;
         }
 
@@ -148,7 +148,7 @@ namespace Pathfinder.Editor.Setup
         }
 
         /// <summary>The ID index, regenerated on every build so it always lists all content.</summary>
-        static ContentDatabase BuildContentDatabase(Data data, EquipmentContent content, EnemyDefinition quarryMaw)
+        static ContentDatabase BuildContentDatabase(Data data, EquipmentContent content, EnemyDefinition[] bosses)
         {
             const string path = DataDir + "/ContentDatabase.asset";
             var database = AssetDatabase.LoadAssetAtPath<ContentDatabase>(path);
@@ -165,7 +165,9 @@ namespace Pathfinder.Editor.Setup
             Assign(so.FindProperty("<Equipment>k__BackingField"), content.Items.ToArray(), "Equipment");
             Assign(so.FindProperty("<MetaUpgrades>k__BackingField"), BuildMetaUpgrades(data), "MetaUpgrades");
             Assign(so.FindProperty("<Events>k__BackingField"), BuildMysteryEvents(), "Events");
-            Assign(so.FindProperty("<Enemies>k__BackingField"), new Object[] { data.Drone, data.Gunner, data.Spinner, data.Lancer, data.Carrier, quarryMaw }, "Enemies");
+            var enemies = new System.Collections.Generic.List<Object>(data.Enemies);
+            enemies.AddRange(bosses);
+            Assign(so.FindProperty("<Enemies>k__BackingField"), enemies.ToArray(), "Enemies");
             so.ApplyModifiedPropertiesWithoutUndo();
             return database;
         }

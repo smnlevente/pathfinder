@@ -33,6 +33,7 @@ namespace Pathfinder.Game.Dev
         public IReadOnlyList<SecondaryWeaponDefinition> SecondaryWeapons => secondaryWeapons;
 
         readonly List<Enemy> _scratch = new List<Enemy>();
+        int _nextSpawn;
 
         void Awake()
         {
@@ -64,6 +65,8 @@ namespace Pathfinder.Game.Dev
                 GrantScraps(100);
             if (keyboard.f9Key.wasPressedThisFrame)
                 Localization.Loc.Reload(); // pick up edits to the .loc files without restarting
+            if (keyboard.f10Key.wasPressedThisFrame)
+                SpawnNextEnemyType();
         }
 
         /// <summary>Gives every local pilot Scraps, e.g. to try the Shop. Works while menus are open.</summary>
@@ -73,6 +76,32 @@ namespace Pathfinder.Game.Dev
             ForEachLocalPlayer(p => p.AddStartingScraps(amount));
             if (dialog != null && dialog.IsOpen)
                 dialog.RefreshOptions();
+        }
+
+        /// <summary>
+        /// Spawns the next enemy type from the content database (bosses included) a few units ahead of the pilot, cycling
+        /// through all of them, to try any enemy without waiting for it to come up in a wave. Returns what it spawned.
+        /// </summary>
+        public Enemy SpawnNextEnemyType()
+        {
+            var world = waveDirector != null ? waveDirector.World : null;
+            if (content == null || world == null || content.Enemies.Length == 0)
+                return null;
+
+            PlayerShip pilot = null;
+            foreach (var player in CombatRegistry.Players)
+            {
+                if (player.IsLocal && player.IsAlive)
+                    pilot = player;
+            }
+            if (pilot == null)
+                return null;
+
+            var definition = content.Enemies[_nextSpawn % content.Enemies.Length];
+            _nextSpawn++;
+            Vector2 position = world.ClampToArena(pilot.Position + pilot.AimDirection * 7f, 2f);
+            Debug.Log($"[Dev] Spawned {definition.Id}");
+            return world.SpawnEnemy(definition, position);
         }
 
         void OfferRandomEquipment()

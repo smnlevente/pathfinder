@@ -17,6 +17,8 @@ The design lives in [docs/GDD.md](docs/GDD.md).
 | M5 Boss + meta | ✅ the Quarry Maw (3-phase rock-worm boss), run summary with banked rewards, Pathfinder Lab upgrades, save file |
 | Playtest 2 fixes | ✅ readable bullets, chevron charge telegraphs, tougher Lancer, weak-point-only Quarry Maw with harder phases, Mystery events, uGUI map/shop/cards |
 | M6 Slice polish | ✅ except the external playtest: synthesized SFX and music, explosions and camera kicks, crosshair ammo ring, uGUI HUD and Hub, economy probe |
+| Playtest 4 fixes | ✅ per-enemy wind-up sounds, audio centred on the ship, wormhole pull after the boss reward, Scrap vacuum, Esc closes menus cleanly |
+| Galaxy 2 content | ✅ Scorcher, Arc Drone and Crusher enemies; the Binary Wardens twin boss |
 
 ## Playing
 
@@ -26,6 +28,14 @@ reach New Home. The galaxy boss is **the Quarry Maw**: it burrows and erupts und
 telegraphed volleys that shed walls of rocks, then enrages and spews bullet streams and spirals. Its shell deflects
 everything: shoot the yellow weak-point crystals on its flank, and its maw whenever it opens (diving, emerging, resting
 between charges, and all through the enrage).
+
+Galaxy 2 adds three enemies: the **Scorcher** (a flamethrower grunt that marks its cone first), the **Arc Drone**
+(locks a line onto you, then zaps along it) and the **Crusher** (slow and knockback-proof, but its slam hurts). Its
+guardian is **the Binary Wardens**: two cores circling the arena, joined by a tether that sweeps like a clock hand. A
+destroyed core only goes offline and reboots at half health, unless its twin falls while it is down: wear both down,
+then finish them together.
+
+![The Binary Wardens: two cores joined by their tether, with a health bar each](docs/images/wardens.png)
 
 Mystery (?) nodes are usually **events**: a short scene and a choice with upsides and downsides.
 
@@ -38,7 +48,7 @@ it to start a fresh profile.
 
 ![A generated galaxy map: entries at the bottom converge to the Shop and Boss](docs/images/m3-map-graph.png)
 
-**The combat sandbox:** open `Assets/_Project/Scenes/Sandbox.unity` and press Play. The wave director sends endless, escalating waves of Drones, Gunners, Spinners, Lancers and Carriers, with the occasional gold-ringed elite, until the ship is destroyed. Enemies drop gold Scraps that fly to the ship.
+**The combat sandbox:** open `Assets/_Project/Scenes/Sandbox.unity` and press Play. The wave director sends endless, escalating waves of Drones, Gunners, Spinners, Lancers and Carriers (and galaxy 2's Scorchers, Arc Drones and Crushers from wave 6), with the occasional gold-ringed elite, until the ship is destroyed. Enemies drop gold Scraps that fly to the ship.
 
 | Action | Keyboard & Mouse | Gamepad |
 |---|---|---|
@@ -54,7 +64,7 @@ it to start a fresh profile.
 
 **Dev hotkeys** (Editor and development builds): **F1** cycle primary weapon, **F2** cycle secondary, **F3** god mode,
 **F4** kill all enemies, **F5** skip to the next wave, **F6** skip the current level (Run scene), **F7** offer 3 random equipment,
-**F8** +100 Scraps, **F9** reload the text files.
+**F8** +100 Scraps, **F9** reload the text files, **F10** spawn the next enemy type (every enemy and boss, in turn).
 
 Tuning lives in the ScriptableObjects under `Assets/_Project/Data`: ships, weapons, equipment (`Data/Equipment`), meta upgrades (`Data/Meta`), enemies, elites, and the wave config
 `Waves/Waves_ShatteredExpanse`. Behaviour tuning (bursts, charge speed, launch rates, the Quarry Maw's phases) is on the brain components in the

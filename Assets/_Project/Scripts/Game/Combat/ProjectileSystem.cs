@@ -37,6 +37,7 @@ namespace Pathfinder.Game.Combat
             public DamageKind Kind;
             public bool Phased;
             public float FadeLeft; // > 0: defused, harmless and fading out
+            public float Growth;
             public Vector3 VisualScale;
             public GameObject VisualPrefab;
             public GameObject ImpactPrefab;
@@ -94,6 +95,7 @@ namespace Pathfinder.Game.Combat
                 TurnRate = spawn.TurnRate,
                 TargetId = spawn.TargetId,
                 Kind = spawn.Kind,
+                Growth = spawn.VisualGrowth,
                 VisualPrefab = spawn.VisualPrefab,
                 ImpactPrefab = spawn.ImpactPrefab,
             };
@@ -116,7 +118,8 @@ namespace Pathfinder.Game.Combat
             }
 
             _active.Add(projectile);
-            CombatEvents.RaiseProjectileFired(projectile.Team, projectile.Position);
+            if (!spawn.Quiet)
+                CombatEvents.RaiseProjectileFired(projectile.Team, projectile.Position);
         }
 
         /// <summary>Removes every projectile, e.g. between levels.</summary>
@@ -257,8 +260,13 @@ namespace Pathfinder.Game.Combat
                     continue;
 
                 projectile.Visual.position = PlaneMath.ToWorld(Vector2.Lerp(projectile.Previous, projectile.Position, alpha), VisualHeight);
-                if (projectile.FadeLeft > 0f)
-                    projectile.Visual.localScale = projectile.VisualScale * (projectile.FadeLeft / DefuseTime);
+                if (projectile.FadeLeft > 0f || projectile.Growth != 1f)
+                {
+                    float scale = Mathf.Lerp(1f, projectile.Growth, Mathf.Clamp01(1f - projectile.RangeLeft / projectile.Range));
+                    if (projectile.FadeLeft > 0f)
+                        scale *= projectile.FadeLeft / DefuseTime;
+                    projectile.Visual.localScale = projectile.VisualScale * scale;
+                }
                 if (projectile.TurnRate > 0f && projectile.Velocity.sqrMagnitude > 1e-6f)
                     projectile.Visual.rotation = Quaternion.LookRotation(PlaneMath.ToWorld(projectile.Velocity));
             }
@@ -446,12 +454,20 @@ namespace Pathfinder.Game.Combat
         /// <summary>The damage kind dealt on hit. Only primary-weapon projectiles trigger on-hit effects.</summary>
         public DamageKind Kind { get; }
 
+        /// <summary>Raises no fired event, so no shot sound: for streams such as flames, whose owner plays its own sound.</summary>
+        public bool Quiet { get; }
+
+        /// <summary>Visual scale reached at maximum range, e.g. flames billowing out (1 = constant size).</summary>
+        public float VisualGrowth { get; }
+
         public ProjectileSpawn(Vector2 position, Vector2 direction, float speed, float damage, float radius, float range,
             Team team, int ownerId, GameObject visualPrefab, GameObject impactPrefab = null,
             int pierce = 0, float damageAtMaxRange = 1f, float turnRate = 0f, int targetId = 0, float visualScale = 1f,
-            DamageKind kind = DamageKind.Projectile)
+            DamageKind kind = DamageKind.Projectile, bool quiet = false, float visualGrowth = 1f)
         {
             Kind = kind;
+            Quiet = quiet;
+            VisualGrowth = visualGrowth;
             Position = position;
             Direction = direction;
             Speed = speed;

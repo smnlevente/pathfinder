@@ -166,8 +166,8 @@ namespace Pathfinder.Game.Enemies
             _burnSourceId = sourceId;
         }
 
-        /// <summary>Adds a shove that decays quickly, independent of the enemy's own movement.</summary>
-        public void ApplyKnockback(Vector2 velocity) => _knockback += velocity;
+        /// <summary>Adds a shove that decays quickly, independent of the enemy's own movement. Heavy enemies resist it.</summary>
+        public void ApplyKnockback(Vector2 velocity) => _knockback += velocity * definition.KnockbackMultiplier;
 
         public override void Simulate(float deltaTime, CombatWorld world)
         {
@@ -213,6 +213,8 @@ namespace Pathfinder.Game.Enemies
 
         protected override float IncomingDamageMultiplier(in DamageInfo info) =>
             _brain is IDamageModifier modifier ? modifier.IncomingDamageMultiplier(this, info) : 1f;
+
+        protected override bool TryPreventDeath(in DamageInfo info) => _brain is IDeathGuard guard && guard.TryPreventDeath(this, info);
 
         protected override void OnKilled(in DamageInfo info)
         {
@@ -310,5 +312,12 @@ namespace Pathfinder.Game.Enemies
     public interface IDamageModifier
     {
         float IncomingDamageMultiplier(Enemy self, in DamageInfo info);
+    }
+
+    /// <summary>A brain that can refuse a lethal hit, e.g. a Warden core that only goes offline while its twin stands.</summary>
+    public interface IDeathGuard
+    {
+        /// <summary>Returning true leaves the enemy alive at 1 hull; the brain decides what happens next.</summary>
+        bool TryPreventDeath(Enemy self, in DamageInfo info);
     }
 }

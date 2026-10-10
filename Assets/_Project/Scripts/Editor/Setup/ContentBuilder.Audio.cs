@@ -47,6 +47,14 @@ namespace Pathfinder.Editor.Setup
                 (SoundCue.TelegraphGunner, TelegraphGunner, 0.3f, 0.2f, 2, 0.15f),
                 (SoundCue.TelegraphSpinner, TelegraphSpinner, 0.32f, 0.25f, 2, 0.15f),
                 (SoundCue.TelegraphCarrier, TelegraphCarrier, 0.45f, 0.4f, 1, 0.08f),
+                (SoundCue.TelegraphScorcher, TelegraphScorcher, 0.35f, 0.25f, 2, 0.12f),
+                (SoundCue.TelegraphArc, TelegraphArc, 0.35f, 0.2f, 2, 0.12f),
+                (SoundCue.TelegraphCrusher, TelegraphCrusher, 0.5f, 0.3f, 2, 0.1f),
+                (SoundCue.Flame, Flame, 0.4f, 0.3f, 3, 0.1f),
+                (SoundCue.Zap, Zap, 0.55f, 0.08f, 3, 0.1f),
+                (SoundCue.Slam, Slam, 0.8f, 0.15f, 2, 0.08f),
+                (SoundCue.CoreOffline, CoreOffline, 0.8f, 0.3f, 1, 0f),
+                (SoundCue.CoreReboot, CoreReboot, 0.7f, 0.3f, 1, 0f),
             };
 
             var clips = new Dictionary<SoundCue, AudioClip>();
@@ -297,6 +305,86 @@ namespace Pathfinder.Editor.Setup
             Tone(b, 0f, 0.7f, Wave.Saw, 98f, 131f, 0.6f, attack: 0.1f, decayPower: 0.9f);
             Tone(b, 0f, 0.7f, Wave.Saw, 147f, 196f, 0.3f, attack: 0.12f, decayPower: 1f);
             LowPass(b, 900f, 1600f);
+            return b;
+        }
+
+        /// <summary>Scorcher: a pilot light catching, hiss rising over a low rumble.</summary>
+        static float[] TelegraphScorcher()
+        {
+            var b = Samples(0.6f);
+            Tone(b, 0f, 0.6f, Wave.Noise, 900f, 3500f, 0.5f, attack: 0.25f, decayPower: 0.4f, seed: 40);
+            Tone(b, 0f, 0.6f, Wave.Saw, 70f, 110f, 0.35f, attack: 0.1f, decayPower: 0.7f);
+            LowPass(b, 1500f, 4000f);
+            return b;
+        }
+
+        /// <summary>Arc Drone: an electric charge-up buzz that climbs and crackles.</summary>
+        static float[] TelegraphArc()
+        {
+            var b = Samples(0.7f);
+            Tone(b, 0f, 0.7f, Wave.Square, 110f, 620f, 0.35f, attack: 0.05f, decayPower: 0.3f, vibratoHz: 40f, vibratoDepth: 0.15f);
+            Tone(b, 0.1f, 0.6f, Wave.Noise, 6000f, 12000f, 0.15f, attack: 0.3f, decayPower: 0.5f, seed: 41);
+            LowPass(b, 2500f, 6000f);
+            return b;
+        }
+
+        /// <summary>Crusher: a heavy servo groan as it rears up.</summary>
+        static float[] TelegraphCrusher()
+        {
+            var b = Samples(0.55f);
+            Tone(b, 0f, 0.55f, Wave.Saw, 62f, 45f, 0.6f, attack: 0.06f, decayPower: 0.6f);
+            Tone(b, 0f, 0.55f, Wave.Triangle, 190f, 120f, 0.3f, attack: 0.08f, decayPower: 0.8f, vibratoHz: 9f, vibratoDepth: 0.05f);
+            LowPass(b, 900f, 500f);
+            return b;
+        }
+
+        /// <summary>Scorcher spray: a roaring whoosh as long as the spray.</summary>
+        static float[] Flame()
+        {
+            var b = Samples(1.4f);
+            Tone(b, 0f, 1.4f, Wave.Noise, 1400f, 900f, 0.6f, attack: 0.06f, decayPower: 0.5f, seed: 42);
+            Tone(b, 0f, 1.4f, Wave.Noise, 300f, 200f, 0.4f, attack: 0.05f, decayPower: 0.6f, seed: 43);
+            LowPass(b, 2200f, 1200f);
+            return b;
+        }
+
+        /// <summary>Arc Drone discharge: a sharp electric crack.</summary>
+        static float[] Zap()
+        {
+            var b = Samples(0.2f);
+            Tone(b, 0f, 0.12f, Wave.Noise, 12000f, 2500f, 0.6f, decayPower: 2f, seed: 44);
+            Tone(b, 0f, 0.18f, Wave.Square, 1800f, 160f, 0.35f, decayPower: 1.8f);
+            LowPass(b, 9000f, 2500f);
+            return b;
+        }
+
+        /// <summary>Crusher slam: a deep thud and a scatter of debris.</summary>
+        static float[] Slam()
+        {
+            var b = Samples(0.6f);
+            Tone(b, 0f, 0.6f, Wave.Sine, 95f, 32f, 0.9f, decayPower: 1.6f);
+            Tone(b, 0f, 0.35f, Wave.Noise, 2500f, 200f, 0.5f, decayPower: 1.8f, seed: 45);
+            LowPass(b, 3000f, 300f);
+            return b;
+        }
+
+        /// <summary>A Warden core powering down: a falling whine.</summary>
+        static float[] CoreOffline()
+        {
+            var b = Samples(0.9f);
+            Tone(b, 0f, 0.9f, Wave.Saw, 620f, 55f, 0.5f, decayPower: 0.8f);
+            Tone(b, 0f, 0.25f, Wave.Noise, 5000f, 800f, 0.35f, decayPower: 1.5f, seed: 46);
+            LowPass(b, 4000f, 600f);
+            return b;
+        }
+
+        /// <summary>A Warden core rebooting: a rising sweep and a chime.</summary>
+        static float[] CoreReboot()
+        {
+            var b = Samples(0.75f);
+            Tone(b, 0f, 0.55f, Wave.Triangle, 150f, 900f, 0.5f, attack: 0.05f, decayPower: 0.5f);
+            Tone(b, 0.5f, 0.25f, Wave.Sine, 1320f, 1320f, 0.4f, decayPower: 1.2f);
+            Tone(b, 0.5f, 0.25f, Wave.Sine, 1980f, 1980f, 0.2f, decayPower: 1.5f);
             return b;
         }
 

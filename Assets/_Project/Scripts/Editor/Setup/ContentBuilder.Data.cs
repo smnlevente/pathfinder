@@ -16,12 +16,13 @@ namespace Pathfinder.Editor.Setup
             public PrimaryWeaponDefinition PhotonRepeater, PlasmaCutter, QuantumCharger;
             public SeekerSwarmDefinition SeekerSwarm;
             public NovaPulseDefinition NovaPulse;
-            public EnemyDefinition Drone, Gunner, Spinner, Lancer, Carrier;
+            public EnemyDefinition Drone, Gunner, Spinner, Lancer, Carrier, Scorcher, ArcDrone, Crusher;
             public EliteModifierDefinition Armored, Hasty;
             public WaveDirectorConfig Waves;
 
             public PrimaryWeaponDefinition[] Primaries => new[] { PhotonRepeater, PlasmaCutter, QuantumCharger };
             public SecondaryWeaponDefinition[] Secondaries => new SecondaryWeaponDefinition[] { SeekerSwarm, NovaPulse };
+            public EnemyDefinition[] Enemies => new[] { Drone, Gunner, Spinner, Lancer, Carrier, Scorcher, ArcDrone, Crusher };
         }
 
         /// <summary>
@@ -59,6 +60,15 @@ namespace Pathfinder.Editor.Setup
                 Carrier = Definition<EnemyDefinition>("Enemies/Enemy_Carrier", "enemy.carrier", "Carrier", so => Set(so,
                     ("MaxHealth", 150f), ("MoveSpeed", 1.8f), ("ContactDamage", 15f), ("BudgetCost", 6), ("ScrapsDrop", 8), ("ScrapsDropChance", 1f))),
 
+                // Galaxy 2 (GDD §7.3).
+                Scorcher = Definition<EnemyDefinition>("Enemies/Enemy_Scorcher", "enemy.scorcher", "Scorcher", so => Set(so,
+                    ("MaxHealth", 45f), ("MoveSpeed", 3.2f), ("ContactDamage", 10f), ("BudgetCost", 3), ("ScrapsDrop", 2), ("ScrapsDropChance", 0.8f))),
+                ArcDrone = Definition<EnemyDefinition>("Enemies/Enemy_ArcDrone", "enemy.arc-drone", "Arc Drone", so => Set(so,
+                    ("MaxHealth", 20f), ("MoveSpeed", 5f), ("ContactDamage", 8f), ("BudgetCost", 2), ("ScrapsDrop", 1), ("ScrapsDropChance", 0.7f))),
+                Crusher = Definition<EnemyDefinition>("Enemies/Enemy_Crusher", "enemy.crusher", "Crusher", so => Set(so,
+                    ("MaxHealth", 110f), ("MoveSpeed", 2.2f), ("ContactDamage", 15f), ("BudgetCost", 4), ("ScrapsDrop", 4), ("ScrapsDropChance", 0.9f),
+                    ("KnockbackMultiplier", 0.15f))),
+
                 Armored = Definition<EliteModifierDefinition>("Enemies/Elite_Armored", "elite.armored", "Armored", so => Set(so,
                     ("HealthMultiplier", 2f), ("MoveSpeedMultiplier", 0.75f))),
                 Hasty = Definition<EliteModifierDefinition>("Enemies/Elite_Hasty", "elite.hasty", "Hasty", so => Set(so,
@@ -72,6 +82,7 @@ namespace Pathfinder.Editor.Setup
                 {
                     (data.Drone, 5f, 1), (data.Gunner, 3f, 1), (data.Spinner, 2f, 2), (data.Lancer, 2f, 2), (data.Carrier, 1f, 4),
                 };
+                // Galaxy 2's enemies are added by AddGalaxyTwoEnemies, as for older configs.
                 entries.arraySize = pool.Length;
                 for (int i = 0; i < pool.Length; i++)
                 {
@@ -84,6 +95,7 @@ namespace Pathfinder.Editor.Setup
             });
 
             Upgrade(data);
+            AddGalaxyTwoEnemies(data);
             return data;
         }
 
@@ -143,6 +155,9 @@ namespace Pathfinder.Editor.Setup
             SetIfEmpty(data.Spinner, ("Prefab", actors.Spinner));
             SetIfEmpty(data.Lancer, ("Prefab", actors.Lancer));
             SetIfEmpty(data.Carrier, ("Prefab", actors.Carrier));
+            SetIfEmpty(data.Scorcher, ("Prefab", actors.Scorcher));
+            SetIfEmpty(data.ArcDrone, ("Prefab", actors.ArcDrone));
+            SetIfEmpty(data.Crusher, ("Prefab", actors.Crusher));
 
             SetIfEmpty(data.Armored, ("MarkerPrefab", art.EliteMarker));
             SetIfEmpty(data.Hasty, ("MarkerPrefab", art.EliteMarker));

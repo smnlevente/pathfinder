@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae6e65d0713742e48916ac139e5851dc, type: 3}
+  m_Name: Enemy_BinaryWardens
+  m_EditorClassIdentifier: 
+  id: boss.binary-wardens
+  displayName: The Binary Wardens
+  <MaxHealth>k__BackingField: 2200
+  <MoveSpeed>k__BackingField: 5
+  <ContactDamage>k__BackingField: 15
+  <BudgetCost>k__BackingField: 20
+  <ScrapsDrop>k__BackingField: 30
+  <ScrapsDropChance>k__BackingField: 1
+  <KnockbackMultiplier>k__BackingField: 0
+  <Prefab>k__BackingField: {fileID: 5231654372133037523, guid: 24f571530b020bb40879997830c62f4c, type: 3}

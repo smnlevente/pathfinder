@@ -18,18 +18,35 @@ MonoBehaviour:
   - Enemy: {fileID: 11400000, guid: ec5933fb65d6e1c4b98b2b7d0c0b3206, type: 2}
     Weight: 5
     MinWave: 1
+    MinGalaxy: 0
   - Enemy: {fileID: 11400000, guid: 01658effe96b3d84a87736e521d9ffff, type: 2}
     Weight: 3
     MinWave: 1
+    MinGalaxy: 0
   - Enemy: {fileID: 11400000, guid: d7c2872e103c31d41826d638fd967655, type: 2}
     Weight: 2
     MinWave: 2
+    MinGalaxy: 0
   - Enemy: {fileID: 11400000, guid: 5dc004278d5d6f94c9b191753882bcd3, type: 2}
     Weight: 2
     MinWave: 2
+    MinGalaxy: 0
   - Enemy: {fileID: 11400000, guid: e1e1c80330dbd2b4d85bb88f739cb923, type: 2}
     Weight: 1
     MinWave: 4
+    MinGalaxy: 0
+  - Enemy: {fileID: 11400000, guid: 7e8e441e74a66c74f94e07cfde986048, type: 2}
+    Weight: 2
+    MinWave: 1
+    MinGalaxy: 1
+  - Enemy: {fileID: 11400000, guid: 1f2aceab2f0799241a9dc7a45ceac42a, type: 2}
+    Weight: 3
+    MinWave: 1
+    MinGalaxy: 1
+  - Enemy: {fileID: 11400000, guid: cecf3da6b51e7ee43a1bbedb97a9f42c, type: 2}
+    Weight: 1.5
+    MinWave: 2
+    MinGalaxy: 1
   <Elites>k__BackingField:
   - {fileID: 11400000, guid: 699e8ed91a1215a47812d97152f3d47a, type: 2}
   - {fileID: 11400000, guid: 34ddf20325bac3147a55110305b1656e, type: 2}
@@ -46,6 +63,7 @@ MonoBehaviour:
   <EliteChancePerGalaxy>k__BackingField: 0.05
   <EliteChanceMax>k__BackingField: 0.35
   <EliteCostMultiplier>k__BackingField: 2
+  <EndlessLaterGalaxyWave>k__BackingField: 6
   <FirstWaveDelay>k__BackingField: 1.5
   <ClearFraction>k__BackingField: 0.8
   <WaveTimeout>k__BackingField: 25

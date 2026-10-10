@@ -15,7 +15,7 @@ namespace Pathfinder.Editor.Setup
         sealed class Actors
         {
             public PlayerShip Player;
-            public Enemy Drone, Gunner, Spinner, Lancer, Carrier;
+            public Enemy Drone, Gunner, Spinner, Lancer, Carrier, Scorcher, ArcDrone, Crusher;
         }
 
         static Actors BuildActors(Art art, Data data)
@@ -28,6 +28,9 @@ namespace Pathfinder.Editor.Setup
                 Lancer = BuildLancer(art, data),
             };
             actors.Carrier = BuildCarrier(art, data);
+            actors.Scorcher = BuildScorcher(art, data);
+            actors.ArcDrone = BuildArcDrone(art, data);
+            actors.Crusher = BuildCrusher(art, data);
             actors.Player = BuildPlayer(art, data);
             return actors;
         }

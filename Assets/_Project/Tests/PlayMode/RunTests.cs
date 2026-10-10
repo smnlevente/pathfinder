@@ -398,5 +398,27 @@ namespace Pathfinder.Tests.PlayMode
             var enemy = CombatRegistry.Enemies.First(e => !e.IsElite);
             Assert.AreEqual(enemy.Definition.MaxHealth * 1.6f, enemy.Vitals.MaxHull, 0.01f);
         }
+
+        [UnityTest]
+        public IEnumerator SecondGalaxy_IsGuardedByTheBinaryWardens()
+        {
+            yield return LoadRun(21);
+            while (Run.GalaxyIndex == 0)
+            {
+                yield return WaitUntil(() => _director.State == RunDirector.Phase.Map, 5f);
+                _director.ChooseNode(Run.AvailableNodes[0]);
+                _level.DebugTakeExit();
+                yield return WaitUntil(() => _director.State != RunDirector.Phase.Level, 3f);
+            }
+            yield return WaitUntil(() => _director.State == RunDirector.Phase.Map, 5f);
+
+            _director.StartTestLevel(MapNodeType.Boss);
+            yield return WaitTicks(3);
+
+            Assert.AreEqual("boss.binary-wardens", _level.Boss.Definition.Id, "Galaxy 2's boss is the Binary Wardens (GDD §7.5).");
+            Assert.AreEqual(2, CombatRegistry.Enemies.Count, "The core splits in two.");
+            Assert.That(CombatRegistry.Enemies.All(e => Mathf.Approximately(e.Vitals.MaxHull, 2200f * 1.6f)), "Both cores have galaxy 2 health.");
+            Assert.AreEqual(Pathfinder.Game.Localization.Loc.T("boss.binary-wardens.hint"), _level.Prompt, "The fight opens with a hint on how to win it.");
+        }
     }
 }

@@ -43,6 +43,8 @@ namespace Pathfinder.Game.Presentation
         const float GamepadReticleDistance = 150f;
 
         UiBar _hull, _shield, _primary, _secondary, _boss;
+        readonly UiBar[] _bossParts = new UiBar[2];
+        readonly Text[] _bossPartLabels = new Text[2];
         readonly UiBar[] _dash = new UiBar[MaxDashPips];
         Text _hullText, _primaryText, _secondaryText, _loadoutText;
         Text _scraps, _darkMatter, _seed, _header, _objective, _bossName, _banner, _prompt, _debug;
@@ -151,8 +153,8 @@ namespace Pathfinder.Game.Presentation
                 _bossPanel.SetActive(boss != null && boss.IsAlive);
                 if (_bossPanel.activeSelf)
                 {
-                    _boss.Set(boss.Vitals.Hull / boss.Vitals.MaxHull);
                     _bossName.text = boss.Definition.DisplayName.ToUpperInvariant();
+                    RefreshBossBars(boss);
                 }
             }
             else
@@ -162,6 +164,31 @@ namespace Pathfinder.Game.Presentation
                     : string.Empty;
                 _objective.text = _banner.text = _prompt.text = string.Empty;
                 _bossPanel.SetActive(false);
+            }
+        }
+
+        /// <summary>One bar for a boss, or one per part for a boss in several pieces, with a reboot countdown on downed parts.</summary>
+        void RefreshBossBars(Enemy boss)
+        {
+            var parts = boss.TryGetComponent(out IMultiPartBoss multi) && multi.PartCount > 1 ? multi : null;
+            _boss.Rect.gameObject.SetActive(parts == null);
+            if (parts == null)
+                _boss.Set(boss.Vitals.Hull / boss.Vitals.MaxHull);
+
+            for (int i = 0; i < _bossParts.Length; i++)
+            {
+                bool shown = parts != null && i < parts.PartCount;
+                _bossParts[i].Rect.gameObject.SetActive(shown);
+                if (!shown)
+                    continue;
+
+                var part = parts.Part(i);
+                float downtime = parts.PartDowntime(i);
+                float health = part != null && part.IsAlive ? part.Vitals.Hull / part.Vitals.MaxHull : 0f;
+                _bossParts[i].Set(health, downtime > 0f ? UiKit.TextDim : BossColor);
+                string name = parts.PartName(i);
+                _bossPartLabels[i].text = downtime > 0f ? Loc.T("hud.boss.rebooting", ("name", name), ("seconds", downtime)) : name;
+                _bossPartLabels[i].color = downtime > 0f ? WarningColor : Color.white;
             }
         }
 
@@ -333,6 +360,16 @@ namespace Pathfinder.Game.Presentation
                 // Phase marks at 1/3 and 2/3 health (GDD §7.5: three health bar segments).
                 var tick = UiKit.Image(_boss.Rect, "Phase Mark", Color.black);
                 UiKit.Place(tick.rectTransform, new Vector2(mark, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(3f, 18f));
+            }
+            // A boss in two parts (the Binary Wardens) gets a bar for each, side by side, named inside the bar.
+            for (int i = 0; i < _bossParts.Length; i++)
+            {
+                _bossParts[i] = new UiBar(bossRect, $"Part {i + 1}", BossColor);
+                UiKit.Place(_bossParts[i].Rect, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(i == 0 ? -205f : 205f, 2f), new Vector2(390f, 22f));
+                _bossPartLabels[i] = UiKit.Text(_bossParts[i].Rect, "Label", string.Empty, 17, Color.white, TextAnchor.MiddleLeft, FontStyle.Bold);
+                UiKit.Stretch(_bossPartLabels[i].rectTransform).offsetMin = new Vector2(10f, 0f);
+                AddShadow(_bossPartLabels[i]);
+                _bossParts[i].Rect.gameObject.SetActive(false);
             }
             _bossName = UiKit.Text(bossRect, "Name", string.Empty, 18, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
             UiKit.Place(_bossName.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(800f, 26f));

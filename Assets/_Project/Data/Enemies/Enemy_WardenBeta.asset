@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae6e65d0713742e48916ac139e5851dc, type: 3}
+  m_Name: Enemy_WardenBeta
+  m_EditorClassIdentifier: 
+  id: boss.binary-wardens.beta
+  displayName: Warden Beta
+  <MaxHealth>k__BackingField: 2200
+  <MoveSpeed>k__BackingField: 5
+  <ContactDamage>k__BackingField: 15
+  <BudgetCost>k__BackingField: 20
+  <ScrapsDrop>k__BackingField: 0
+  <ScrapsDropChance>k__BackingField: 0
+  <KnockbackMultiplier>k__BackingField: 0
+  <Prefab>k__BackingField: {fileID: 6034130140447195091, guid: fe7dfdcdf38e8f548b32e49cf26e2e5a, type: 3}

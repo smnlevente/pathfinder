@@ -18,6 +18,10 @@ namespace Pathfinder.Editor.Setup
             public GameObject BoltImpact, BulletImpact, MissileImpact, EnemyExplosion, PlayerExplosion, Deflect, MuzzleFlash;
             public GameObject SpawnTelegraph, NovaPulse, EliteMarker, ChargeLane;
             public GameObject PlayerBoltVisual, PelletVisual, ChargeBoltVisual, MissileVisual, EnemyBulletVisual, ScrapVisual;
+
+            // Galaxy 2: flames (a hazard orange), floor telegraphs, lightning and the Wardens' tether.
+            public Material Flame, FlameCore, HazardArea, SlamArea, Beam, BoltCore, BoltGlow, Tether;
+            public GameObject FlameVisual, ArcBolt, SlamShockwave, CoreOffline, CoreReboot;
         }
 
         static Art BuildArt()
@@ -99,6 +103,7 @@ namespace Pathfinder.Editor.Setup
             BuildEffects(art);
             art.ChargeLane = SavePrefab(ChargeLane("FX_ChargeLane", art), "FX");
             BuildProjectileVisuals(art);
+            BuildHazardArt(art);
             return art;
         }
 

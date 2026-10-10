@@ -85,7 +85,6 @@ objective.mystery = Mystery
 
 prompt.repair = Press E / (Y) to use the repair station
 prompt.shop = Press E / (Y) to open the shop
-prompt.boss_hint = Its shell deflects shots: hit the yellow crystals, and its maw when it opens
 
 ## ------------------------------------------------------------------ repair station
 repair.title = REPAIR STATION
@@ -169,6 +168,9 @@ hud.jumping = Jumping to {galaxy}...
 hud.end_hint = Press E / (Y) for a new run    ·    Esc / Start for the Hub
 hud.restart_hint = Press E / (Y) to restart
 hud.summary = Galaxy {galaxy}    ·    Levels cleared {levels}    ·    Seed {seed}
+hud.boss.alpha = ALPHA
+hud.boss.beta = BETA
+hud.boss.rebooting = {name}   ·   OFFLINE, REBOOTING {seconds:0.0}s
 hud.banked = Banked: {total} Dark Matter ({harvested} harvested + {converted} from Scraps), {cores} Singularity Cores
 
 weapon.reloading = RELOADING {percent:0}%
@@ -273,8 +275,8 @@ controls.pause = Pause
 controls.pause.keys = Esc
 controls.pause.pad = Start
 
-dev.hint = DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F6 skip level   F7 equipment   F8 +100 Scraps   F9 reload text
-dev.hint.sandbox = DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F7 equipment   F8 +100 Scraps   F9 reload text
+dev.hint = DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F6 skip level   F7 equipment   F8 +100 Scraps   F9 reload text   F10 spawn enemy
+dev.hint.sandbox = DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F7 equipment   F8 +100 Scraps   F9 reload text   F10 spawn enemy
 
 ## ------------------------------------------------------------------ Mystery event effects
 effect.scraps = {signed} Scraps
@@ -347,9 +349,18 @@ enemy.gunner.name = Gunner
 enemy.spinner.name = Spinner
 enemy.lancer.name = Lancer
 enemy.carrier.name = Carrier
+enemy.scorcher.name = Scorcher
+enemy.arc-drone.name = Arc Drone
+enemy.crusher.name = Crusher
 elite.armored.name = Armored
 elite.hasty.name = Hasty
 boss.quarry-maw.name = The Quarry Maw
+boss.binary-wardens.name = The Binary Wardens
+boss.binary-wardens.beta.name = Warden Beta
+
+# How to hurt each boss, shown for the first seconds of the fight.
+boss.quarry-maw.hint = Its shell deflects shots: hit the yellow crystals, and its maw when it opens
+boss.binary-wardens.hint = A lone core only reboots: wear both down, then destroy them together
 
 ## ------------------------------------------------------------------ equipment (names and descriptions)
 # Stat items (Overclock, Armor Plating...) build their description from the stat lines above.

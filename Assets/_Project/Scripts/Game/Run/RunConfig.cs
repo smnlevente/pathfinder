@@ -14,7 +14,7 @@ namespace Pathfinder.Game.Run
         [Serializable]
         public struct BossSetup
         {
-            [Tooltip("Placeholder boss until the real bosses arrive in M5.")] public EnemyDefinition Enemy;
+            [Tooltip("The boss for galaxies without their own in Galaxy Bosses.")] public EnemyDefinition Enemy;
             public EliteModifierDefinition Elite;
             [Min(1f)] public float HealthMultiplier;
             public EnemyDefinition Escort;
@@ -71,6 +71,8 @@ namespace Pathfinder.Game.Run
 
         [field: Header("Boss level (GDD §10.7)")]
         [field: SerializeField] public BossSetup Boss { get; private set; }
+        [field: SerializeField, Tooltip("Each galaxy's guardian: galaxy 1, 2, 3. An empty slot uses the Boss setup's enemy.")]
+        public EnemyDefinition[] GalaxyBosses { get; private set; } = new EnemyDefinition[0];
         [field: SerializeField] public int[] SingularityCores { get; private set; } = { 1, 2, 3 };
         [field: SerializeField, Range(0f, 1f)] public float BossHealFraction { get; private set; } = 0.3f;
 
@@ -80,6 +82,13 @@ namespace Pathfinder.Game.Run
         [field: SerializeField] public GameObject RepairStationPrefab { get; private set; }
         [field: SerializeField] public GameObject ShopTerminalPrefab { get; private set; }
         [field: SerializeField] public GameObject CachePrefab { get; private set; }
+
+        /// <summary>The boss guarding a galaxy (GDD §7.5).</summary>
+        public EnemyDefinition BossFor(int galaxyIndex)
+        {
+            var boss = ForGalaxy(GalaxyBosses, galaxyIndex);
+            return boss != null ? boss : Boss.Enemy;
+        }
 
         public static T ForGalaxy<T>(T[] values, int galaxyIndex) =>
             values == null || values.Length == 0 ? default : values[Mathf.Clamp(galaxyIndex, 0, values.Length - 1)];

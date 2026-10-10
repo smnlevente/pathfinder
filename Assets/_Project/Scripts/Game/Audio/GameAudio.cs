@@ -225,6 +225,9 @@ namespace Pathfinder.Game.Audio
                 : enemy.TryGetComponent(out GunnerBrain _) ? SoundCue.TelegraphGunner
                 : enemy.TryGetComponent(out SpinnerBrain _) ? SoundCue.TelegraphSpinner
                 : enemy.TryGetComponent(out CarrierBrain _) ? SoundCue.TelegraphCarrier
+                : enemy.TryGetComponent(out ScorcherBrain _) ? SoundCue.TelegraphScorcher
+                : enemy.TryGetComponent(out ArcDroneBrain _) ? SoundCue.TelegraphArc
+                : enemy.TryGetComponent(out CrusherBrain _) ? SoundCue.TelegraphCrusher
                 : SoundCue.Telegraph;
             Play(cue, enemy.transform.position, enemy.IsElite ? 1.15f : 1f);
         }

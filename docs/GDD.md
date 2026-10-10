@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 2.1 (localization: every player-facing string in editable .loc files) |
+| **Version** | 2.2 (galaxy 2 content: Scorcher, Arc Drone, Crusher and the Binary Wardens; playtest 4 audio and flow fixes) |
 | **Date** | 2026-10-10 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
@@ -53,7 +53,7 @@ In the near future, Earth is collapsing under cascading environmental catastroph
 | Tier | Galaxy (working name) | Theme | Boss |
 |---|---|---|---|
 | 1 | **The Shattered Expanse** | Asteroid fields, mining wrecks, drifting rock | *The Quarry Maw* |
-| 2 | **The Graveyard Drift** | Derelict stations, debris, defense grids of a dead civilization | *Warden Prime* |
+| 2 | **The Graveyard Drift** | Derelict stations, debris, defense grids of a dead civilization | *The Binary Wardens* |
 | 3 | **The Veil Nebula** | Living alien nebula, bioluminescent hives | *The Hive Matriarch* |
 | — | **New Home** | Run victory: humanity's new planet | — |
 
@@ -194,7 +194,7 @@ Secondary weapons are cooldown-based burst tools that deal much more damage than
 - **Plasma Cutter:** the 6 pellets fan evenly across the 30° cone with a little jitter. They fly at 26 u/s, and damage falls off to 40% at the 7 u maximum range.
 - **Quantum Charger:** the shot flies at 36 u/s with a 24 u range and **pierces every enemy in its path**. Its hit radius grows from 0.2 to 0.55 u, and its visual scale up to 2.2×, with charge. The ship's lights brighten as it charges and flicker when it is about to overheat.
 - **Seeker Swarm:** the missiles launch in a 140° fan, fly at 14 u/s and turn at 300°/s. Each missile is assigned a different nearby enemy so the salvo doesn't overkill one target. A missile whose target dies retargets the nearest enemy.
-- **Nova Pulse:** a shove of 14 u/s that decays quickly, pushing enemies about 1.75 u whatever their weight.
+- **Nova Pulse:** a shove of 14 u/s that decays quickly, pushing enemies about 1.75 u whatever their size. Heavy enemies resist knockback: the Crusher moves only 15% as far, and the Binary Wardens not at all.
 
 ---
 
@@ -215,6 +215,7 @@ Enemy spawns are driven by a **budget**:
 
 **Implemented in M2** **[tune]**:
 - **Budget:** `round(6 × galaxy[1.0 / 1.4 / 1.8] × (1 + 0.15 × (row − 1)) × (1 + 0.25 × (wave − 1)))`. Each pick is weighted among the enemies that are unlocked and still affordable (Shattered Expanse pool: Drone 5, Gunner 3, Spinner 2 from wave 2, Lancer 2 from wave 2, Carrier 1 from wave 4). A wave holds at most 40 spawns.
+- **Galaxy gating:** each pool entry has a first galaxy. From galaxy 2 the pool adds the Scorcher (weight 2), Arc Drone (3) and Crusher (1.5, from wave 2). The endless combat sandbox (galaxy 1) brings them in from wave 6, so they can be tried there.
 - **Elite chance:** `min(0.35, 0.03 + 0.02 × (wave − 1) + 0.04 × (row − 1) + 0.05 × galaxy)`. An elite costs ×2 budget.
 - **Pacing:** the first wave comes after 1.5 s. The next wave starts at 80% dead or after 25 s. Levels have a fixed wave count; the combat sandbox is endless.
 - The director's randomness is a seeded stream keyed by galaxy and row, and every enemy gets its own AI and loot streams keyed by spawn order. Seeded replays therefore match exactly.
@@ -229,6 +230,9 @@ Archetypes are defined by their behavior. Each faction or theme re-skins and sli
 | **Spinner** | Slow; fires radial bullet rings in rotating patterns. | 60 | 3 |
 | **Lancer** | Shows its path as a lane of chevrons, then jousts twice in straight lines at high speed. | 60 | 3 |
 | **Carrier** | Slow tank that spawns Drones periodically. Weak point at the rear. | 150 | 6 |
+| **Scorcher** *(galaxy 2+)* | Flamethrower grunt: closes in, marks a cone, sprays fire across it. | 45 | 3 |
+| **Arc Drone** *(galaxy 2+)* | Hovers at mid range; locks a line onto the ship, then zaps along it instantly. | 20 | 2 |
+| **Crusher** *(galaxy 2+)* | Slow, heavy and knockback-proof; slams the ground for huge damage if it reaches you. | 110 | 4 |
 | **Turret** | Static; its sweeping laser or bullet stream is placed by the level template. | 80 | 2 |
 | **Shielder** | Projects a damage-absorbing shield over nearby allies. | 50 | 4 |
 
@@ -240,6 +244,9 @@ Archetypes are defined by their behavior. Each faction or theme re-skins and sli
 - **Spinner:** 2 u/s, holds 6–13 u and drifts sideways. Every 1.8 s its emitters flare for 0.35 s, then it fires a ring of 10 bullets (8 damage, 6 u/s). Each ring is rotated 11° from the last, so the gaps move.
 - **Lancer:** 60 HP, 4.5 u/s. Within 9 u it plants itself and shows a **chevron lane** along its locked direction for 0.7 s. The chevrons light up from the Lancer outward as the wind-up completes, then all flash just before launch. It then charges 14 u at 24 u/s, hitting for 30 (2.5× its 12 contact damage). The charge ends early if it hits the ship or a wall. **Every charge ends in a 0.6 s wind-down:** it skids to a halt (about 5 u) before it can do anything else. **A miss earns a second joust:** after the wind-down it re-aims at the ship and charges again after a 0.6 s wind-up. After its last charge it recovers for 1 s at 30% speed and waits 1.8 s before the next attack. Wind-down and recovery are its vulnerable windows. *(Playtest 2: the old red line looked like a bullet, and the Lancer felt weak. Playtest 3: it re-aimed the instant a charge ended, which felt clunky.)*
 - **Carrier:** 1.8 u/s, keeps about 10 u away and turns at only 60°/s, so it can be flanked. Its armoured front takes 60% damage and its yellow rear weak point takes 200%. Every 4 s its flank bays flare and it launches 2 Drones from the rear, with at most 6 alive. Launched Drones drop no Scraps, so Carriers can't be farmed.
+- **Scorcher** *(galaxy 2)*: 45 HP, 3.2 u/s. Within 4.5 u it plants itself for **0.6 s** and an orange **cone** (±18°, 5.6 u) fills in on the floor. Then it sprays for **1.4 s**: a flame every 0.06 s (4 damage, 9 u/s, 5 u range) that billows to 2.4× its size, while it turns after the ship at 60°/s and creeps at 25% speed. Flames wash over the ship instead of stopping at it (each can burn it once), so post-hit invulnerability paces the damage at about 13/s for a pilot who stays in the fire. Then a 2.2 s cooldown at half speed. Flames are a hazard, not bullets: alpha-blended orange, and silent (the Scorcher plays one roar per spray).
+- **Arc Drone** *(galaxy 2)*: 20 HP, 5 u/s, strafes at 6–8.5 u. Within 11 u it **locks onto where the ship is** and charges for **0.7 s**, showing a flickering red-orange line through that spot to its full 12 u reach (or the wall). Then it discharges instantly along the locked line: **14 damage** to the first ship within 0.3 u of it, with a jagged white-and-orange bolt. Step off the line, or dash through it (dashing ships phase through, and Phase Dash counts it). 2.5 s cooldown.
+- **Crusher** *(galaxy 2)*: 110 HP, 2.2 u/s, and only **15% knockback**. Within 2.6 u it rears up for **0.55 s** behind a red ring at its 2.8 u reach, with a fill growing out to it, still creeping in. Then it **slams: 40 damage** to every ship within the ring, a shockwave and a camera kick. It recovers, motionless, for 1 s: the time to hurt it. A pilot who moves away during the wind-up escapes easily; it punishes being cornered or not looking.
 - **Elites:** *Armored* has ×2 HP and ×0.75 speed. *Hasty* has ×1.5 speed and ×1.5 attack rate (cooldowns, wind-ups and bursts). Both are ×1.2 larger, carry a gold ring marker and always drop ×3 Scraps. *Splitting* and *Volatile* come post-slice.
 - **Spawns** are telegraphed for 1 s by a red glow on the floor (staggered by 0.08 s within a wave) and are never within 6 u of a player.
 
@@ -248,7 +255,7 @@ Archetypes are defined by their behavior. Each faction or theme re-skins and sli
 ### 7.4 Drops
 - Every enemy has a chance to drop **Scraps** (Drone 1, Gunner 2, Carrier 8, elites ×3).
 - Scraps are pulled into the ship by the magnet radius and despawn after 10 s if not collected.
-- **Implemented in M2** **[tune]**: drop chances are Drone 50%, Gunner 75%, Spinner 3 at 85%, Lancer 2 at 80%, Carrier 100%, and elites always drop. A drop bursts into up to 12 gold pieces that settle on the floor. Within the 3 u magnet radius they accelerate into the ship (up to 24 u/s). They blink for their last 2 s. Collection is decided by the authority, and Scraps are counted per pilot.
+- **Implemented in M2** **[tune]**: drop chances are Drone 50%, Gunner 75%, Spinner 3 at 85%, Lancer 2 at 80%, Carrier 100%, and elites always drop. Galaxy 2 adds Scorcher 2 at 80%, Arc Drone 1 at 70%, Crusher 4 at 90%. A drop bursts into up to 12 gold pieces that settle on the floor. Within the 3 u magnet radius they accelerate into the ship (up to 24 u/s). They blink for their last 2 s. Collection is decided by the authority, and Scraps are counted per pilot.
 
 ### 7.5 Bosses
 Each boss has three phases with a separate health bar segment for each. A boss fight lasts about 3–4 minutes.
@@ -256,7 +263,7 @@ Each boss has three phases with a separate health bar segment for each. A boss f
 | Boss | Galaxy | Concept | Phases |
 |---|---|---|---|
 | **The Quarry Maw** | 1 | A colossal rock-worm that tunnels through asteroid debris | 1: burrows and erupts, leaving rock showers · 2: segmented body sweeps across the arena, with weak points on its segments · 3: enrages and spews bullet streams from its mouth |
-| **Warden Prime** | 2 | The defense AI core of a derelict station, surrounded by rotating turret rings | 1: rotating ring patterns · 2: summons Remnant-hacked drones and lasers sweep the arena · 3: the core is exposed, the rings collapse inward, and the arena shrinks |
+| **The Binary Wardens** | 2 | The twin defense cores of a derelict station, one AI split in two | Not phased: two cores circle the arena joined by a damaging tether. A destroyed core only goes offline and reboots, unless its twin falls while it is down: destroy them together |
 | **The Hive Matriarch** | 3 | An alien queen, half-fused with the nebula | 1: spawns Swarm waves and spore clouds · 2: charges and erupts in bullet hell · 3: arena-wide pattern that requires dash timing; her final cry triggers the ending |
 
 **Boss rewards:** Singularity Cores (1 / 2 / 3 per galaxy), Hull restored by 30%, and a **guaranteed Rare-or-better equipment choice**.
@@ -267,8 +274,17 @@ Each boss has three phases with a separate health bar segment for each. A boss f
 - **Phase 1, Burrow:** surfaced for 5 s, it **slithers around the ship side-on** at about 8 u, so the weak points on its flank face the guns, spitting a 3-bullet aimed burst every 1.6 s. Then it **dives over 1.4 s**: it stops, faces the ship, opens its maw and visibly sinks into the ground with a shudder and a burst of dust, shootable all the way down. Underground it is intangible. A red glow tracks the ship for 1.1 s, then locks. After 1.8 s it erupts there, dealing 30 damage within 3 u and throwing **two rings of 16 rocks** offset by half a step (6 u/s, then 3.8 u/s), and **rises over 1.2 s**, maw open. A phase change waits until it is back on the surface.
 - **Phase 2, Sweep:** volleys of **2 charges**, each **from wherever the head is, through the ship's current position**, to the far side of the arena. It never teleports. Each charge is shown first by a large chevron lane (1.4 s for the first, 1 s for the second). It charges at 13 u/s with 1.6× contact damage and **sheds a rock to each side every 0.18 s**, leaving expanding walls of bullets (3.5 u/s) to slip through or dash across. After a volley it **rests for 4.5 s, maw open**, coiling slowly around the ship side-on: the big window to hurt it.
 - **Phase 3, Enrage:** the maw stays open. It circles the ship at 9 u, firing a 5-bullet stream (36° spread, 10 damage, 9 u/s) every 0.6 s, with a 16-rock shower every 5 s. Every 8 s it stops, flares for 0.6 s, and spins a **3-arm spiral** for 2.4 s (140°/s, a bullet per arm every 0.1 s at 6 u/s).
-- **Death:** the killing blow can land on any weak point. The body shatters and drops 30 Scraps. **Every enemy bullet still in the air turns harmless, slows and fades out over 0.5 s**, so a stray bullet can't kill a pilot who just won. The reward choice opens 1.5 s later, once the death has played out.
+- **Death:** the killing blow can land on any weak point. The body shatters and drops 30 Scraps. **Every enemy bullet still in the air turns harmless, slows and fades out over 0.5 s**, so a stray bullet can't kill a pilot who just won. The reward choice opens 1.5 s later, once the death has played out. Once it is made, the wormhole **pulls the ship in**, spinning and invulnerable, with a mild camera shake: no need to fly there *(playtest 4)*.
 - **Balance check:** a perfect-aim, god-mode bot with the default loadout kills it in about 65 s (a PlayMode test logs the time). Real fights, with dodging and misses, should take about 2 minutes.
+
+**The Binary Wardens** **[tune]** *(galaxy 2; the playtest-4 idea of a boss in two parts that must die together)*:
+- **Split:** the boss arrives as one core and splits in two, **Alpha** and **Beta**, which fly apart to opposite sides of the arena centre. They are armoured for the 2 s split. Each core has **2200 HP** (×1.6 in galaxy 2, so 3520) and its own health bar; the Alpha is the level's boss and spawns the Beta. Alpha has a ring of six spinning emitters, Beta a cross of blades, so they read apart.
+- **Orbit and tether:** the cores circle the centre on opposite sides at 22°/s, the orbit breathing between 5.5 and 8.5 u over 16 s. A crackling **tether** joins them: it always runs through the arena centre and sweeps round like a clock hand, dealing 15 damage to a ship it crosses. Whenever a link forms (after the split or a reboot) the tether flickers thin and harmless for 1.2 s first.
+- **Attacks:** each core flares for 0.4 s before a volley. **Alpha** fires a ring of 14 bullets every 2.6 s, each ring turned 9° from the last. **Beta** fires a 5-bullet, 36° fan at the ship every 2 s. Bullets deal 10. Touching a core deals 15.
+- **Offline:** a core brought to zero **while its twin is up only goes offline**. It sinks part-way into the floor, goes dark, is armoured (grey sparks) and harmless to touch, and a grey ring fills on the floor as it **reboots in 5 s at 50% health**. Meanwhile the tether is down and its twin **enrages** (attacks 1.5× faster). The HUD shows the downed bar with a countdown.
+- **Defeat:** if the second core goes down **while the first is still offline**, the link breaks and **both fall together**. So the pilot has to wear both down evenly and finish them within 5 s of each other. The fight opens with the hint "A lone core only reboots: wear both down, then destroy them together". Death plays out like the Quarry Maw's: bullets defuse, 30 Scraps drop, and the reward follows.
+- **Balance check:** a god-mode bot in the middle of the arena that always shoots the core with more health left (so both wear down together) kills them in about 50 s at galaxy 1 health, about 80 s at galaxy 2's. Real fights also lose time to reboots.
+- **Galaxy 3** brings back the Quarry Maw at galaxy 3 health (×2.4) until the Hive Matriarch exists. Each galaxy's boss is set in the run config.
 
 ---
 
@@ -470,7 +486,7 @@ Every level ends by flying into the **exit wormhole**, which opens once the leve
 - **Defeating the Galaxy 3 boss** wins the run: New Home is reached, the ending plays (the first time; it is shorter on later wins), and the player returns to the Hub.
 
 ### 10.8 Implementation notes (M3)
-- **Arena flow:** every level reuses the same arena. The ship enters at the bottom (0, −14). Once the objective is met, a cyan **exit wormhole** opens at the top (0, 14), and flying into it ends the level. Leaving clears the arena: remaining enemies vanish without loot, and leftover Scraps are collected automatically.
+- **Arena flow:** every level reuses the same arena. The ship enters at the bottom (0, −14). Once the objective is met, a cyan **exit wormhole** opens at the top (0, 14), and flying into it ends the level. Leaving clears the arena: remaining enemies vanish without loot, and leftover Scraps are collected automatically. **When a fight is won, every Scrap still on the floor flies to the ship** at once (it was the pilot's anyway; this only saves a lap of the arena) *(playtest 4)*.
 - **Hull carries over** between levels. The shield refills naturally between fights.
 - **Scraps level:** 4 waves at ×1.3 budget with ×2 Scraps drops. The bonus is paid to every living pilot.
 - **Equipment level:** 3 waves. When the final wave starts, an **Armored elite Gunner** joins as the Cache Carrier. Its cache opens the **choice of 3** (skipping pays 15 Scraps). The waves must also be cleared before the exit opens.
@@ -478,8 +494,8 @@ Every level ends by flying into the **exit wormhole**, which opens once the leve
 - **Repair level:** a green station at the arena centre. Press Interact for the choice; it can be used once. The exit is open from the start.
 - **Shop level:** a gold terminal with a **4-item catalog** (Common 40, Rare 75, Epic 120). It sells upgrades for equipped items (35 for I→II, 60 for II→III), hull repairs (1 Scrap per hull), and rerolls (15, then +10 each). Buying into a full category opens the swap screen, and the pilot pays only if the swap is confirmed.
 - **Mystery:** the HUD announces the revealed type, and rewards are ×1.5. An ambush has a ×1.5 budget and ×2 rewards. An event is a choice dialog in the empty arena; an event ambush is 3 waves at the ambush budget, and beating it pays the Scraps completion bonus at ×2.
-- **Boss level:** **the Quarry Maw** ([§7.5](#75-bosses)) with no escorts. In M3–M4 it was a placeholder elite Carrier. It pays Singularity Cores, a 30% heal and a **Rare-or-better equipment choice**. Galaxies 2–3 reuse the Maw at the galaxy health multiplier until their own bosses arrive.
-- **Galaxy scaling:** enemy health ×1.0 / ×1.6 / ×2.4 per galaxy, on top of the director's galaxy budget multiplier. All three galaxies use the Shattered Expanse enemy pool and arena until their themes arrive.
+- **Boss level:** **the Quarry Maw** ([§7.5](#75-bosses)) with no escorts. In M3–M4 it was a placeholder elite Carrier. It pays Singularity Cores, a 30% heal and a **Rare-or-better equipment choice**. Galaxy 2 is guarded by **the Binary Wardens**; galaxy 3 reuses the Maw at its health multiplier until the Hive Matriarch arrives. Each galaxy's boss is listed in the run config.
+- **Galaxy scaling:** enemy health ×1.0 / ×1.6 / ×2.4 per galaxy, on top of the director's galaxy budget multiplier. All three galaxies use the Shattered Expanse arena and enemy pool until their themes arrive; from galaxy 2 the pool adds the Scorcher, Arc Drone and Crusher.
 
 ---
 
@@ -586,7 +602,8 @@ dense bullet patterns blew out into glare and the Lancer's charge line looked li
 |---|---|---|
 | **Enemy bullets** | A solid white core inside a crisp **magenta** rim, edged with a **dark outline**, and only a faint glow. Round. The outline keeps every bullet separate in dense patterns; the glow is alpha-blended, so overlapping bullets don't add up into a haze *(playtest 2)*. | Magenta and round orbs are used for nothing else. |
 | **Enemies** | Solid, lit **crimson** bodies with small red-orange accent strips, on a faint **red floor glow**. Never a glowing orb. | The red floor glow marks units only. |
-| **Enemy attack warnings** | Accent strips flare toward white-orange. Charge paths are **lanes of red-orange chevrons** on the floor that fill in as the wind-up completes: flat, segmented and pointed, never round. Spawns and eruptions are a soft red glow on the floor. | Chevrons mean "a charge is coming this way". |
+| **Enemy attack warnings** | Accent strips flare toward white-orange. Charge paths are **lanes of red-orange chevrons** on the floor that fill in as the wind-up completes: flat, segmented and pointed, never round. Spawns and eruptions are a soft red glow on the floor. **Areas** about to be hit are outlined on the floor with a fill growing out to the edge (the Scorcher's orange cone, the Crusher's red ring); the outline flickers just before it lands. **Beams** charge as a thin flickering line that thickens and steadies before the bolt. | Chevrons mean "a charge is coming this way". |
+| **Hazards** | Flames are soft, alpha-blended **orange** puffs that billow as they fly. Lightning is a jagged white core in an orange glow. The Wardens' tether is a crackling orange line. | Orange fire never looks like a round magenta bullet. |
 | **Armour & weak points** | Hits on armour throw a dull **grey spark** and do nothing. Weak points are **yellow**: crystals, rings, a cracked maw. | Yellow on an enemy always means "shoot here". |
 | **Player & allies** | **Cyan / blue** hull lights and projectiles. Player projectiles are elongated bolts, not orbs. | Cyan is never used by enemies. |
 | **Pickups** | **Gold** for Scraps; Dark Matter gets its own colour later. They spin and bob. | |
@@ -618,7 +635,7 @@ Every player-facing string lives in plain-text **.loc files** in `Assets/Streami
 ### 13.2 Audio
 - **Music:** dark synthwave and electronic tracks, one per galaxy, plus a boss track with intensity layers that rise with the wave count.
 - **SFX priority:** player weapon feel (punchy, layered), dash whoosh, a distinct "hull hit" sting, and warning tells for Lancers and bosses.
-- **Implemented in M6 (placeholder):** 23 sound effects synthesized by the content builder from oscillators, noise, envelopes and a sweeping low-pass filter, so the slice has sound without any third-party assets. Each gameplay moment asks for a **cue**: weapons, enemy shots, enemy hits, armour deflects (a metallic tink), shield and hull hits, small and large explosions, dash, pickups, telegraphs, the Quarry Maw's roar and eruption, menu move/confirm/back, exit open, boss defeated and run over. A sound director plays them from 28 pooled 2D voices, panned by where the sound happens on screen. Every cue has a voice limit and a minimum interval, so a bullet storm stays a texture instead of a wall of noise. Final audio replaces the clips in the sound library without code changes.
+- **Implemented in M6 (placeholder):** 35 sound effects synthesized by the content builder from oscillators, noise, envelopes and a sweeping low-pass filter, so the slice has sound without any third-party assets. Each gameplay moment asks for a **cue**: weapons, enemy shots, enemy hits, armour deflects (a metallic tink), shield and hull hits, small and large explosions, dash, pickups, telegraphs, the Quarry Maw's roar and eruption, menu move/confirm/back, exit open, boss defeated and run over; and for galaxy 2, flame roars, zaps, slams and the Wardens' power-down and reboot. **Each enemy type winds up with its own sound** (Lancer whine, Gunner lock-on beep, Spinner warble, Carrier horn, Scorcher ignition, Arc Drone charge buzz, Crusher servo groan), with pitch variation, so a crowd doesn't drone *(playtest 4)*. A sound director plays them from 28 pooled voices **centred on the pilot's ship**: panned by which side of it a sound happens and quieter with distance (full volume within 6 u, 30% at 32 u) *(playtest 4)*. Every cue has a voice limit and a minimum interval, so a bullet storm stays a texture instead of a wall of noise. Final audio replaces the clips in the sound library without code changes.
 - **Placeholder music (M6):** three synthesized loops in A minor: **Hub/map** (80 BPM, slow pads and a soft arpeggio), **combat** (110 BPM: saw bass, detuned pads, square arpeggio, drums) and **boss** (128 BPM, darker i–♭II–i–V progression, sixteenth-note bass, four-on-the-floor). They crossfade over 1 s as the run moves between the map, levels and the boss, and fade out on victory or defeat. Loops are rendered with wrap-around notes and a primed filter, so the seam is silent.
 
 ---
@@ -678,7 +695,7 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 ### 14.5 Testing
 - EditMode tests for map generation rules ([§9.2](#92-generation-rules)), the stat and modifier math, and economy calculations.
 - **Determinism tests:** the same seed must always produce an identical galaxy map and level content, with golden values checked into the tests. Changing the order in which levels are played must not change any level's content.
-- A debug menu for development builds: spawn enemies, grant items or currency, jump to a node, god mode, and **set the run seed**. M2 added Editor and development-build hotkeys: **F1** cycle primary, **F2** cycle secondary, **F3** god mode, **F4** kill all enemies, **F5** next wave. M3 added **F6** skip level, M4 added **F7** equipment choice, and playtest 3 added **F8** +100 Scraps (a grant: it doesn't bank back as Dark Matter, and an open Shop refreshes so new items become affordable). The run seed is set on **Combat World**.
+- A debug menu for development builds: spawn enemies, grant items or currency, jump to a node, god mode, and **set the run seed**. M2 added Editor and development-build hotkeys: **F1** cycle primary, **F2** cycle secondary, **F3** god mode, **F4** kill all enemies, **F5** next wave. M3 added **F6** skip level, M4 added **F7** equipment choice, and playtest 3 added **F8** +100 Scraps (a grant: it doesn't bank back as Dark Matter, and an open Shop refreshes so new items become affordable). **F9** reloads the text files and **F10** spawns the next enemy type in front of the ship, cycling through every enemy and boss. The run seed is set on **Combat World**.
 
 ---
 
@@ -760,4 +777,6 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 | **M5** ✅ | Boss + meta | The Quarry Maw, run end and summary, the Hub, meta upgrades, and save/load. |
 | **M6** (in progress) | Slice polish | VFX, juice, audio pass, balance pass, and an external playtest. *Done:* playtest 2 and 3 fixes, synthesized SFX and music with a sound director, explosions with shockwaves, camera kicks, muzzle flash, engine trail, hull-hit vignette, crosshair ammo ring, uGUI HUD and Hub, pause menu with options, the economy probe, a one-click Windows playtest build, and a **run log** (`run-log.jsonl` next to the profile: seed, loadout, progress, play time, cause of death) for testers to send back. *Left:* the external playtest and tuning from its feedback. |
 
-**After the slice:** Galaxies 2–3 and their bosses, the remaining ships, weapons and equipment, The Remnant faction, narrative, final art, **online co-op**, Pathfinder Protocols, and console ports.
+**Started ahead of the slice:** galaxy 2's enemies (Scorcher, Arc Drone, Crusher) and its boss, the Binary Wardens, playable from galaxy 2 of a run and in the sandbox.
+
+**After the slice:** Galaxies 2–3 themes and galaxy 3's boss, the remaining ships, weapons and equipment, The Remnant faction, narrative, final art, **online co-op**, Pathfinder Protocols, and console ports.

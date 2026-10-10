@@ -48,6 +48,7 @@ namespace Pathfinder.Game.Enemies
         bool _running;
 
         public WaveDirectorConfig Config => config;
+        public CombatWorld World => world;
         public int Wave { get; private set; }
         public int WaveCount => waveCount;
         public int CurrentBudget { get; private set; }
@@ -71,9 +72,16 @@ namespace Pathfinder.Game.Enemies
 
         void Awake()
         {
-            foreach (var entry in config.Enemies)
-                _entries.Add(new WaveEntry(entry.Enemy.BudgetCost, entry.Weight, Mathf.Max(1, entry.MinWave)));
+            BuildEntries();
             WaveTimeout = config.WaveTimeout;
+        }
+
+        /// <summary>The pool for the current galaxy: enemies from later galaxies stay out (GDD §7.2).</summary>
+        void BuildEntries()
+        {
+            _entries.Clear();
+            foreach (var entry in config.Enemies)
+                _entries.Add(new WaveEntry(entry.Enemy.BudgetCost, entry.Weight, config.FirstWave(entry, galaxyIndex, endless: waveCount == 0)));
         }
 
         void Start()
@@ -93,6 +101,7 @@ namespace Pathfinder.Game.Enemies
             galaxyIndex = galaxy;
             row = mapRow;
             waveCount = waves;
+            BuildEntries();
             BudgetMultiplier = budgetMultiplier;
             WaveTimeout = config.WaveTimeout;
             Wave = 0;

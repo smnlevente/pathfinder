@@ -17,6 +17,7 @@ namespace Pathfinder.Game.Content
             public EnemyDefinition Enemy;
             [Min(0f)] public float Weight;
             [Min(1), Tooltip("First wave in which this enemy may appear.")] public int MinWave;
+            [Min(0), Tooltip("First galaxy (0-based) in which this enemy may appear.")] public int MinGalaxy;
         }
 
         [field: Header("Enemy pool")]
@@ -36,6 +37,10 @@ namespace Pathfinder.Game.Content
         [field: SerializeField, Range(0f, 1f)] public float EliteChancePerGalaxy { get; private set; } = 0.05f;
         [field: SerializeField, Range(0f, 1f)] public float EliteChanceMax { get; private set; } = 0.35f;
         [field: SerializeField, Min(1f)] public float EliteCostMultiplier { get; private set; } = 2f;
+
+        [field: Header("Endless mode")]
+        [field: SerializeField, Min(1), Tooltip("In endless mode (the sandbox), enemies from later galaxies join from this wave.")]
+        public int EndlessLaterGalaxyWave { get; private set; } = 6;
 
         [field: Header("Pacing")]
         [field: SerializeField, Min(0f)] public float FirstWaveDelay { get; private set; } = 1.5f;
@@ -78,6 +83,18 @@ namespace Pathfinder.Game.Content
                     return elite;
             }
             return null;
+        }
+
+        /// <summary>
+        /// The first wave in which an entry may appear for this galaxy, or <see cref="int.MaxValue"/> when it never does.
+        /// Endless mode brings later galaxies' enemies in after a few waves.
+        /// </summary>
+        public int FirstWave(in Entry entry, int galaxyIndex, bool endless)
+        {
+            int minWave = Mathf.Max(1, entry.MinWave);
+            if (galaxyIndex >= entry.MinGalaxy)
+                return minWave;
+            return endless ? Mathf.Max(minWave, EndlessLaterGalaxyWave) : int.MaxValue;
         }
 
         public IEnumerable<EnemyDefinition> AllEnemies()

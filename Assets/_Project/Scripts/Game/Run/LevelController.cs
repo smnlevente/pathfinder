@@ -769,7 +769,7 @@ namespace Pathfinder.Game.Run
         void SpawnBoss()
         {
             var boss = config.Boss;
-            Boss = world.SpawnEnemy(boss.Enemy, new Vector2(0f, 8f), boss.Elite, dropsLoot: true, extraHealthMultiplier: boss.HealthMultiplier);
+            Boss = world.SpawnEnemy(config.BossFor(Context.GalaxyIndex), new Vector2(0f, 8f), boss.Elite, dropsLoot: true, extraHealthMultiplier: boss.HealthMultiplier);
             Boss.Died += OnBossDied;
 
             for (int i = 0; i < boss.EscortCount && boss.Escort != null; i++)
@@ -1022,7 +1022,7 @@ namespace Pathfinder.Game.Run
                 case MapNodeType.Boss:
                     Objective = Loc.T(ExitOpen ? "objective.boss_done" : "objective.boss");
                     if (!ExitOpen && _levelTime < 8f)
-                        Prompt = Loc.T("prompt.boss_hint");
+                        Prompt = Loc.T($"{config.BossFor(Context.GalaxyIndex).Id}.hint"); // how to hurt this galaxy's boss
                     break;
                 case MapNodeType.Mystery:
                     Objective = ExitOpen ? Loc.T("objective.ambush_done")

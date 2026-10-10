@@ -35,6 +35,16 @@ namespace Pathfinder.Game.Audio
         TelegraphGunner,
         TelegraphSpinner,
         TelegraphCarrier,
+
+        // Galaxy 2 enemies and the Binary Wardens.
+        TelegraphScorcher,
+        TelegraphArc,
+        TelegraphCrusher,
+        Flame,
+        Zap,
+        Slam,
+        CoreOffline,
+        CoreReboot,
     }
 
     /// <summary>Background music, by context (GDD §13.2).</summary>
