@@ -106,6 +106,9 @@ namespace Pathfinder.Game.Player
 
         public void Tick(float deltaTime, in ShipCommand command, PlayerShip ship, CombatWorld world)
         {
+            // Reload pressed during a reload: equipment may act on it (Precision Loader), before the reload advances.
+            if (command.Reload && _magazine.IsReloading)
+                ship.NotifyReloadPressed(_magazine);
             int shots = _magazine.Tick(deltaTime, command.FirePrimary, command.Reload);
             for (int i = 0; i < shots; i++)
                 FireShot(ship, world);

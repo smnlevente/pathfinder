@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a44f235ccb67c1943b5d3c7eef810f1c, type: 3}
+  m_Name: Equipment_PrecisionLoader
+  m_EditorClassIdentifier: 
+  id: equipment.precision-loader
+  displayName: Precision Loader
+  <Category>k__BackingField: 1
+  <Rarity>k__BackingField: 1
+  <Weight>k__BackingField: 1
+  <WindowCentre>k__BackingField: 0.6
+  <WindowWidth>k__BackingField:
+  - 0.14
+  - 0.18
+  - 0.22
+  <BonusDamage>k__BackingField:
+  - 0
+  - 0.15
+  - 0.3
+  <JamSeconds>k__BackingField: 0.4

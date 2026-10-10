@@ -75,6 +75,23 @@ namespace Pathfinder.Core.Combat
             return shots;
         }
 
+        /// <summary>Completes a reload at once, e.g. a perfect active reload. Does nothing when not reloading.</summary>
+        public void FinishReload()
+        {
+            if (!IsReloading)
+                return;
+            _reloadRemaining = 0f;
+            Ammo = MagazineSize;
+            _cooldown = 0f;
+        }
+
+        /// <summary>Makes the current reload take longer, e.g. a missed active reload. Does nothing when not reloading.</summary>
+        public void DelayReload(float seconds)
+        {
+            if (IsReloading && seconds > 0f)
+                _reloadRemaining += seconds;
+        }
+
         void StartReload()
         {
             _reloadRemaining = ReloadTime;

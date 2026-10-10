@@ -49,6 +49,10 @@ namespace Pathfinder.Game.Audio
         // Playtest 5.
         SecondaryReady,
         WarpIn,
+
+        // Playtest 6.
+        PerfectReload,
+        ReloadJam,
     }
 
     /// <summary>

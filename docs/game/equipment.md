@@ -55,6 +55,7 @@ Values are for levels I / II / III.
 | **Ricochet** | Rare | Primary hits bounce to a nearby enemy (within 7 u) for 50 / 75 / 100% damage |
 | **Split Shot** | Common | Every 4th / 3rd / 2nd shot fires 3 projectiles in a fan |
 | **Incendiary** | Rare | Primary hits burn for 3 / 4 / 5 damage per second over 3 s, stacking up to 5 times per enemy |
+| **Precision Loader** | Rare | **Active reload:** while reloading, a gold window shows on your ship's ammo ring. Press Reload as the reload passes it to finish at once; from level II that magazine deals +15 / +30% damage. Miss and the reload jams for 0.4 s. One try per reload; window 14 / 18 / 22% of the reload. Not offered with the Quantum Charger. |
 
 ### Secondary mods
 

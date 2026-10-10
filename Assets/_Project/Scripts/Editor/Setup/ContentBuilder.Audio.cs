@@ -57,6 +57,8 @@ namespace Pathfinder.Editor.Setup
                 (SoundCue.CoreReboot, CoreReboot, 0.7f, 0.3f, 1, 0f),
                 (SoundCue.SecondaryReady, SecondaryReady, 0.35f, 0.15f, 1, 0f),
                 (SoundCue.WarpIn, WarpIn, 0.55f, 0.5f, 1, 0f),
+                (SoundCue.PerfectReload, PerfectReload, 0.5f, 0.1f, 1, 0f),
+                (SoundCue.ReloadJam, ReloadJam, 0.45f, 0.1f, 1, 0.05f),
             };
 
             var clips = new Dictionary<SoundCue, AudioClip>();
@@ -410,6 +412,26 @@ namespace Pathfinder.Editor.Setup
             Tone(b, 0f, 0.45f, Wave.Sine, 200f, 900f, 0.25f, attack: 0.4f, decayPower: 0.2f);
             Tone(b, 0.42f, 0.18f, Wave.Sine, 120f, 50f, 0.7f, decayPower: 1.5f);
             LowPass(b, 3000f, 1500f);
+            return b;
+        }
+
+        /// <summary>A perfect active reload: a crisp metallic double click and a bright ping.</summary>
+        static float[] PerfectReload()
+        {
+            var b = Samples(0.3f);
+            Tone(b, 0f, 0.03f, Wave.Noise, 9000f, 6000f, 0.5f, decayPower: 2f, seed: 60);
+            Tone(b, 0.06f, 0.03f, Wave.Noise, 10000f, 7000f, 0.5f, decayPower: 2f, seed: 61);
+            Tone(b, 0.06f, 0.22f, Wave.Sine, 1760f, 1760f, 0.4f, decayPower: 1.6f);
+            return b;
+        }
+
+        /// <summary>A missed active reload: a dull mechanical clunk.</summary>
+        static float[] ReloadJam()
+        {
+            var b = Samples(0.25f);
+            Tone(b, 0f, 0.2f, Wave.Square, 160f, 90f, 0.5f, decayPower: 2f);
+            Tone(b, 0f, 0.06f, Wave.Noise, 2500f, 800f, 0.4f, decayPower: 2f, seed: 62);
+            LowPass(b, 1500f, 500f);
             return b;
         }
 

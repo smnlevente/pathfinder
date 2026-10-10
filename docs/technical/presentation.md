@@ -41,6 +41,14 @@ Every string goes through `Loc.T`, and menus rebuild when the language changes (
 
 `CombatHud` binds to the local pilot:
 
+- **On the ship:** an ammo/reload ring around it (charge for the Quantum Charger, the Precision Loader's gold window
+  while reloading) and shield and hull bars under it. It's anchored at the ship's viewport position, so it lines up at
+  any resolution, and fades to 45% while all is well.
+
+- **Corner panels** live in a centred 16:9 area (`SafeAreaFitter`), so on ultrawide screens they stay near the action.
+
+  ![The HUD at 21:9: the corner panels stay inside a centred 16:9 area; the ring and bars on the ship show ammo and hull](../images/hud-ultrawide.png)
+
 - **Top left:** hull and shield bars, primary weapon state and ammo gauge, secondary cooldown (with a charge count
   and the time to the next charge when it has several), dash charges, ship trait and equipment list coloured by rarity.
 - **Top right:** Scraps, Dark Matter and Singularity Cores, the seed code and an optional FPS counter.

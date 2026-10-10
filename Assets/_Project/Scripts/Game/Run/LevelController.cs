@@ -429,19 +429,8 @@ namespace Pathfinder.Game.Run
             equipmentChoice.Show(title, offer, pilot, config.SkipScraps, onClosed);
         }
 
-        public List<EquipmentDefinition> RollEquipment(int count, Rarity minimum, PlayerShip pilot, IRandom random)
-        {
-            var pool = content.Equipment;
-            var candidates = new LootCandidate[pool.Length];
-            for (int i = 0; i < pool.Length; i++)
-                candidates[i] = new LootCandidate(pool[i].Rarity, pool[i].Weight, excluded: pilot.PreviewEquip(pool[i]) == EquipOutcome.AlreadyMaxed);
-
-            int total = count + pilot.Definition.ExtraEquipmentChoices;
-            var offer = new List<EquipmentDefinition>();
-            foreach (int index in EquipmentRoller.Roll(candidates, total, Context.GalaxyIndex, minimum, random))
-                offer.Add(pool[index]);
-            return offer;
-        }
+        public List<EquipmentDefinition> RollEquipment(int count, Rarity minimum, PlayerShip pilot, IRandom random) =>
+            EquipmentOffers.Roll(content, pilot, count, Context.GalaxyIndex, minimum, random);
 
         // ---------------------------------------------------------------- Dark Matter level (GDD §10.3)
 

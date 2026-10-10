@@ -4,6 +4,7 @@ using NUnit.Framework;
 using Pathfinder.Core.Combat;
 using Pathfinder.Core.Equipment;
 using Pathfinder.Game.Combat;
+using Pathfinder.Game.Content;
 using Pathfinder.Game.Player;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -201,6 +202,48 @@ namespace Pathfinder.Tests.PlayMode
             held = true;
             yield return WaitTicks(2);
             Assert.AreEqual(0, Player.SecondaryCooldown.Charges, "A second press fires the second charge.");
+        }
+
+        [UnityTest]
+        public IEnumerator PrecisionLoader_HittingTheWindowReloadsAtOnce()
+        {
+            yield return LoadRun();
+            Player.Equip(Item("equipment.precision-loader"));
+            var magazine = ((AutomaticPrimary)Player.Primary).Magazine;
+            Script(_ => new ShipCommand { FirePrimary = true });
+            yield return WaitUntilTicks(() => magazine.IsReloading, 400);
+            Script(_ => default);
+            var window = Player.ReloadWindow.Value;
+
+            yield return WaitUntilTicks(() => magazine.ReloadProgress >= (window.x + window.y) * 0.5f, 120);
+            Script(Once(new ShipCommand { Reload = true }));
+            yield return WaitTicks(2);
+            Assert.IsFalse(magazine.IsReloading, "Reload pressed in the window finishes the reload (playtest 6).");
+            Assert.AreEqual(magazine.MagazineSize, magazine.Ammo);
+        }
+
+        [UnityTest]
+        public IEnumerator PrecisionLoader_AMissJams_AndThereIsOneTry()
+        {
+            yield return LoadRun();
+            Player.Equip(Item("equipment.precision-loader"));
+            var magazine = ((AutomaticPrimary)Player.Primary).Magazine;
+            Script(_ => new ShipCommand { FirePrimary = true });
+            yield return WaitUntilTicks(() => magazine.IsReloading, 400);
+            Script(Once(new ShipCommand { Reload = true })); // far too early
+            yield return WaitTicks(2);
+            Assert.IsTrue(magazine.IsReloading);
+            Assert.Less(magazine.ReloadProgress, 0f, "A miss jams: the reload now takes longer than normal.");
+            Assert.IsFalse(Player.ReloadWindow.HasValue, "One try per reload.");
+
+            Assert.IsFalse(Item("equipment.precision-loader").SuitsPilot(PlayerWith(PrimaryWeapon("primary.quantum-charger"))),
+                "No magazine, no offer.");
+        }
+
+        PlayerShip PlayerWith(PrimaryWeaponDefinition primary)
+        {
+            Player.EquipPrimary(primary);
+            return Player;
         }
 
         [UnityTest]

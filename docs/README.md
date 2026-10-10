@@ -54,7 +54,7 @@ flowchart LR
 | [How to play](game/how-to-play.md) | Controls, the HUD, a run from start to finish, options |
 | [Run structure](game/run-structure.md) | Galaxies, the galaxy map, the seven level types, Mystery events |
 | [Ships & weapons](game/ships-and-weapons.md) | Ships and traits, primary and secondary weapons, the dash |
-| [Equipment](game/equipment.md) | Slots, rarity, levels, offers, and all 20 items |
+| [Equipment](game/equipment.md) | Slots, rarity, levels, offers, and all 21 items |
 | [Enemies](game/enemies.md) | All eight enemies, elites, spawning and scaling, how to beat each |
 | [Bosses](game/bosses.md) | The Quarry Maw and the Binary Wardens |
 | [Economy & meta](game/economy.md) | Scraps, Dark Matter, Singularity Cores, the Shop, the Pathfinder Lab |

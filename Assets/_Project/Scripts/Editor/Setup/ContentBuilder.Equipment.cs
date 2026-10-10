@@ -45,6 +45,7 @@ namespace Pathfinder.Editor.Setup
             content.Items.Add(Item<RicochetDefinition>("Ricochet", "ricochet", EquipmentCategory.Weapon, Rarity.Rare));
             content.Items.Add(Item<SplitShotDefinition>("Split Shot", "split-shot", EquipmentCategory.Weapon, Rarity.Common));
             content.Items.Add(Item<IncendiaryDefinition>("Incendiary", "incendiary", EquipmentCategory.Weapon, Rarity.Rare));
+            content.Items.Add(Item<ActiveReloadDefinition>("Precision Loader", "precision-loader", EquipmentCategory.Weapon, Rarity.Rare));
             content.Items.Add(Item<KillRefundDefinition>("Kill Refund", "kill-refund", EquipmentCategory.Secondary, Rarity.Rare));
             content.Items.Add(Item<LastStandDefinition>("Last Stand", "last-stand", EquipmentCategory.Hull, Rarity.Epic));
             content.Items.Add(Item<PhaseDashDefinition>("Phase Dash", "phase-dash", EquipmentCategory.Dash, Rarity.Rare));

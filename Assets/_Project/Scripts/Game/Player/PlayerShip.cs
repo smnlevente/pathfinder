@@ -94,6 +94,9 @@ namespace Pathfinder.Game.Player
 
         /// <summary>A secondary charge came back, from the cooldown or an effect such as Kill Refund. For the "ready" sound.</summary>
         public event Action<PlayerShip> SecondaryRecharged;
+
+        /// <summary>An active reload was tried: true when it hit the window. For sound and the HUD.</summary>
+        public event Action<PlayerShip, bool> ActiveReloaded;
         public event Action<PlayerShip, int> ScrapsCollected;
 
         /// <summary>Raised after the loadout changes, e.g. for the HUD.</summary>
@@ -428,6 +431,29 @@ namespace Pathfinder.Game.Player
         }
 
         internal void NotifyFired() => Fired?.Invoke(this);
+
+        internal void NotifyReloadPressed(MagazineWeapon magazine)
+        {
+            foreach (var effect in _effects)
+                effect.OnReloadPressedWhileReloading(magazine);
+        }
+
+        internal void NotifyActiveReload(bool perfect) => ActiveReloaded?.Invoke(this, perfect);
+
+        /// <summary>The window of an active reload in progress, as (start, end) fractions of the reload; null when there is none.</summary>
+        public Vector2? ReloadWindow
+        {
+            get
+            {
+                foreach (var effect in _effects)
+                {
+                    var window = effect.ReloadWindow;
+                    if (window.HasValue)
+                        return window;
+                }
+                return null;
+            }
+        }
 
         protected override bool TryPreventDeath(in DamageInfo info)
         {

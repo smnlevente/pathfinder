@@ -17,8 +17,10 @@ namespace Pathfinder.Game.Presentation
     /// <summary>
     /// The combat HUD (GDD §12.2): hull and shield, weapons, dash charges and equipment top left; currencies top right;
     /// level, objective and the boss bar top centre; banners and prompts; the pause, galaxy-cleared and run-over
-    /// overlays; a crosshair whose ring shows ammo, reload or charge; and a red edge flash when the hull is hit. Built in
-    /// uGUI below the menus, which cover it when open.
+    /// overlays; a crosshair whose ring shows ammo, reload or charge; and a red edge flash when the hull is hit. A small
+    /// readout follows the ship itself, where the pilot is looking: an ammo/reload ring around it and hull and shield
+    /// bars under it (playtest 6: nobody watches the cursor or the corners). The corner panels sit in a centred 16:9
+    /// area, so they stay in view on ultrawide screens. Built in uGUI below the menus, which cover it when open.
     /// </summary>
     public sealed class CombatHud : MonoBehaviour
     {
@@ -42,7 +44,7 @@ namespace Pathfinder.Game.Presentation
         const float VignetteFade = 2.5f;
         const float GamepadReticleDistance = 150f;
 
-        UiBar _hull, _shield, _primary, _secondary, _boss;
+        UiBar _hull, _shield, _primary, _secondary, _boss, _shipHull, _shipShield;
         readonly UiBar[] _bossParts = new UiBar[2];
         readonly Text[] _bossPartLabels = new Text[2];
         readonly UiBar[] _dash = new UiBar[MaxDashPips];
@@ -51,8 +53,10 @@ namespace Pathfinder.Game.Presentation
         Text _overlayTitle, _overlayHint;
         GameObject _playerPanel, _bossPanel, _overlay;
         Image _vignette;
-        RectTransform _canvasRect, _reticle;
-        Image _reticleFill;
+        RectTransform _canvasRect, _reticle, _safeArea, _shipReadout;
+        Image _reticleFill, _shipRing, _sweetSpot;
+        CanvasGroup _shipGroup;
+        float _shipAlpha, _lastHitTime = -10f;
         bool _gamepadAiming;
         float _vignetteAlpha;
         float _fps;
@@ -74,6 +78,7 @@ namespace Pathfinder.Game.Presentation
             RefreshStatus(player);
             RefreshOverlay();
             RefreshReticle(player);
+            RefreshShipReadout(player);
 
             _vignetteAlpha = Mathf.Max(0f, _vignetteAlpha - VignetteFade * Time.unscaledDeltaTime);
             _vignette.color = new Color(1f, 0.1f, 0.08f, _vignetteAlpha);
@@ -281,6 +286,53 @@ namespace Pathfinder.Game.Presentation
             _reticleFill.color = status.Warning ? WarningColor : WeaponColor;
         }
 
+        /// <summary>
+        /// The readout on the ship: the ammo ring (reload or charge progress while those run) and hull and shield bars. It
+        /// stays faint while all is well and brightens when it matters: reloading, low ammo or hull, or just hit.
+        /// </summary>
+        void RefreshShipReadout(PlayerShip player)
+        {
+            bool shown = player != null && player.IsAlive && !_overlay.activeSelf && !ModalScreens.AnyOpen && Camera.main != null;
+            _shipReadout.gameObject.SetActive(shown);
+            if (!shown)
+                return;
+
+            // Centred on the ship's body, which floats half a unit above its ground point. Anchored at the ship's
+            // normalised viewport position, so it lines up at any resolution or aspect.
+            Vector2 viewport = Camera.main.WorldToViewportPoint(player.transform.position + Vector3.up * 0.5f);
+            _shipReadout.anchorMin = _shipReadout.anchorMax = viewport;
+            _shipReadout.anchoredPosition = Vector2.zero;
+
+            var status = player.Primary.Status;
+            _shipRing.fillAmount = status.Fill;
+            _shipRing.color = status.Warning ? WarningColor : WeaponColor;
+            var window = player.ReloadWindow;
+            _sweetSpot.enabled = window.HasValue;
+            if (window.HasValue)
+            {
+                // The sweet spot of an active reload, on the ring where the reload progress will pass it.
+                _sweetSpot.fillAmount = window.Value.y - window.Value.x;
+                _sweetSpot.rectTransform.localEulerAngles = new Vector3(0f, 0f, window.Value.x * 360f);
+            }
+
+            var vitals = player.Vitals;
+            float hull = vitals.Hull / vitals.MaxHull;
+            _shipHull.Set(hull);
+            _shipShield.Rect.gameObject.SetActive(vitals.MaxShield > 0f);
+            _shipShield.Set(vitals.MaxShield > 0f ? vitals.Shield / vitals.MaxShield : 0f);
+
+            bool matters = status.Warning || status.Charge > 0f || status.Fill < 0.3f || hull < 0.35f || Time.unscaledTime - _lastHitTime < 1.5f;
+            _shipAlpha = Mathf.MoveTowards(_shipAlpha, matters ? 1f : 0.45f, Time.unscaledDeltaTime * 4f);
+            _shipGroup.alpha = _shipAlpha;
+        }
+
+        /// <summary>For tests: the ship readout is showing, and its ammo ring's fill.</summary>
+        public bool ShipReadoutShown => _shipReadout != null && _shipReadout.gameObject.activeSelf;
+        public float ShipAmmoFill => _shipRing != null ? _shipRing.fillAmount : 0f;
+        public float ShipHullFill => _shipHull != null ? _shipHull.Fill : 0f;
+        public bool SweetSpotShown => _sweetSpot != null && _sweetSpot.enabled;
+        public RectTransform SafeArea => _safeArea;
+
         string RunSummary()
         {
             var run = runDirector != null ? runDirector.Run : null;
@@ -308,6 +360,8 @@ namespace Pathfinder.Game.Presentation
 
         void OnPlayerDamaged(CombatEntity entity, DamageInfo info, DamageResult result)
         {
+            if (result.TotalDamage > 0f)
+                _lastHitTime = Time.unscaledTime;
             if (result.HullDamage > 0f)
                 _vignetteAlpha = Mathf.Clamp(0.35f + result.HullDamage / 40f, 0.35f, 0.8f);
         }
@@ -339,8 +393,28 @@ namespace Pathfinder.Game.Presentation
             _vignette = UiKit.Image(root, "Hull Hit", Color.clear, UiKit.Vignette);
             UiKit.Stretch(_vignette.rectTransform);
 
+            // On the ship: an ammo/reload ring around it, hull and shield bars under it. Under every other panel.
+            _shipReadout = UiKit.Node("Ship Readout", root);
+            _shipReadout.anchorMin = _shipReadout.anchorMax = new Vector2(0.5f, 0.5f);
+            _shipReadout.sizeDelta = new Vector2(190f, 190f);
+            _shipGroup = _shipReadout.gameObject.AddComponent<CanvasGroup>();
+            _shipGroup.interactable = _shipGroup.blocksRaycasts = false;
+            var track = UiKit.Image(_shipReadout, "Ammo Track", new Color(1f, 1f, 1f, 0.12f), UiKit.Ring);
+            UiKit.Place(track.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(164f, 164f));
+            _sweetSpot = RingFill(_shipReadout, "Sweet Spot", UiKit.Gold, 178f);
+            _sweetSpot.enabled = false;
+            _shipRing = RingFill(_shipReadout, "Ammo", WeaponColor, 164f);
+            _shipShield = new UiBar(_shipReadout, "Shield", ShieldColor);
+            UiKit.Place(_shipShield.Rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -94f), new Vector2(90f, 5f));
+            _shipHull = new UiBar(_shipReadout, "Hull", HullColor);
+            UiKit.Place(_shipHull.Rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -103f), new Vector2(90f, 8f));
+
+            // The corner panels live in a centred 16:9 area, so they stay near the action on ultrawide screens.
+            _safeArea = UiKit.Node("Safe Area 16x9", root);
+            _safeArea.gameObject.AddComponent<SafeAreaFitter>();
+
             // Top left: the pilot.
-            _playerPanel = UiKit.Node("Pilot", root).gameObject;
+            _playerPanel = UiKit.Node("Pilot", _safeArea).gameObject;
             var panel = (RectTransform)_playerPanel.transform;
             UiKit.Place(panel, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -26f), new Vector2(560f, 520f));
 
@@ -363,9 +437,9 @@ namespace Pathfinder.Game.Presentation
             _loadoutText.rectTransform.sizeDelta = new Vector2(560f, 360f);
 
             // Top right: currencies and the seed.
-            _seed = Corner(root, "Seed", -18f, 16, UiKit.TextDim);
-            _scraps = Corner(root, "Scraps", -44f, 30, ScrapsColor, FontStyle.Bold);
-            _darkMatter = Corner(root, "Dark Matter", -84f, 20, DarkMatterColor, FontStyle.Bold);
+            _seed = Corner(_safeArea, "Seed", -18f, 16, UiKit.TextDim);
+            _scraps = Corner(_safeArea, "Scraps", -44f, 30, ScrapsColor, FontStyle.Bold);
+            _darkMatter = Corner(_safeArea, "Dark Matter", -84f, 20, DarkMatterColor, FontStyle.Bold);
 
             // Top centre: level, objective, boss.
             _header = Centre(root, "Level", -14f, 24, Color.white, FontStyle.Bold);
@@ -400,7 +474,7 @@ namespace Pathfinder.Game.Presentation
             _prompt = UiKit.Text(root, "Prompt", string.Empty, 24, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
             UiKit.Place(_prompt.rectTransform, new Vector2(0.5f, 0.3f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1400f, 40f));
             AddShadow(_prompt);
-            _debug = UiKit.Text(root, "Dev Keys", string.Empty, 16, UiKit.TextDim, TextAnchor.MiddleLeft);
+            _debug = UiKit.Text(_safeArea, "Dev Keys", string.Empty, 16, UiKit.TextDim, TextAnchor.MiddleLeft);
             UiKit.Place(_debug.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(40f, 16f), new Vector2(1840f, 28f));
 
             // Crosshair: a centre dot inside a dim track and the ammo ring.
@@ -426,6 +500,18 @@ namespace Pathfinder.Game.Presentation
             _overlayHint = UiKit.Text(overlay.transform, "Hint", string.Empty, 24, UiKit.TextBody, TextAnchor.UpperCenter);
             UiKit.Place(_overlayHint.rectTransform, new Vector2(0.5f, 0.52f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(1500f, 300f));
             _overlay.SetActive(false);
+        }
+
+        /// <summary>A ring that fills counter-clockwise from the top, like the crosshair's.</summary>
+        static Image RingFill(RectTransform parent, string name, Color color, float size)
+        {
+            var ring = UiKit.Image(parent, name, color, UiKit.Ring);
+            UiKit.Place(ring.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size, size));
+            ring.type = Image.Type.Filled;
+            ring.fillMethod = Image.FillMethod.Radial360;
+            ring.fillOrigin = (int)Image.Origin360.Top;
+            ring.fillClockwise = false;
+            return ring;
         }
 
         static UiBar Bar(RectTransform parent, string name, Color color, float top, float width, float height)

@@ -83,7 +83,8 @@ namespace Pathfinder.Tests.PlayMode
                 pixels[y * size + x] = color;
         }
 
-        const int Width = 1600, Height = 900;
+        /// <summary>Capture size. Tests may change it, e.g. to check an ultrawide layout, and must restore it.</summary>
+        public static int Width = 1600, Height = 900;
 
         /// <summary>The output directory, or an ignored test when screenshots are not requested.</summary>
         public static string Directory()

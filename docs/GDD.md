@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 2.3 (playtest 5: slower shield regeneration, a deadlier Crusher, a faster enraged Quarry Maw, secondary charges on the HUD, level arrival, a music track per galaxy) |
+| **Version** | 2.4 (playtest 6, the first external playtest: an eruption you dash out of, a ship-mounted HUD readout and a 16:9 HUD area, the Precision Loader active-reload item) |
 | **Date** | 2026-10-10 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
@@ -359,9 +359,9 @@ These come from the source doc, with clarifications.
 - **Rebuild on change:** whenever the loadout changes, the ship rebuilds its stats and item effects from scratch: trait, then each equipped item at its level, then run modifiers. Max hull and shield gains heal by the same amount. The primary weapon reloads to full.
 - **Hooks:** effects react to *shot fired*, *primary hit*, *kill*, *dash start/end*, *bullet phased through*, *lethal hit* and *level start*. On-hit effects trigger only for **primary projectile** hits, so procs (lightning, ricochets) and burns can never chain off each other.
 - **Crits** (Critical Optics) deal ×2 and are rolled when the shot is fired, from the pilot's weapon stream, so hit order can't change outcomes.
-- **20 items are implemented:**
+- **21 items are implemented:**
   - **Dash Modules:** Phase (Rare), Blink (Rare), Pushback (Common), Bullet (Epic).
-  - **Weapon Mods:** Overclock (Rare), Extended Mag (Common), Piercing Rounds (Rare), Ricochet (Rare), Split Shot (Common), Incendiary (Rare).
+  - **Weapon Mods:** Overclock (Rare), Extended Mag (Common), Piercing Rounds (Rare), Ricochet (Rare), Split Shot (Common), Incendiary (Rare), Precision Loader (Rare, playtest 6).
   - **Secondary Mods:** Rapid Cycler (Common), Twin Charge (Epic), Kill Refund (Rare), Amplifier (Common).
   - **Hull Systems:** Armor Plating, Capacitor, Salvage Magnet and Adrenal Thrusters (all Common), Critical Optics (Rare), Last Stand (Epic).
 
@@ -374,6 +374,7 @@ These come from the source doc, with clarifications.
   - Last Stand grants a 0.5/1/1.5 s grace after the save.
   - Twin Charge adds +1 charge at every level, plus 0/−10/−20% cooldown.
 - **Phase Dash** keeps the ship *intangible* for the extra time, so bullets pass through and restore shield.
+- **Precision Loader** *(playtest 6, after 20 Minutes Till Dawn)* is an **active reload**: while a magazine weapon reloads, a gold window shows on the ship's ammo ring (60% of the way through the reload, 14 / 18 / 22% wide). Pressing Reload as the reload passes through it finishes the reload at once; from level II that magazine deals +15 / +30% damage. A press outside the window jams the reload for 0.4 s. One try per reload. It's never offered with the Quantum Charger, which has no magazine (items can declare they don't suit a loadout).
 - **Offers:** choices roll a rarity per slot from 70/25/5 (galaxy 1), 55/33/12 (galaxy 2) or 40/40/20 (galaxy 3), then pick an item of that rarity. Picks never repeat within an offer, and items already at level III are never offered. Mystery caches and boss rewards guarantee Rare or better.
 - **Traits:** *Reinforced Hull* (Titan) is pure stats: 150 hull, speed 7, ×0.9 damage taken. *Lightning Core* (Stormbringer) is an always-on effect. Ships also have an `ExtraEquipmentChoices` stat for the Arcanum Explorer.
 - **Hub loadout:** Start Run lets the player pick a ship, primary and secondary. Choices are stored as content IDs and resolved through a `ContentDatabase`. Since M5, content locked by a meta unlock (the Quantum Charger) is skipped until it is bought ([§11.3](#113-implementation-notes-m5)).
@@ -581,6 +582,8 @@ Boot → Main Menu → Hub ──► Ship Select → Loadout Select → Galaxy M
 *Pause and options (M6):* Esc / Start opens the **pause menu** (also over the galaxy map, but not over a dialog or choice cards, which use Esc themselves): Resume, **Options**, **Controls** (keyboard and gamepad), and **Abandon run** (back to the Hub; the run counts as lost and banks what it earned) or Quit to Hub in the Sandbox. The Hub has the same Options page. Options: master, music and sound-effect volume, **sound in background**, screen shake (off to 100% in 25% steps, for motion-sensitive players), fullscreen, and an FPS counter. *Playtest 5:* volumes and screen shake are draggable **sliders** (click steps up 10%, right click steps down, arrows step either way), on/off options are **tickboxes**, and volume changes act at once (music set to off used to fade out over most of a minute). Sound in background (off by default) keeps the music and sounds playing while the window isn't focused; switching away mid-fight pauses the game either way. They belong to the machine, so they live in PlayerPrefs, not the meta save.
 
 ### 12.2 HUD (in level)
+- **On the ship** *(playtest 6: players watch their ship, not the cursor or the corners)*: an ammo/reload ring around the ship (charge for the Quantum Charger; the Precision Loader's gold window while reloading), with a thin shield bar and the hull bar under it. Faint while all is well; bright when reloading, low on ammo or hull, or just hit.
+- **Wide screens:** the corner panels sit in a centred 16:9 area, so on 21:9 and wider they stay near the action instead of at the screen edges.
 - **Top left:** Hull bar (with the numeric value) with the Shield bar layered over it.
 - **Bottom center:** Ammo / reload ring around the crosshair (for the Quantum Charger, the charge level), secondary cooldown, and dash charge pips.
 - **Top right:** Scraps, plus Dark Matter collected this run.

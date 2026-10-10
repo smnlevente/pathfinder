@@ -16,6 +16,9 @@ namespace Pathfinder.Game.Equipment
 
         public abstract EquipmentEffect CreateEffect();
 
+        /// <summary>False for items that would do nothing for this pilot's loadout; offers leave them out.</summary>
+        public virtual bool SuitsPilot(Player.PlayerShip pilot) => true;
+
         /// <summary>Player-facing description of what the item does at a level (1–3).</summary>
         public abstract string Describe(int level);
 

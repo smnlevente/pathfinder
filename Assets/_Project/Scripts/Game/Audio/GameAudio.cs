@@ -131,6 +131,7 @@ namespace Pathfinder.Game.Audio
                     player.Dashed += OnDashed;
                     player.ScrapsCollected += OnScraps;
                     player.SecondaryRecharged += OnSecondaryReady;
+                    player.ActiveReloaded += OnActiveReload;
                 }
             }
         }
@@ -142,6 +143,7 @@ namespace Pathfinder.Game.Audio
             ship.Dashed -= OnDashed;
             ship.ScrapsCollected -= OnScraps;
             ship.SecondaryRecharged -= OnSecondaryReady;
+            ship.ActiveReloaded -= OnActiveReload;
         }
 
         // ---------------------------------------------------------------- event handlers
@@ -161,6 +163,8 @@ namespace Pathfinder.Game.Audio
         void OnDashed(PlayerShip ship) => Play(SoundCue.Dash, ship.transform.position);
 
         void OnSecondaryReady(PlayerShip ship) => Play(SoundCue.SecondaryReady, ship.transform.position);
+
+        void OnActiveReload(PlayerShip ship, bool perfect) => Play(perfect ? SoundCue.PerfectReload : SoundCue.ReloadJam, ship.transform.position);
 
         void OnScraps(PlayerShip ship, int amount) => Play(SoundCue.Pickup, ship.transform.position, 0.8f);
 

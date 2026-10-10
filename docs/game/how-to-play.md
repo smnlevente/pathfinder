@@ -54,6 +54,9 @@ flowchart LR
 
 ![The HUD in a boss fight: pilot panel top left, currencies top right, boss bars top centre](../images/wardens.png)
 
+- **On your ship:** a ring around it shows your ammo (it drains as you fire and refills orange while reloading), and
+  small bars under it show shield (blue) and hull (red). It stays faint until it matters, so you never need to look
+  away from your ship.
 - **Top left:** hull (red) and shield (blue), your weapons with ammo and cooldown (and charges, for a secondary with
   more than one), dash charges, ship trait and equipment.
 - **Top right:** Scraps, Dark Matter, Singularity Cores and the run's seed code.

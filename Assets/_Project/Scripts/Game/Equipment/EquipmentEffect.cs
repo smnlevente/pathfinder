@@ -55,6 +55,12 @@ namespace Pathfinder.Game.Equipment
 
         /// <summary>Return true to survive a lethal hit at 1 hull, e.g. Last Stand.</summary>
         public virtual bool TryPreventLethal() => false;
+
+        /// <summary>Reload was pressed while the magazine was already reloading, e.g. an active reload attempt.</summary>
+        public virtual void OnReloadPressedWhileReloading(MagazineWeapon magazine) { }
+
+        /// <summary>An active reload's window, as (start, end) fractions of the reload, while it can be tried. For the HUD.</summary>
+        public virtual Vector2? ReloadWindow => null;
     }
 
     /// <summary>One trigger pull of a primary weapon, which equipment can modify before its projectiles spawn.</summary>
