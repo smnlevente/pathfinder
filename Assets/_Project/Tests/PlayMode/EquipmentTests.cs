@@ -186,6 +186,24 @@ namespace Pathfinder.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator TwinCharge_HoldingTheButton_FiresOneSalvoPerPress()
+        {
+            yield return LoadRun();
+            Player.Equip(Item("equipment.twin-charge"));
+            bool held = true;
+            Script(_ => new ShipCommand { FireSecondary = held });
+
+            yield return WaitTicks(30); // a long click
+            Assert.AreEqual(1, Player.SecondaryCooldown.Charges, "Holding the button fires once (playtest 5: a click spent both charges).");
+
+            held = false;
+            yield return WaitTicks(2);
+            held = true;
+            yield return WaitTicks(2);
+            Assert.AreEqual(0, Player.SecondaryCooldown.Charges, "A second press fires the second charge.");
+        }
+
+        [UnityTest]
         public IEnumerator LastStand_SurvivesOneLethalHit()
         {
             yield return LoadRun();

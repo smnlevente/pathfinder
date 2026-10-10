@@ -129,7 +129,7 @@ namespace Pathfinder.Tests.PlayMode
             yield return SpawnWardens();
             Player.PlaceForLevel(Vector2.zero);
 
-            Script(_ =>
+            Script(tick =>
             {
                 Enemy target = null;
                 if (!IsDead(_alpha) && !IsDead(_beta))
@@ -141,7 +141,7 @@ namespace Pathfinder.Tests.PlayMode
                 }
                 bool shoot = target != null && !target.Armoured;
                 Vector2 aim = target != null ? (target.Position - Player.Position).normalized : Vector2.up;
-                return new ShipCommand { Aim = aim, FirePrimary = shoot, FireSecondary = shoot };
+                return new ShipCommand { Aim = aim, FirePrimary = shoot, FireSecondary = shoot && tick % 20 == 0 };
             });
 
             float timeScale = Time.timeScale;

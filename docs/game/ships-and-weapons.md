@@ -61,7 +61,8 @@ Cooldown-based bursts or utility.
 
 ### Secondary charges
 
-Twin Charge gives a secondary **2 charges**. They share one cooldown and come back **one at a time**: fire both, and
+Each press of the secondary button fires **one** salvo; holding it doesn't repeat. Twin Charge gives a secondary
+**2 charges**, fired with two presses. They share one cooldown and come back **one at a time**: fire both, and
 the first returns after one cooldown, the second after another. The HUD shows the count and the time to the next
 charge ("SEEKER SWARM   1/2   READY · +1 in 4.2s"), the gauge fills as the next charge returns, and a soft **chime**
 plays each time a charge is back.

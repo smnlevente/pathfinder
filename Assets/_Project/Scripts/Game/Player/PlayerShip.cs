@@ -108,6 +108,7 @@ namespace Pathfinder.Game.Player
         float _intangibleRemaining;
         Vector2? _pullTarget;
         int _secondaryCharges;
+        bool _secondaryHeld;
         float _pullSpeed;
         bool _godMode;
         bool _tickInvulnerable; // dash or intangibility, as of the last tick
@@ -518,12 +519,16 @@ namespace Pathfinder.Game.Player
 
             Primary.Tick(deltaTime, command, this, world);
 
+            // One press, one salvo: holding the button doesn't spend a second charge the next tick (playtest 5: with
+            // Twin Charge, a click fired both charges at once).
+            bool secondaryPressed = command.FireSecondary && !_secondaryHeld;
+            _secondaryHeld = command.FireSecondary;
             if (SecondaryCooldown != null)
             {
                 SecondaryCooldown.Tick(deltaTime);
                 if (SecondaryCooldown.Charges > _secondaryCharges)
                     SecondaryRecharged?.Invoke(this); // includes charges Kill Refund returned since the last tick
-                if (command.FireSecondary && SecondaryCooldown.TryUse())
+                if (secondaryPressed && SecondaryCooldown.TryUse())
                 {
                     secondaryWeapon.Activate(this, world, WeaponRandom);
                     SecondaryActivated?.Invoke(this, secondaryWeapon);

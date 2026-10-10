@@ -16,6 +16,8 @@ namespace Pathfinder.Game.Player
         public Vector2 Aim;
 
         public bool FirePrimary;
+
+        /// <summary>Held while the secondary button is down. The ship fires one salvo per press, not per tick held.</summary>
         public bool FireSecondary;
 
         /// <summary>The following are one-shot presses, true for a single tick.</summary>

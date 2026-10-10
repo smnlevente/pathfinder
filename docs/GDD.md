@@ -194,6 +194,7 @@ Secondary weapons are cooldown-based burst tools that deal much more damage than
 - **Plasma Cutter:** the 6 pellets fan evenly across the 30° cone with a little jitter. They fly at 26 u/s, and damage falls off to 40% at the 7 u maximum range.
 - **Quantum Charger:** the shot flies at 36 u/s with a 24 u range and **pierces every enemy in its path**. Its hit radius grows from 0.2 to 0.55 u, and its visual scale up to 2.2×, with charge. The ship's lights brighten as it charges and flicker when it is about to overheat.
 - **Seeker Swarm:** the missiles launch in a 140° fan, fly at 14 u/s and turn at 300°/s. Each missile is assigned a different nearby enemy so the salvo doesn't overkill one target. A missile whose target dies retargets the nearest enemy.
+- **Firing:** each press of the secondary button fires one salvo; holding it doesn't repeat, so a second charge (Twin Charge) needs a second press *(playtest 5)*.
 - **Nova Pulse:** a shove of 14 u/s that decays quickly, pushing enemies about 1.75 u whatever their size. Heavy enemies resist knockback: the Crusher moves only 15% as far, and the bosses (the Quarry Maw and the Binary Wardens) not at all.
 
 ---

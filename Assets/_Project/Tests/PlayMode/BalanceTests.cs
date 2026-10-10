@@ -61,6 +61,7 @@ namespace Pathfinder.Tests.PlayMode
         sealed class Bot : IShipCommandSource
         {
             readonly RunDirector _director;
+            int _ticks;
             public Bot(RunDirector director) => _director = director;
 
             public ShipCommand ReadCommand(PlayerShip ship)
@@ -88,7 +89,7 @@ namespace Pathfinder.Tests.PlayMode
                     Move = move,
                     Aim = target != null ? (target.Position - ship.Position).normalized : Vector2.up,
                     FirePrimary = target != null,
-                    FireSecondary = target != null,
+                    FireSecondary = target != null && _ticks++ % 20 == 0, // a press three times a second
                 };
             }
         }

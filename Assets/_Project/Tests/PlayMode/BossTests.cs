@@ -196,7 +196,7 @@ namespace Pathfinder.Tests.PlayMode
             yield return SpawnBoss();
             Player.PlaceForLevel(new Vector2(0f, -8f));
 
-            Script(_ =>
+            Script(tick =>
             {
                 CombatEntity best = null;
                 float bestDistance = float.MaxValue;
@@ -210,7 +210,7 @@ namespace Pathfinder.Tests.PlayMode
                     }
                 }
                 Vector2 aim = best != null ? (best.Position - Player.Position).normalized : Vector2.up;
-                return new ShipCommand { Aim = aim, FirePrimary = best != null, FireSecondary = best != null };
+                return new ShipCommand { Aim = aim, FirePrimary = best != null, FireSecondary = best != null && tick % 20 == 0 };
             });
 
             float timeScale = Time.timeScale;
