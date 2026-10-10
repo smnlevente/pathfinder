@@ -119,6 +119,20 @@ namespace Pathfinder.Core.Combat
             return lost;
         }
 
+        /// <summary>
+        /// Saps the shield without a hit: no invulnerability, no hit feedback, but it counts as damage for the regeneration
+        /// delay, so a drained shield stays down. E.g. a spore cloud. Returns the shield lost.
+        /// </summary>
+        public float DrainShield(float amount)
+        {
+            if (IsDead || amount <= 0f || Shield <= 0f)
+                return 0f;
+            float lost = Math.Min(Shield, amount);
+            Shield -= lost;
+            _timeSinceDamage = 0f;
+            return lost;
+        }
+
         /// <summary>Raises max hull, e.g. Repair's "Reinforce" option (GDD §10.4). Optionally heals by the same amount.</summary>
         public void IncreaseMaxHull(float amount, bool heal)
         {

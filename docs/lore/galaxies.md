@@ -46,12 +46,13 @@ once gets through.
 A living nebula, glowing from within. Bioluminescent hives drift in its clouds, spores settle on passing hulls and
 grow there, and the space itself seems to breathe. This is the home of **the Swarm**.
 
-**Guardian: the Hive Matriarch** *(planned)*. An alien queen half-fused with the nebula itself. She births the Swarm,
-fills the clouds with spores, and when cornered turns the whole nebula against the intruder. Her final cry is the last
-thing between humanity and its new home.
+**Guardian: the Hive Matriarch**. An alien queen half-fused with the nebula itself. She births the Swarm, fills the
+clouds with spores that choke an engine and eat a shield, and when cornered she blooms: the whole nebula pulses outward
+from her in rings of living light. Her final cry is the last thing between humanity and its new home.
 
 > [!NOTE]
-> Until the Veil Nebula and its Matriarch are built, a stronger Quarry Maw guards the third galaxy.
+> The Veil Nebula's own look and Swarm enemy roster are still to come; for now its levels use the shared arena and
+> enemy mix, and its guardian is the Matriarch.
 
 ## New Home
 

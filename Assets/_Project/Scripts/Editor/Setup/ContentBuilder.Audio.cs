@@ -59,6 +59,8 @@ namespace Pathfinder.Editor.Setup
                 (SoundCue.WarpIn, WarpIn, 0.55f, 0.5f, 1, 0f),
                 (SoundCue.PerfectReload, PerfectReload, 0.5f, 0.1f, 1, 0f),
                 (SoundCue.ReloadJam, ReloadJam, 0.45f, 0.1f, 1, 0.05f),
+                (SoundCue.SporePod, SporePod, 0.45f, 0.15f, 2, 0.12f),
+                (SoundCue.BloomPulse, BloomPulse, 0.8f, 0.3f, 1, 0.04f),
             };
 
             var clips = new Dictionary<SoundCue, AudioClip>();
@@ -432,6 +434,27 @@ namespace Pathfinder.Editor.Setup
             Tone(b, 0f, 0.2f, Wave.Square, 160f, 90f, 0.5f, decayPower: 2f);
             Tone(b, 0f, 0.06f, Wave.Noise, 2500f, 800f, 0.4f, decayPower: 2f, seed: 62);
             LowPass(b, 1500f, 500f);
+            return b;
+        }
+
+        /// <summary>The Matriarch lobs a spore pod: a wet, hollow thup.</summary>
+        static float[] SporePod()
+        {
+            var b = Samples(0.35f);
+            Tone(b, 0f, 0.3f, Wave.Sine, 320f, 110f, 0.7f, decayPower: 1.6f);
+            Tone(b, 0f, 0.12f, Wave.Noise, 1800f, 400f, 0.4f, decayPower: 1.8f, seed: 70);
+            LowPass(b, 1800f, 500f);
+            return b;
+        }
+
+        /// <summary>A bloom pulse: a deep swell that rushes outward.</summary>
+        static float[] BloomPulse()
+        {
+            var b = Samples(0.9f);
+            Tone(b, 0f, 0.9f, Wave.Sine, 75f, 40f, 0.8f, attack: 0.02f, decayPower: 1.2f);
+            Tone(b, 0f, 0.7f, Wave.Noise, 400f, 2400f, 0.35f, attack: 0.05f, decayPower: 1f, seed: 71);
+            Tone(b, 0f, 0.6f, Wave.Triangle, 220f, 440f, 0.2f, attack: 0.03f, decayPower: 1.4f);
+            LowPass(b, 2500f, 900f);
             return b;
         }
 

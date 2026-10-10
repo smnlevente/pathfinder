@@ -356,15 +356,18 @@ enemy.carrier.name = Carrier
 enemy.scorcher.name = Scorcher
 enemy.arc-drone.name = Arc Drone
 enemy.crusher.name = Crusher
+enemy.broodling.name = Broodling
 elite.armored.name = Armored
 elite.hasty.name = Hasty
 boss.quarry-maw.name = The Quarry Maw
 boss.binary-wardens.name = The Binary Wardens
 boss.binary-wardens.beta.name = Warden Beta
+boss.hive-matriarch.name = The Hive Matriarch
 
 # How to hurt each boss, shown for the first seconds of the fight.
 boss.quarry-maw.hint = Its shell deflects shots: hit the yellow crystals, and its maw when it opens
 boss.binary-wardens.hint = A lone core only reboots: wear both down, then destroy them together
+boss.hive-matriarch.hint = Shoot her heart while it glows, keep out of the green spores, and dash through her bloom rings
 
 ## ------------------------------------------------------------------ equipment (names and descriptions)
 # Stat items (Overclock, Armor Plating...) build their description from the stat lines above.

@@ -20,7 +20,8 @@ and run the toll gates in Mystery events.
 ## The Swarm
 
 Hostile alien organisms native to the Veil Nebula. Their attacks are fluid and erratic, with organic bullet patterns
-that flow rather than tick. Where the Remnant are clockwork, the Swarm is weather. *(Planned for galaxy 3.)*
+that flow rather than tick, and their bodies glow a toxic green. Where the Remnant are clockwork, the Swarm is weather.
+So far the Matriarch and her Broodlings are built; the rest of the Swarm is planned for galaxy 3.
 
 ## The machines
 
@@ -47,7 +48,7 @@ Core at its centre is the most valuable thing a pilot can send home.
 |---|---|---|
 | **The Quarry Maw** | The Shattered Expanse | A colossal rock-worm, armoured in stone, with crystal growths along its body |
 | **The Binary Wardens** | The Graveyard Drift | A dead civilisation's station defence AI, split across two cores that reboot each other |
-| **The Hive Matriarch** *(planned)* | The Veil Nebula | The Swarm's queen, half-fused with the nebula |
+| **The Hive Matriarch** | The Veil Nebula | The Swarm's queen, half-fused with the nebula; her brood dies with her |
 
 ## Others out there
 

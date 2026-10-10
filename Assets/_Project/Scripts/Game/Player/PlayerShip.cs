@@ -111,6 +111,7 @@ namespace Pathfinder.Game.Player
         float _intangibleRemaining;
         Vector2? _pullTarget;
         int _secondaryCharges;
+        float _slowRemaining, _slowFactor = 1f;
         bool _secondaryHeld;
         float _pullSpeed;
         bool _godMode;
@@ -352,6 +353,18 @@ namespace Pathfinder.Game.Player
         /// <summary>Takes hull past the shield, never below 1 (a Mystery event's cost). Returns the hull lost. Authority only.</summary>
         public float DrainHull(float amount) => Authority.IsAuthority ? _vitals.DrainHull(amount) : 0f;
 
+        /// <summary>Saps the shield without a hit, e.g. a spore cloud. Authority only.</summary>
+        public float DrainShield(float amount) => Authority.IsAuthority ? _vitals.DrainShield(amount) : 0f;
+
+        /// <summary>Slows the ship to <paramref name="factor"/> of its speed for a while, e.g. inside a spore cloud. Dashes aren't slowed.</summary>
+        public void Slow(float factor, float seconds)
+        {
+            _slowFactor = _slowRemaining > 0f ? Mathf.Min(_slowFactor, factor) : factor;
+            _slowRemaining = Mathf.Max(_slowRemaining, seconds);
+        }
+
+        public bool IsSlowed => _slowRemaining > 0f;
+
         /// <summary>Raises max hull for the rest of the run (the Reinforce repair option, GDD §10.4). Authority only.</summary>
         public void Reinforce(float amount)
         {
@@ -395,6 +408,7 @@ namespace Pathfinder.Game.Player
         public void PlaceForLevel(Vector2 position)
         {
             _pullTarget = null;
+            _slowRemaining = 0f;
             Placements++;
             Teleport(position);
             Velocity = Vector2.zero;
@@ -515,7 +529,7 @@ namespace Pathfinder.Game.Player
             _tickInvulnerable = dashing || _intangibleRemaining > 0f;
             _vitals.ExternalInvulnerability = _tickInvulnerable || _godMode;
 
-            float moveSpeed = MoveSpeed;
+            float moveSpeed = MoveSpeed * (_slowRemaining > 0f ? _slowFactor : 1f);
             if (dashing)
             {
                 Velocity = _dashMovementOverridden ? Vector2.zero : _dashDirection * (DashDistance / ship.DashDuration);
@@ -538,6 +552,7 @@ namespace Pathfinder.Game.Player
 
             Dash.Tick(deltaTime);
             _intangibleRemaining = Mathf.Max(0f, _intangibleRemaining - deltaTime);
+            _slowRemaining = Mathf.Max(0f, _slowRemaining - deltaTime);
             if (_wasDashing && !Dash.IsDashing)
                 OnDashEnded();
             _wasDashing = Dash.IsDashing;

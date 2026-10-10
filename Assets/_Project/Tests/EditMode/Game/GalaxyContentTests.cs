@@ -47,7 +47,7 @@ namespace Pathfinder.Tests.Game
             Assert.IsNotNull(run);
             Assert.AreEqual("boss.quarry-maw", run.BossFor(0).Id);
             Assert.AreEqual("boss.binary-wardens", run.BossFor(1).Id);
-            Assert.AreEqual("boss.quarry-maw", run.BossFor(2).Id, "The final galaxy brings back a tougher Quarry Maw.");
+            Assert.AreEqual("boss.hive-matriarch", run.BossFor(2).Id, "The Veil Nebula is guarded by the Hive Matriarch.");
         }
     }
 }

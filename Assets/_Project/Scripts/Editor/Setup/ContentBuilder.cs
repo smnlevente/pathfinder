@@ -81,8 +81,9 @@ namespace Pathfinder.Editor.Setup
             var quarryMaw = BuildQuarryMaw(art);
             UseQuarryMawAsBoss(runConfig, quarryMaw, data);
             var wardens = BuildBinaryWardens(art);
-            AssignGalaxyBosses(runConfig, quarryMaw, wardens.Alpha);
-            var equipment = BuildEquipment(art, data, new[] { quarryMaw, wardens.Alpha, wardens.Beta });
+            var matriarch = BuildHiveMatriarch(art);
+            AssignGalaxyBosses(runConfig, quarryMaw, wardens.Alpha, matriarch.Boss);
+            var equipment = BuildEquipment(art, data, new[] { quarryMaw, wardens.Alpha, wardens.Beta, matriarch.Boss, matriarch.Broodling });
             var audio = BuildAudio();
 
             TunePostProcessing();

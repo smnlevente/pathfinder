@@ -95,6 +95,15 @@ for 1 s.
 > Don't let it get close. Move away the instant the ring appears, or dash out of it: drifting away isn't enough, it
 > lunges. Its recovery is the time to unload on it.
 
+## The Swarm
+
+### Broodling
+
+Born by the [Hive Matriarch](bosses.md#the-hive-matriarch) in broods of five: small crimson grubs with glowing green
+eyes. 12 HP, 6.5 u/s, 8 contact damage. They chase in a weaving line and dart forward now and then, so a brood flows
+around you rather than marching at you. They drop nothing, and die with their queen. A full Swarm enemy roster for the
+Veil Nebula is planned.
+
 ## Elites
 
 Any enemy can roll as an **elite**: bigger (×1.2), with a **gold ring** under it, and it **always drops ×3 Scraps**.

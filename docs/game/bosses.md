@@ -10,7 +10,7 @@ hull** and offers a **Rare-or-better item**. Then the wormhole pulls you into th
 |---|---|---|
 | 1 | [The Quarry Maw](#the-quarry-maw) | Its shell deflects everything: hit the yellow crystals, and its maw when it opens |
 | 2 | [The Binary Wardens](#the-binary-wardens) | Two cores; one alone only reboots. Wear both down and finish them together |
-| 3 | The Quarry Maw at galaxy 3 strength | Until the Hive Matriarch is built |
+| 3 | [The Hive Matriarch](#the-hive-matriarch) | Shoot her heart while it glows, keep out of the spores, dash through her bloom rings |
 
 Every boss fight opens with a one-line hint on how to hurt it. When a boss dies, **every enemy bullet in the air turns
 harmless** and fades out, so a stray shot can't kill you after you've won.
@@ -93,7 +93,37 @@ and **Beta** (a cross of blades). Each core has **2,200 HP** (3,520 in galaxy 2)
 
 ---
 
-## Planned
+## The Hive Matriarch
 
-- **The Hive Matriarch** (galaxy 3): an alien queen half-fused with the nebula. Swarm waves and spore clouds, a
-  charging bullet-hell phase, and an arena-wide pattern that needs dash timing.
+![Phase 3: the Matriarch at the centre, heart open, her spiral and brood around her, a bloom ring about to reach the ship](../images/matriarch-bloom.png)
+
+The Swarm's queen, half-fused with the Veil Nebula, and the last thing between you and New Home. **4,800 HP** (11,520
+at galaxy 3 strength). Her carapace deflects shots; her **yellow heart** is open, and she takes damage, **except while
+she roars, charges or gathers a pulse**. Her creatures and hazards glow toxic green.
+
+### Phase 1: Brood (above 2/3 health)
+
+![Phase 1: Broodlings, a flowing bullet stream, and a spore cloud under the ship](../images/matriarch-brood.png)
+
+- She drifts along the top of the arena, sweeping a **flowing bullet stream** at you.
+- Every few seconds she births a brood of **Broodlings**: small, weaving critters that bite on contact.
+- She lobs **spore pods** where you are: a green ring closes in on the spot, then a **spore cloud** stays for 6 s. Inside
+  it you're **slowed** and your **shield drains**.
+
+> Keep moving so the pods land behind you, and clear the brood before it surrounds you.
+
+### Phase 2: Frenzy (2/3 to 1/3)
+
+- **Two charges** through you, each shown by a chevron lane, each ending in a **double ring** of bullets: two waves at
+  different speeds.
+- Then she **rests 3.5 s with her heart open**: the window to hurt her.
+
+### Phase 3: Bloom (below 1/3)
+
+- She returns to the centre and spins a **wobbling spiral**.
+- Every few seconds she gathers herself (heart shut) and releases a **bloom pulse**: a solid green ring with **no gap**
+  that sweeps the whole arena.
+
+> You can't outrun a bloom ring. **Dash through it** as it reaches you.
+
+When she dies, her brood dies with her, and the run is won.

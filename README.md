@@ -20,6 +20,7 @@ built and how to extend it, what every enemy, item and currency does, and the wo
 | M6 Slice polish | ✅ except the external playtest: synthesized SFX and music, explosions and camera kicks, crosshair ammo ring, uGUI HUD and Hub, economy probe |
 | Playtest 4 fixes | ✅ per-enemy wind-up sounds, audio centred on the ship, wormhole pull after the boss reward, Scrap vacuum, Esc closes menus cleanly |
 | Galaxy 2 content | ✅ Scorcher, Arc Drone and Crusher enemies; the Binary Wardens twin boss |
+| Playtest 6 (first external) | ✅ an eruption you dash out of, a ship-mounted HUD readout, 16:9 HUD area, Precision Loader active reload, the Hive Matriarch (galaxy 3 boss) |
 
 ## Playing
 

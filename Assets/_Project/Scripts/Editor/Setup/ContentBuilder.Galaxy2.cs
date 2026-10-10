@@ -224,14 +224,18 @@ namespace Pathfinder.Editor.Setup
             return FinishEnemy(root, definition, radius, art, halo, glow.ToArray());
         }
 
-        /// <summary>Each galaxy gets its guardian: the Quarry Maw, then the Binary Wardens, then a stronger Quarry Maw.</summary>
-        static void AssignGalaxyBosses(RunConfig config, EnemyDefinition quarryMaw, EnemyDefinition wardens)
+        /// <summary>
+        /// Each galaxy gets its guardian: the Quarry Maw, the Binary Wardens, the Hive Matriarch. Configs from before the
+        /// Matriarch (galaxy 3 reusing the Maw) are upgraded once; any other choice is left alone.
+        /// </summary>
+        static void AssignGalaxyBosses(RunConfig config, EnemyDefinition quarryMaw, EnemyDefinition wardens, EnemyDefinition matriarch)
         {
             var so = new SerializedObject(config);
             var bosses = so.FindProperty("<GalaxyBosses>k__BackingField");
-            if (bosses.arraySize > 0)
-                return;
-            Assign(bosses, new Object[] { quarryMaw, wardens, quarryMaw }, "GalaxyBosses");
+            if (bosses.arraySize == 0)
+                Assign(bosses, new Object[] { quarryMaw, wardens, matriarch }, "GalaxyBosses");
+            else if (bosses.arraySize == 3 && bosses.GetArrayElementAtIndex(2).objectReferenceValue == quarryMaw)
+                bosses.GetArrayElementAtIndex(2).objectReferenceValue = matriarch;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

@@ -53,6 +53,10 @@ namespace Pathfinder.Game.Audio
         // Playtest 6.
         PerfectReload,
         ReloadJam,
+
+        // The Hive Matriarch.
+        SporePod,
+        BloomPulse,
     }
 
     /// <summary>

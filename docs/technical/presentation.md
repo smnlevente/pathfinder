@@ -120,6 +120,7 @@ Every colour and shape has one meaning, so a crowded screen reads at a glance
 | Enemies | Solid crimson bodies with red-orange accent strips over a red floor glow |
 | Attack warnings | Accents flare white-orange; chevron lanes for charges; outlined floor areas that fill in; thin flickering beam lines |
 | Hazards | Alpha-blended orange flames; white-and-orange lightning; an orange tether |
+| The Swarm | Toxic green: the Matriarch's sacs, Broodling eyes, spore clouds, bloom pulses |
 | Armour and weak points | Grey sparks mean no damage. Yellow always means "shoot here". |
 | Player | Cyan and blue, elongated bolts. Enemies never use cyan. |
 | Pickups | Gold Scraps, indigo Dark Matter |

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 2.4 (playtest 6, the first external playtest: an eruption you dash out of, a ship-mounted HUD readout and a 16:9 HUD area, the Precision Loader active-reload item) |
+| **Version** | 2.4 (playtest 6, the first external playtest: an eruption you dash out of, a ship-mounted HUD readout and a 16:9 HUD area, the Precision Loader active-reload item, the Hive Matriarch) |
 | **Date** | 2026-10-10 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
@@ -265,7 +265,7 @@ Each boss has three phases with a separate health bar segment for each. A boss f
 |---|---|---|---|
 | **The Quarry Maw** | 1 | A colossal rock-worm that tunnels through asteroid debris | 1: burrows and erupts, leaving rock showers · 2: segmented body sweeps across the arena, with weak points on its segments · 3: enrages and spews bullet streams from its mouth |
 | **The Binary Wardens** | 2 | The twin defense cores of a derelict station, one AI split in two | Not phased: two cores circle the arena joined by a damaging tether. A destroyed core only goes offline and reboots, unless its twin falls while it is down: destroy them together |
-| **The Hive Matriarch** | 3 | An alien queen, half-fused with the nebula | 1: spawns Swarm waves and spore clouds · 2: charges and erupts in bullet hell · 3: arena-wide pattern that requires dash timing; her final cry triggers the ending |
+| **The Hive Matriarch** | 3 | An alien queen, half-fused with the nebula | 1: births broods and lobs spore clouds · 2: charges and erupts in bullet rings · 3: solid bloom rings that must be dashed through; her final cry triggers the ending |
 
 **Boss rewards:** Singularity Cores (1 / 2 / 3 per galaxy), Hull restored by 30%, and a **guaranteed Rare-or-better equipment choice**.
 
@@ -285,7 +285,15 @@ Each boss has three phases with a separate health bar segment for each. A boss f
 - **Offline:** a core brought to zero **while its twin is up only goes offline**. It sinks part-way into the floor, goes dark, is armoured (grey sparks) and harmless to touch, and a grey ring fills on the floor as it **reboots in 5 s at 50% health**. Meanwhile the tether is down and its twin **enrages** (attacks 1.5× faster). The HUD shows the downed bar with a countdown.
 - **Defeat:** if the second core goes down **while the first is still offline**, the link breaks and **both fall together**. So the pilot has to wear both down evenly and finish them within 5 s of each other. The fight opens with the hint "A lone core only reboots: wear both down, then destroy them together". Death plays out like the Quarry Maw's: bullets defuse, 30 Scraps drop, and the reward follows.
 - **Balance check:** a god-mode bot in the middle of the arena that always shoots the core with more health left (so both wear down together) kills them in about 50 s at galaxy 1 health, about 80 s at galaxy 2's. Real fights also lose time to reboots.
-- **Galaxy 3** brings back the Quarry Maw at galaxy 3 health (×2.4) until the Hive Matriarch exists. Each galaxy's boss is set in the run config.
+- Each galaxy's boss is set in the run config (`GalaxyBosses`).
+
+**The Hive Matriarch** **[tune]** *(galaxy 3, the last boss of a run; playtest 6)*:
+- **Body:** a great crimson queen with **toxic-green glow sacs** (green is the Swarm's colour), **4800 HP** (×2.4 in galaxy 3), 4 u/s, 20 contact damage, no knockback. Her carapace is armour; her **yellow heart** on her back is open, and she can be hurt, **except while she roars, charges or gathers a pulse**. Each phase opens with a 1.5 s roar.
+- **Phase 1, Brood** (above 2/3): she drifts along the top of the arena (y = 6, ±9 u), sweeping a **flowing bullet stream** at the ship (a bullet every 0.12 s, swinging ±50°). Every 6 s she births **5 Broodlings** (at most 12 alive). Every 4 s she lobs a **spore pod** at where the ship is: a ring closes in on the landing spot for 1.2 s, then a **spore cloud** (2.5 u, 6 s) slows the ship to 60% and drains 10 shield per second.
+- **Phase 2, Frenzy** (2/3 to 1/3): volleys of **two charges** through the ship (16 u/s, 1.5× contact damage), each shown by a chevron lane (1.1 s, then 0.8 s), each ending in a **two-speed ring** of 20 bullets that arrives as two interleaved waves. Then she **rests 3.5 s, heart open**, still lobbing spores.
+- **Phase 3, Bloom** (below 1/3): she hurries back to the arena centre and spins a **wobbling two-arm spiral**. Every 3.5 s she gathers herself for 0.8 s (heart shut) and sends out a **bloom pulse**: a solid green ring with **no gap**, expanding at 9 u/s, 20 damage. Walking can't avoid it; **dash through it**. Fewer, smaller broods keep coming.
+- **Death:** her brood dies with her; 40 Scraps; her final cry wins the run.
+- **Balance check:** a god-mode, perfect-aim bot that keeps 7–10 u from her kills her in about 108 s at galaxy 1 health (the Quarry Maw takes about 95 s).
 
 ---
 
@@ -496,7 +504,7 @@ Every level ends by flying into the **exit wormhole**, which opens once the leve
 - **Repair level:** a green station at the arena centre. Press Interact for the choice; it can be used once. The exit is open from the start.
 - **Shop level:** a gold terminal with a **4-item catalog** (Common 40, Rare 75, Epic 120). It sells upgrades for equipped items (35 for I→II, 60 for II→III), hull repairs (1 Scrap per hull), and rerolls (15, then +10 each). Buying into a full category opens the swap screen, and the pilot pays only if the swap is confirmed.
 - **Mystery:** the HUD announces the revealed type, and rewards are ×1.5. An ambush has a ×1.5 budget and ×2 rewards. An event is a choice dialog in the empty arena; an event ambush is 3 waves at the ambush budget, and beating it pays the Scraps completion bonus at ×2.
-- **Boss level:** **the Quarry Maw** ([§7.5](#75-bosses)) with no escorts. In M3–M4 it was a placeholder elite Carrier. It pays Singularity Cores, a 30% heal and a **Rare-or-better equipment choice**. Galaxy 2 is guarded by **the Binary Wardens**; galaxy 3 reuses the Maw at its health multiplier until the Hive Matriarch arrives. Each galaxy's boss is listed in the run config.
+- **Boss level:** **the Quarry Maw** ([§7.5](#75-bosses)) with no escorts. In M3–M4 it was a placeholder elite Carrier. It pays Singularity Cores, a 30% heal and a **Rare-or-better equipment choice**. Galaxy 2 is guarded by **the Binary Wardens** and galaxy 3 by **the Hive Matriarch**. Each galaxy's boss is listed in the run config.
 - **Galaxy scaling:** enemy health ×1.0 / ×1.6 / ×2.4 per galaxy, on top of the director's galaxy budget multiplier. All three galaxies use the Shattered Expanse arena and enemy pool until their themes arrive; from galaxy 2 the pool adds the Scorcher, Arc Drone and Crusher.
 
 ---
@@ -607,6 +615,7 @@ dense bullet patterns blew out into glare and the Lancer's charge line looked li
 | **Enemy bullets** | A solid white core inside a crisp **magenta** rim, edged with a **dark outline**, and only a faint glow. Round. The outline keeps every bullet separate in dense patterns; the glow is alpha-blended, so overlapping bullets don't add up into a haze *(playtest 2)*. | Magenta and round orbs are used for nothing else. |
 | **Enemies** | Solid, lit **crimson** bodies with small red-orange accent strips, on a faint **red floor glow**. Never a glowing orb. | The red floor glow marks units only. |
 | **Enemy attack warnings** | Accent strips flare toward white-orange. Charge paths are **lanes of red-orange chevrons** on the floor that fill in as the wind-up completes: flat, segmented and pointed, never round. Spawns and eruptions are a soft red glow on the floor. **Areas** about to be hit are outlined on the floor with a fill growing out to the edge (the Scorcher's orange cone, the Crusher's red ring); the outline flickers just before it lands. **Beams** charge as a thin flickering line that thickens and steadies before the bolt. | Chevrons mean "a charge is coming this way". |
+| **The Swarm** | Toxic-**green** glow on Swarm creatures (the Matriarch's sacs, Broodling eyes), spore clouds and bloom pulses. | Green belongs to the Swarm alone. |
 | **Hazards** | Flames are soft, alpha-blended **orange** puffs that billow as they fly. Lightning is a jagged white core in an orange glow. The Wardens' tether is a crackling orange line. | Orange fire never looks like a round magenta bullet. |
 | **Armour & weak points** | Hits on armour throw a dull **grey spark** and do nothing. Weak points are **yellow**: crystals, rings, a cracked maw. | Yellow on an enemy always means "shoot here". |
 | **Player & allies** | **Cyan / blue** hull lights and projectiles. Player projectiles are elongated bolts, not orbs. | Cyan is never used by enemies. |

@@ -11,7 +11,7 @@ the third boss and humanity has a new home. ([GDD §9–§10](../GDD.md#9-run-st
 |---|---|---|---|---|---|
 | 1 | The Shattered Expanse | [The Quarry Maw](bosses.md#the-quarry-maw) | ×1.0 | ×1.0 | 1 Singularity Core |
 | 2 | The Graveyard Drift | [The Binary Wardens](bosses.md#the-binary-wardens) | ×1.6 | ×1.4 | 2 Cores |
-| 3 | The Veil Nebula | The Quarry Maw, stronger (until the Hive Matriarch exists) | ×2.4 | ×1.8 | 3 Cores |
+| 3 | The Veil Nebula | [The Hive Matriarch](bosses.md#the-hive-matriarch) | ×2.4 | ×1.8 | 3 Cores |
 
 From galaxy 2 the **Scorcher**, **Arc Drone** and **Crusher** join the enemy mix. The galaxies share one arena and
 look for now; their own themes and hazards are planned.
