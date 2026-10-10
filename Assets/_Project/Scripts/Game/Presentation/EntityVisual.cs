@@ -128,7 +128,11 @@ namespace Pathfinder.Game.Presentation
         float GlowFactor(PlayerShip player)
         {
             if (entity is Enemy enemy)
-                return enemy.IsTelegraphing ? telegraphGlow : 1f;
+            {
+                if (enemy.IsTelegraphing)
+                    return telegraphGlow;
+                return enemy.IsBurning && Mathf.Repeat(Time.time * 10f, 1f) < 0.5f ? 2f : 1f;
+            }
             if (player == null)
                 return 1f;
 

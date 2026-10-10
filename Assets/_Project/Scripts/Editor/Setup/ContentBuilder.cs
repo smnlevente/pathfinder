@@ -77,9 +77,10 @@ namespace Pathfinder.Editor.Setup
             LinkDefinitions(art, actors, data);
             var runArt = BuildRunArt(art);
             var runConfig = BuildRunConfig(data, runArt);
+            var equipment = BuildEquipment(art, data);
 
             TunePostProcessing();
-            PopulateScenes(art, actors, data, runArt, runConfig);
+            PopulateScenes(art, actors, data, runArt, runConfig, equipment);
             AssetDatabase.SaveAssets();
             Debug.Log("[ContentBuilder] Combat sandbox built.");
         }

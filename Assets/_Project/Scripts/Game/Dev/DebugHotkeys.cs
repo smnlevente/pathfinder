@@ -4,6 +4,7 @@ using Pathfinder.Game.Combat;
 using Pathfinder.Game.Content;
 using Pathfinder.Game.Enemies;
 using Pathfinder.Game.Player;
+using Pathfinder.Game.Presentation;
 using Pathfinder.Game.Run;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -18,12 +19,17 @@ namespace Pathfinder.Game.Dev
     {
         [SerializeField] WaveDirector waveDirector;
         [SerializeField, Tooltip("Optional. In the Run scene, F6 skips the current level.")] LevelController level;
+        [SerializeField, Tooltip("F7 offers a choice of 3 random items from here.")] ContentDatabase content;
+        [SerializeField] EquipmentChoiceScreen equipmentChoice;
         [SerializeField] PrimaryWeaponDefinition[] primaryWeapons = new PrimaryWeaponDefinition[0];
         [SerializeField] SecondaryWeaponDefinition[] secondaryWeapons = new SecondaryWeaponDefinition[0];
 
         public string HintText => level != null
-            ? "DEV   F1 primary   F2 secondary   F3 god mode   F4 kill all   F5 next wave   F6 skip level"
-            : "DEV   F1 primary   F2 secondary   F3 god mode   F4 kill all   F5 next wave";
+            ? "DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F6 skip level   F7 equipment"
+            : "DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F7 equipment";
+
+        Pathfinder.Core.Random.IRandom _random = new Pathfinder.Core.Random.Pcg32(7UL, 7UL);
+        public ContentDatabase Content => content;
         public IReadOnlyList<PrimaryWeaponDefinition> PrimaryWeapons => primaryWeapons;
         public IReadOnlyList<SecondaryWeaponDefinition> SecondaryWeapons => secondaryWeapons;
 
@@ -53,6 +59,33 @@ namespace Pathfinder.Game.Dev
                 waveDirector.SkipToNextWave();
             if (keyboard.f6Key.wasPressedThisFrame && level != null && level.IsActive)
                 level.DebugTakeExit();
+            if (keyboard.f7Key.wasPressedThisFrame)
+                OfferRandomEquipment();
+        }
+
+        void OfferRandomEquipment()
+        {
+            if (content == null || equipmentChoice == null || equipmentChoice.IsOpen || content.Equipment.Length == 0)
+                return;
+
+            PlayerShip pilot = null;
+            foreach (var player in CombatRegistry.Players)
+            {
+                if (player.IsLocal && player.IsAlive)
+                    pilot = player;
+            }
+            if (pilot == null)
+                return;
+
+            var offer = new System.Collections.Generic.List<Pathfinder.Game.Equipment.EquipmentDefinition>();
+            var pool = new System.Collections.Generic.List<Pathfinder.Game.Equipment.EquipmentDefinition>(content.Equipment);
+            for (int i = 0; i < 3 && pool.Count > 0; i++)
+            {
+                int index = Pathfinder.Core.Random.RandomExtensions.Range(_random, 0, pool.Count);
+                offer.Add(pool[index]);
+                pool.RemoveAt(index);
+            }
+            equipmentChoice.Show("DEV: EQUIPMENT", offer, pilot, 0, null);
         }
 
         static T Next<T>(T[] options, T current) where T : Object

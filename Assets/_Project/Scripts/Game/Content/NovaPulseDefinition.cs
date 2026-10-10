@@ -35,7 +35,7 @@ namespace Pathfinder.Game.Content
             {
                 Vector2 away = enemy.Position - ship.Position;
                 Vector2 direction = away.sqrMagnitude > 1e-6f ? away.normalized : ship.AimDirection;
-                enemy.ApplyDamage(new DamageInfo(Damage, ship.Team, ship.EntityId, enemy.Position - direction * enemy.Radius, direction));
+                enemy.ApplyDamage(new DamageInfo(Damage * ship.SecondaryDamageMultiplier, ship.Team, ship.EntityId, enemy.Position - direction * enemy.Radius, direction, DamageKind.Secondary));
                 if (enemy.IsAlive)
                     enemy.ApplyKnockback(direction * Knockback);
             }

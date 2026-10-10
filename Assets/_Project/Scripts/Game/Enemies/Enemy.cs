@@ -58,6 +58,10 @@ namespace Pathfinder.Game.Enemies
         bool _headingOverridden;
         bool _contactThisTick;
         Vector2 _knockback;
+        readonly System.Collections.Generic.List<float> _burns = new System.Collections.Generic.List<float>();
+        float _burnDamagePerStack;
+        float _burnAccumulated;
+        int _burnSourceId;
 
         protected override void Awake()
         {
@@ -84,6 +88,8 @@ namespace Pathfinder.Game.Enemies
             _vitals = new Vitals(health);
             Velocity = Vector2.zero;
             _knockback = Vector2.zero;
+            _burns.Clear();
+            _burnAccumulated = 0f;
 
             float scale = elite != null ? elite.ScaleMultiplier : 1f;
             SetRadiusScale(scale);
@@ -118,11 +124,43 @@ namespace Pathfinder.Game.Enemies
             _headingOverridden = true;
         }
 
+        /// <summary>Burning, e.g. from Incendiary rounds. Each application is a separate stack with its own timer.</summary>
+        public bool IsBurning => _burns.Count > 0;
+
+        /// <summary>Adds a burn stack dealing <paramref name="damagePerSecond"/> for <paramref name="duration"/> seconds (GDD §8.3).</summary>
+        public void ApplyBurn(float damagePerSecond, float duration, int sourceId, int maxStacks = int.MaxValue)
+        {
+            if (_burns.Count >= maxStacks)
+            {
+                // At the cap, refresh the stack closest to expiring.
+                int oldest = 0;
+                for (int i = 1; i < _burns.Count; i++)
+                {
+                    if (_burns[i] < _burns[oldest])
+                        oldest = i;
+                }
+                _burns[oldest] = duration;
+            }
+            else
+            {
+                _burns.Add(duration);
+            }
+            _burnDamagePerStack = damagePerSecond;
+            _burnSourceId = sourceId;
+        }
+
         /// <summary>Adds a shove that decays quickly, independent of the enemy's own movement.</summary>
         public void ApplyKnockback(Vector2 velocity) => _knockback += velocity;
 
         public override void Simulate(float deltaTime, CombatWorld world)
         {
+            if (_burns.Count > 0)
+            {
+                TickBurn(deltaTime);
+                if (!IsAlive)
+                    return;
+            }
+
             _headingOverridden = false;
             SpeedMultiplier = AccelerationMultiplier = ContactDamageMultiplier = 1f;
             DealtContactDamage = _contactThisTick;
@@ -174,6 +212,25 @@ namespace Pathfinder.Game.Enemies
                 _world.Pickups.SpawnScraps(Position, amount, _lootRandom);
         }
 
+        void TickBurn(float deltaTime)
+        {
+            _burnAccumulated += _burnDamagePerStack * _burns.Count * deltaTime;
+            for (int i = _burns.Count - 1; i >= 0; i--)
+            {
+                _burns[i] -= deltaTime;
+                if (_burns[i] <= 0f)
+                    _burns.RemoveAt(i);
+            }
+
+            // Apply in whole points so burning doesn't produce a flood of tiny hits.
+            if (_burnAccumulated >= 1f || (_burns.Count == 0 && _burnAccumulated > 0f))
+            {
+                float amount = _burnAccumulated;
+                _burnAccumulated = 0f;
+                ApplyDamage(new DamageInfo(amount, Team.Player, _burnSourceId, Position, Vector2.zero, DamageKind.Burn));
+            }
+        }
+
         void TryContactDamage()
         {
             foreach (var player in CombatRegistry.Players)
@@ -187,7 +244,7 @@ namespace Pathfinder.Game.Enemies
                     continue;
 
                 Vector2 direction = toPlayer.sqrMagnitude > 1e-6f ? toPlayer.normalized : Vector2.up;
-                player.ApplyDamage(new DamageInfo(definition.ContactDamage * ContactDamageMultiplier, Team, EntityId, Position + direction * Radius, direction));
+                player.ApplyDamage(new DamageInfo(definition.ContactDamage * ContactDamageMultiplier, Team, EntityId, Position + direction * Radius, direction, DamageKind.Contact));
 
                 // Bounce off so a swarm doesn't drain the shield in consecutive ticks.
                 Velocity = -direction * MoveSpeed * 1.5f;

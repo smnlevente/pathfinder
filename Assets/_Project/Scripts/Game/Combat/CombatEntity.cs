@@ -58,13 +58,23 @@ namespace Pathfinder.Game.Combat
                 return default;
 
             var result = Vitals.ApplyDamage(info.Amount * IncomingDamageMultiplier(info));
+            if (result.Killed && TryPreventDeath(info))
+            {
+                Vitals.Revive(1f);
+                result = new DamageResult(result.ShieldDamage, result.HullDamage, killed: false, blocked: false);
+            }
+
             if (result.Blocked || result.TotalDamage > 0f)
+            {
                 Damaged?.Invoke(this, info, result);
+                CombatEvents.RaiseDamaged(this, info, result);
+            }
 
             if (result.Killed)
             {
                 OnKilled(info);
                 Died?.Invoke(this, info);
+                CombatEvents.RaiseKilled(this, info);
             }
             return result;
         }
@@ -84,6 +94,9 @@ namespace Pathfinder.Game.Combat
 
         protected virtual void OnKilled(in DamageInfo info) { }
 
+        /// <summary>Last chance to cancel a lethal hit, e.g. Last Stand. Returning true leaves the entity at 1 hull.</summary>
+        protected virtual bool TryPreventDeath(in DamageInfo info) => false;
+
         /// <summary>Directional armour and weak points, e.g. a Carrier's exposed rear.</summary>
         protected virtual float IncomingDamageMultiplier(in DamageInfo info) => 1f;
 
@@ -100,6 +113,19 @@ namespace Pathfinder.Game.Combat
         }
     }
 
+    /// <summary>
+    /// What kind of attack dealt the damage. On-hit effects trigger only on primary projectile hits, so procs such as
+    /// lightning or ricochets can never chain off each other.
+    /// </summary>
+    public enum DamageKind
+    {
+        Projectile,
+        Secondary,
+        Contact,
+        Proc,
+        Burn,
+    }
+
     public readonly struct DamageInfo
     {
         public float Amount { get; }
@@ -107,14 +133,37 @@ namespace Pathfinder.Game.Combat
         public int SourceId { get; }
         public Vector2 Point { get; }
         public Vector2 Direction { get; }
+        public DamageKind Kind { get; }
 
-        public DamageInfo(float amount, Team sourceTeam, int sourceId, Vector2 point, Vector2 direction)
+        public DamageInfo(float amount, Team sourceTeam, int sourceId, Vector2 point, Vector2 direction, DamageKind kind = DamageKind.Projectile)
         {
             Amount = amount;
             SourceTeam = sourceTeam;
             SourceId = sourceId;
             Point = point;
             Direction = direction;
+            Kind = kind;
+        }
+    }
+
+    /// <summary>
+    /// Damage and kill notifications for all entities, for effects that react to what a pilot does, such as on-hit
+    /// and on-kill equipment. Raised on the authority only.
+    /// </summary>
+    public static class CombatEvents
+    {
+        public static event Action<CombatEntity, DamageInfo, DamageResult> Damaged;
+        public static event Action<CombatEntity, DamageInfo> Killed;
+
+        internal static void RaiseDamaged(CombatEntity target, in DamageInfo info, DamageResult result) => Damaged?.Invoke(target, info, result);
+
+        internal static void RaiseKilled(CombatEntity target, in DamageInfo info) => Killed?.Invoke(target, info);
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            Damaged = null;
+            Killed = null;
         }
     }
 }

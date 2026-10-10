@@ -9,6 +9,7 @@ using Pathfinder.Core.Run;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Enemies;
 using Pathfinder.Game.Player;
+using Pathfinder.Game.Presentation;
 using Pathfinder.Game.Run;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
@@ -138,11 +139,17 @@ namespace Pathfinder.Tests.PlayMode
             Assert.IsTrue(_level.CachePosition.HasValue, "The final wave's Cache Carrier drops the cache.");
             Assert.IsFalse(_level.ExitOpen, "The exit stays shut until the cache is collected.");
 
-            int scrapsBefore = _player.Scraps;
             _player.PlaceForLevel(_level.CachePosition.Value);
             yield return WaitTicks(2);
             Assert.IsTrue(_level.CacheCollected, "Touching the cache collects it.");
-            Assert.Greater(_player.Scraps, scrapsBefore, "Until M4 the cache pays Scraps.");
+
+            var choice = Object.FindAnyObjectByType<EquipmentChoiceScreen>();
+            Assert.IsTrue(choice.IsOpen, "The cache offers a choice of equipment.");
+            Assert.AreEqual(3, choice.Options.Count, "3 options (GDD §10.2).");
+            var taken = choice.Options[0];
+            choice.Choose(0);
+            Assert.IsFalse(choice.IsOpen);
+            Assert.IsNotNull(_player.Equipment.Find(taken), "The chosen item is equipped.");
 
             // The exit also needs the final wave cleared.
             yield return FightUntil(() => _level.ExitOpen, 20f);
@@ -219,6 +226,52 @@ namespace Pathfinder.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator Shop_SellsUpgradesAndRerollsEquipment()
+        {
+            yield return LoadRun(22);
+            _director.StartTestLevel(MapNodeType.Shop, row: 4);
+            yield return WaitTicks(1);
+            _player.AddScraps(500);
+
+            Assert.AreEqual(4, _level.Catalog.Count, "The catalog shows 4 items (GDD §10.6).");
+            var entry = _level.Catalog[0];
+            int price = new[] { 40, 75, 120 }[(int)entry.Item.Rarity];
+
+            Assert.IsTrue(_level.BuyEquipment(_player, 0));
+            Assert.AreEqual(500 - price, _player.Scraps);
+            Assert.IsTrue(entry.Sold);
+            Assert.IsNotNull(_player.Equipment.Find(entry.Item));
+            Assert.IsFalse(_level.BuyEquipment(_player, 0), "Sold out.");
+
+            int scraps = _player.Scraps;
+            Assert.IsTrue(_level.UpgradeEquipment(_player, entry.Item));
+            Assert.AreEqual(scraps - 35, _player.Scraps, "Level I to II costs 35.");
+            Assert.AreEqual(2, _player.Equipment.Find(entry.Item).Level);
+
+            scraps = _player.Scraps;
+            Assert.IsTrue(_level.RerollCatalog(_player));
+            Assert.IsTrue(_level.RerollCatalog(_player));
+            Assert.AreEqual(scraps - 15 - 25, _player.Scraps, "Rerolls cost 15, then 10 more each time.");
+            Assert.AreEqual(4, _level.Catalog.Count);
+        }
+
+        [UnityTest]
+        public IEnumerator HubLoadout_IsUsedForTheRun()
+        {
+            GameClock.ResumeAll();
+            RunSession.Begin(new Seed(23), new PilotLoadout("ship.titan", "primary.plasma-cutter", "secondary.nova-pulse"));
+            CombatWorld.NextSeedOverride = new Seed(23);
+            yield return SceneManager.LoadSceneAsync("Run", LoadSceneMode.Single);
+            yield return null;
+
+            var player = CombatRegistry.Players[0];
+            Assert.AreEqual("ship.titan", player.Definition.Id);
+            Assert.AreEqual("primary.plasma-cutter", player.PrimaryWeapon.Id);
+            Assert.AreEqual("secondary.nova-pulse", player.SecondaryWeapon.Id);
+            Assert.AreEqual(150f, player.Vitals.MaxHull);
+        }
+
+        [UnityTest]
         public IEnumerator Boss_DefeatPaysCoresAndJumpsToTheNextGalaxy()
         {
             yield return LoadRun(17);
@@ -239,9 +292,16 @@ namespace Pathfinder.Tests.PlayMode
 
             _player.GodMode = true;
             _level.Boss.ApplyDamage(new DamageInfo(1_000_000f, Team.Player, 0, _level.Boss.Position, Vector2.up));
-            yield return WaitTicks(1);
+            yield return null;
             Assert.AreEqual(1, Run.SingularityCores);
             Assert.IsTrue(_level.ExitOpen);
+
+            var reward = Object.FindAnyObjectByType<EquipmentChoiceScreen>();
+            Assert.IsTrue(reward.IsOpen, "Bosses offer an equipment reward.");
+            Assert.That(reward.Options.All(o => o.Rarity >= Pathfinder.Core.Equipment.Rarity.Rare), "Boss rewards are Rare or better (GDD §7.5).");
+            int scraps = _player.Scraps;
+            reward.Skip();
+            Assert.AreEqual(scraps + 15, _player.Scraps, "Skipping pays 15 Scraps.");
 
             yield return TakeExit();
             Assert.AreEqual(RunDirector.Phase.GalaxyCleared, _director.State);

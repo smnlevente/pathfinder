@@ -34,6 +34,8 @@ namespace Pathfinder.Game.Combat
             public HashSet<int> HitIds;
             public float TurnRate;
             public int TargetId;
+            public DamageKind Kind;
+            public bool Phased;
             public GameObject VisualPrefab;
             public GameObject ImpactPrefab;
             public Transform Visual;
@@ -78,6 +80,7 @@ namespace Pathfinder.Game.Combat
                 HitIds = spawn.Pierce > 0 ? RentHitSet() : null,
                 TurnRate = spawn.TurnRate,
                 TargetId = spawn.TargetId,
+                Kind = spawn.Kind,
                 VisualPrefab = spawn.VisualPrefab,
                 ImpactPrefab = spawn.ImpactPrefab,
             };
@@ -147,6 +150,9 @@ namespace Pathfinder.Game.Combat
                 Vector2 next = projectile.Position + projectile.Velocity * deltaTime;
                 bool consumed = false;
 
+                if (!projectile.Phased)
+                    NotifyPhasing(ref projectile, next);
+
                 // A piercing projectile can pass through several targets in one tick, in order along its path.
                 while (TryFindHit(projectile, next, out var target, out float t))
                 {
@@ -154,7 +160,7 @@ namespace Pathfinder.Game.Combat
                     float travelled = projectile.Range - projectile.RangeLeft + (hitPoint - projectile.Position).magnitude;
                     float falloff = Mathf.Lerp(1f, projectile.DamageAtMaxRange, Mathf.Clamp01(travelled / projectile.Range));
 
-                    target.ApplyDamage(new DamageInfo(projectile.Damage * falloff, projectile.Team, projectile.OwnerId, hitPoint, projectile.Velocity.normalized));
+                    target.ApplyDamage(new DamageInfo(projectile.Damage * falloff, projectile.Team, projectile.OwnerId, hitPoint, projectile.Velocity.normalized, projectile.Kind));
                     if (projectile.ImpactPrefab != null)
                         Object.Instantiate(projectile.ImpactPrefab, PlaneMath.ToWorld(hitPoint, VisualHeight), Quaternion.identity);
 
@@ -251,6 +257,21 @@ namespace Pathfinder.Game.Combat
             return nearest;
         }
 
+        /// <summary>Tells an intangible (dashing) pilot that a shot passed through it, once per projectile. Used by Phase Dash.</summary>
+        static void NotifyPhasing(ref Projectile projectile, Vector2 next)
+        {
+            foreach (var entity in CombatRegistry.OnTeam(projectile.Team.Opponent()))
+            {
+                if (entity.IsAlive && entity.IsIntangible && entity is Player.PlayerShip ship
+                    && PlaneMath.SegmentHitsCircle(projectile.Position, next, entity.Position, entity.Radius + projectile.Radius, out _))
+                {
+                    projectile.Phased = true;
+                    ship.NotifyPhasedThrough();
+                    return;
+                }
+            }
+        }
+
         static bool TryFindHit(in Projectile projectile, Vector2 next, out CombatEntity target, out float hitT)
         {
             target = null;
@@ -334,10 +355,15 @@ namespace Pathfinder.Game.Combat
 
         public float VisualScale { get; }
 
+        /// <summary>The damage kind dealt on hit. Only primary-weapon projectiles trigger on-hit effects.</summary>
+        public DamageKind Kind { get; }
+
         public ProjectileSpawn(Vector2 position, Vector2 direction, float speed, float damage, float radius, float range,
             Team team, int ownerId, GameObject visualPrefab, GameObject impactPrefab = null,
-            int pierce = 0, float damageAtMaxRange = 1f, float turnRate = 0f, int targetId = 0, float visualScale = 1f)
+            int pierce = 0, float damageAtMaxRange = 1f, float turnRate = 0f, int targetId = 0, float visualScale = 1f,
+            DamageKind kind = DamageKind.Projectile)
         {
+            Kind = kind;
             Position = position;
             Direction = direction;
             Speed = speed;

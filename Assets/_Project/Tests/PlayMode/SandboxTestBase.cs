@@ -98,6 +98,11 @@ namespace Pathfinder.Tests.PlayMode
         protected PrimaryWeaponDefinition PrimaryWeapon(string id) =>
             _loadouts.PrimaryWeapons.FirstOrDefault(w => w.Id == id) ?? throw new ArgumentException($"No primary weapon '{id}'.");
 
+        protected Pathfinder.Game.Equipment.EquipmentDefinition Item(string id) =>
+            _loadouts.Content.FindEquipment(id) ?? throw new ArgumentException($"No equipment '{id}'.");
+
+        protected ShipDefinition Ship(string id) => _loadouts.Content.FindShip(id) ?? throw new ArgumentException($"No ship '{id}'.");
+
         protected SecondaryWeaponDefinition SecondaryWeapon(string id) =>
             _loadouts.SecondaryWeapons.FirstOrDefault(w => w.Id == id) ?? throw new ArgumentException($"No secondary weapon '{id}'.");
 

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 1.4 (M3 implemented: run structure, galaxy map, level types) |
+| **Version** | 1.5 (M4 implemented: equipment, stats, Shop catalog, ship traits) |
 | **Date** | 2026-10-09 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
@@ -328,6 +328,30 @@ These come from the source doc, with clarifications.
 
 *Synergy examples:* Stormbringer + Overclock (more lightning procs) · Bot-Commander + Bot Dispatcher + Kill Refund (a self-feeding swarm) · Vampiric + Bomb Dash + Pushback Dash (aggressive melee brawler).
 
+### 8.6 Implementation notes (M4)
+- **Stats:** every stat is `(base + Σ flat) × (1 + Σ percent)`, floored at zero. Percentages from different sources add together. Ship definitions provide the bases. Equipment, traits and run effects (Reinforce) add modifiers.
+- **Rebuild on change:** whenever the loadout changes, the ship rebuilds its stats and item effects from scratch: trait, then each equipped item at its level, then run modifiers. Max hull and shield gains heal by the same amount. The primary weapon reloads to full.
+- **Hooks:** effects react to *shot fired*, *primary hit*, *kill*, *dash start/end*, *bullet phased through*, *lethal hit* and *level start*. On-hit effects trigger only for **primary projectile** hits, so procs (lightning, ricochets) and burns can never chain off each other.
+- **Crits** (Critical Optics) deal ×2 and are rolled when the shot is fired, from the pilot's weapon stream, so hit order can't change outcomes.
+- **20 items are implemented:**
+  - **Dash Modules:** Phase (Rare), Blink (Rare), Pushback (Common), Bullet (Epic).
+  - **Weapon Mods:** Overclock (Rare), Extended Mag (Common), Piercing Rounds (Rare), Ricochet (Rare), Split Shot (Common), Incendiary (Rare).
+  - **Secondary Mods:** Rapid Cycler (Common), Twin Charge (Epic), Kill Refund (Rare), Amplifier (Common).
+  - **Hull Systems:** Armor Plating, Capacitor, Salvage Magnet and Adrenal Thrusters (all Common), Critical Optics (Rare), Last Stand (Epic).
+
+  Decoy and Bomb Dash come post-slice.
+- **Level scaling where the tables above don't say:**
+  - Ricochet bounces deal 50/75/100% damage.
+  - Split Shot triggers every 4th/3rd/2nd shot.
+  - Incendiary burns for 3/4/5 damage per second, capped at **5 stacks** per enemy, since a 10/s weapon would otherwise stack 30.
+  - Kill Refund returns 0.3/0.45/0.6 s per kill.
+  - Last Stand grants a 0.5/1/1.5 s grace after the save.
+  - Twin Charge adds +1 charge at every level, plus 0/−10/−20% cooldown.
+- **Phase Dash** keeps the ship *intangible* for the extra time, so bullets pass through and restore shield.
+- **Offers:** choices roll a rarity per slot from 70/25/5 (galaxy 1), 55/33/12 (galaxy 2) or 40/40/20 (galaxy 3), then pick an item of that rarity. Picks never repeat within an offer, and items already at level III are never offered. Mystery caches and boss rewards guarantee Rare or better.
+- **Traits:** *Reinforced Hull* (Titan) is pure stats: 150 hull, speed 7, ×0.9 damage taken. *Lightning Core* (Stormbringer) is an always-on effect. Ships also have an `ExtraEquipmentChoices` stat for the Arcanum Explorer.
+- **Hub loadout (placeholder):** Start Run lets the player pick a ship, primary and secondary. Everything is unlocked until the M5 meta progression. Choices are stored as content IDs and resolved through a `ContentDatabase`.
+
 ---
 
 ## 9. Run Structure: Galaxy Map
@@ -436,12 +460,12 @@ Every level ends by flying into the **exit wormhole**, which opens once the leve
 - **Arena flow:** every level reuses the same arena. The ship enters at the bottom (0, −14). Once the objective is met, a cyan **exit wormhole** opens at the top (0, 14), and flying into it ends the level. Leaving clears the arena: remaining enemies vanish without loot, and leftover Scraps are collected automatically.
 - **Hull carries over** between levels. The shield refills naturally between fights.
 - **Scraps level:** 4 waves at ×1.3 budget with ×2 Scraps drops. The bonus is paid to every living pilot.
-- **Equipment level:** 3 waves. When the final wave starts, an **Armored elite Gunner** joins as the Cache Carrier. Its cache must be collected and the waves cleared before the exit opens. *Placeholder until M4:* the cache pays 25 Scraps instead of a choice of 3 equipment.
+- **Equipment level:** 3 waves. When the final wave starts, an **Armored elite Gunner** joins as the Cache Carrier. Its cache opens the **choice of 3** (skipping pays 15 Scraps). The waves must also be cleared before the exit opens.
 - **Dark Matter level:** 8–12 indigo crystals, at least 5 u apart and away from the entry and exit. Standing within 1.6 u fills a harvest ring (1 s; it drains at half speed when left). Light pressure means a wave every 12 s at ×0.5 budget. After the 90 s timer it escalates to a wave every 5 s at ×1.5 budget. The exit is open from the start.
 - **Repair level:** a green station at the arena centre. Press Interact for the choice; it can be used once. The exit is open from the start.
-- **Shop level:** a gold terminal. *Placeholder until M4:* it sells hull repairs only (10, 25 or to full, at 1 Scrap per hull), and the equipment catalog is shown greyed out.
+- **Shop level:** a gold terminal with a **4-item catalog** (Common 40, Rare 75, Epic 120). It sells upgrades for equipped items (35 for I→II, 60 for II→III), hull repairs (1 Scrap per hull), and rerolls (15, then +10 each). Buying into a full category opens the swap screen, and the pilot pays only if the swap is confirmed.
 - **Mystery:** the HUD announces the revealed type, and rewards are ×1.5. An ambush has a ×1.5 budget and ×2 rewards.
-- **Boss level** *(placeholder until M5)*: an **Armored elite Carrier** at ×3 health (900 HP in galaxy 1) with 2 Gunner escorts. It pays Singularity Cores and a 30% heal, but no equipment choice yet.
+- **Boss level** *(placeholder until M5)*: an **Armored elite Carrier** at ×3 health (900 HP in galaxy 1) with 2 Gunner escorts. It pays Singularity Cores, a 30% heal and a **Rare-or-better equipment choice**.
 - **Galaxy scaling:** enemy health ×1.0 / ×1.6 / ×2.4 per galaxy, on top of the director's galaxy budget multiplier. All three galaxies use the Shattered Expanse enemy pool and arena until their themes arrive.
 
 ---
@@ -588,7 +612,7 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 ### 14.5 Testing
 - EditMode tests for map generation rules ([§9.2](#92-generation-rules)), the stat and modifier math, and economy calculations.
 - **Determinism tests:** the same seed must always produce an identical galaxy map and level content, with golden values checked into the tests. Changing the order in which levels are played must not change any level's content.
-- A debug menu for development builds: spawn enemies, grant items or currency, jump to a node, god mode, and **set the run seed**. M2 added Editor and development-build hotkeys: **F1** cycle primary, **F2** cycle secondary, **F3** god mode, **F4** kill all enemies, **F5** next wave. The run seed is set on **Combat World**.
+- A debug menu for development builds: spawn enemies, grant items or currency, jump to a node, god mode, and **set the run seed**. M2 added Editor and development-build hotkeys: **F1** cycle primary, **F2** cycle secondary, **F3** god mode, **F4** kill all enemies, **F5** next wave. M3 added **F6** skip level and M4 added **F7** equipment choice. The run seed is set on **Combat World**.
 
 ---
 
@@ -666,7 +690,7 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 | **M1** ✅ | Core combat feel | The ship moves, aims, shoots (Photon Repeater) and dashes with i-frames, and one arena has Drones and Gunners. Hull, shield and death work. Built on the co-op rules ([§14.4](#144-co-op-readiness)): `ShipCommand` input, `CombatRegistry` and an authority boundary. *Test: are the first 2 minutes fun?* |
 | **M2** ✅ | Combat breadth | 3 primaries, 2 secondaries, 5 archetypes, the wave director, Scraps drops and pickups. |
 | **M3** ✅ | Run structure | Galaxy map generation with its rules and tests, the map UI, all 7 level types, and RunState. |
-| **M4** | Build system | Equipment slots, the modifier system, event hooks, choice cards, the Shop, and the 2 ships with their traits. |
+| **M4** ✅ | Build system | Equipment slots, the modifier system, event hooks, choice cards, the Shop, and the 2 ships with their traits. |
 | **M5** | Boss + meta | The Quarry Maw, run end and summary, the Hub, meta upgrades, and save/load. |
 | **M6** | Slice polish | VFX, juice, audio pass, balance pass, and an external playtest. |
 

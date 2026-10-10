@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7af8f27e275ff848ba30cb581a2009e, type: 3}
+  m_Name: Equipment_SplitShot
+  m_EditorClassIdentifier: 
+  id: equipment.split-shot
+  displayName: Split Shot
+  <Category>k__BackingField: 1
+  <Rarity>k__BackingField: 0
+  <Weight>k__BackingField: 1
+  <Interval>k__BackingField: 040000000300000002000000
+  <FanDegrees>k__BackingField: 12

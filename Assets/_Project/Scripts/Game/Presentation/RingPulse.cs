@@ -13,6 +13,9 @@ namespace Pathfinder.Game.Presentation
         [SerializeField, Min(0f)] float endScale = 9f;
 
         MaterialPropertyBlock _block;
+
+        /// <summary>Scales the whole pulse, e.g. to match an effect radius.</summary>
+        public float SizeMultiplier { get; set; } = 1f;
         Color _baseColor;
         float _age;
 
@@ -38,7 +41,7 @@ namespace Pathfinder.Game.Presentation
         void Apply(float t)
         {
             float eased = 1f - (1f - t) * (1f - t);
-            float scale = Mathf.Lerp(startScale, endScale, eased);
+            float scale = Mathf.Lerp(startScale, endScale, eased) * SizeMultiplier;
             transform.localScale = new Vector3(scale, 1f, scale); // horizontal only, so the ring stays at floor height
             _block.SetColor(BaseColorId, _baseColor * (1f - t));
             ring.SetPropertyBlock(_block);

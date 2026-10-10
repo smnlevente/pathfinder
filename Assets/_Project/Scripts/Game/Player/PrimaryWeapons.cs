@@ -1,7 +1,9 @@
 using Pathfinder.Core.Combat;
+using Pathfinder.Core.Equipment;
 using Pathfinder.Core.Random;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Content;
+using Pathfinder.Game.Equipment;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
 
@@ -41,11 +43,42 @@ namespace Pathfinder.Game.Player
 
     public static class PrimaryWeapons
     {
-        public static IPrimaryWeapon Create(PrimaryWeaponDefinition definition, IRandom random) => definition.FireMode switch
+        /// <summary>Builds the runtime weapon. Fire rate and magazine size include stat modifiers, e.g. Overclock.</summary>
+        public static IPrimaryWeapon Create(PrimaryWeaponDefinition definition, IRandom random, StatSheet stats) => definition.FireMode switch
         {
-            PrimaryFireMode.Charge => new ChargePrimary(definition),
-            _ => new AutomaticPrimary(definition, random),
+            PrimaryFireMode.Charge => new ChargePrimary(definition, random, stats),
+            _ => new AutomaticPrimary(definition, random, stats),
         };
+
+        /// <summary>
+        /// Spawns one projectile with the ship's damage and pierce bonuses and a crit roll. The crit is rolled at fire time,
+        /// so hit order can never change the outcome.
+        /// </summary>
+        internal static void Spawn(PlayerShip ship, CombatWorld world, IRandom random, PrimaryWeaponDefinition weapon, in ShotParams shot,
+            Vector2 direction, float baseDamage, float radius, float visualScale = 1f)
+        {
+            float damage = baseDamage * ship.PrimaryDamageMultiplier * shot.DamageMultiplier;
+            if (ship.CritChance > 0f && random.Chance(ship.CritChance))
+                damage *= 2f;
+
+            int pierce = weapon.Pierce + ship.Stats.GetInt(StatId.Pierce, 0) + shot.ExtraPierce;
+            world.Projectiles.Spawn(new ProjectileSpawn(
+                ship.MuzzlePosition, direction, weapon.ProjectileSpeed, damage, radius, weapon.Range, ship.Team, ship.EntityId,
+                weapon.ProjectilePrefab, weapon.ImpactPrefab, pierce: pierce, damageAtMaxRange: weapon.DamageAtMaxRange,
+                visualScale: visualScale));
+        }
+
+        /// <summary>Spawns the extra fan projectiles some equipment adds around a shot, e.g. Split Shot.</summary>
+        internal static void SpawnExtras(PlayerShip ship, CombatWorld world, IRandom random, PrimaryWeaponDefinition weapon, in ShotParams shot,
+            Vector2 direction, float baseDamage, float radius, float visualScale = 1f)
+        {
+            for (int i = 0; i < shot.ExtraProjectiles; i++)
+            {
+                int side = i % 2 == 0 ? 1 : -1;
+                float angle = side * shot.ExtraSpreadDegrees * (i / 2 + 1);
+                Spawn(ship, world, random, weapon, shot, PlaneMath.Rotate(direction, angle), baseDamage, radius, visualScale);
+            }
+        }
     }
 
     /// <summary>Magazine weapons: Photon Repeater, Plasma Cutter, Neutron Bomb Launcher, Bot Dispatcher.</summary>
@@ -57,11 +90,14 @@ namespace Pathfinder.Game.Player
         public PrimaryWeaponDefinition Definition { get; }
         public MagazineWeapon Magazine => _magazine;
 
-        public AutomaticPrimary(PrimaryWeaponDefinition definition, IRandom random)
+        public AutomaticPrimary(PrimaryWeaponDefinition definition, IRandom random, StatSheet stats)
         {
             Definition = definition;
             _random = random;
-            _magazine = new MagazineWeapon(definition.MagazineSize, definition.ShotsPerSecond, definition.ReloadTime);
+            _magazine = new MagazineWeapon(
+                Mathf.Max(1, stats.GetInt(StatId.MagazineSize, definition.MagazineSize)),
+                Mathf.Max(0.1f, stats.Get(StatId.FireRate, definition.ShotsPerSecond)),
+                definition.ReloadTime);
         }
 
         public PrimaryWeaponStatus Status => _magazine.IsReloading
@@ -78,8 +114,8 @@ namespace Pathfinder.Game.Player
         void FireShot(PlayerShip ship, CombatWorld world)
         {
             var weapon = Definition;
+            var shot = ship.PrepareShot();
             int count = weapon.ProjectilesPerShot;
-            Vector2 muzzle = ship.MuzzlePosition;
 
             for (int i = 0; i < count; i++)
             {
@@ -95,11 +131,12 @@ namespace Pathfinder.Game.Player
                     angle = -weapon.SpreadDegrees * 0.5f + slot * (i + 0.5f) + _random.Range(-0.3f, 0.3f) * slot;
                 }
 
-                world.Projectiles.Spawn(new ProjectileSpawn(
-                    muzzle, PlaneMath.Rotate(ship.AimDirection, angle), weapon.ProjectileSpeed, weapon.Damage, weapon.ProjectileRadius,
-                    weapon.Range, ship.Team, ship.EntityId, weapon.ProjectilePrefab, weapon.ImpactPrefab,
-                    pierce: weapon.Pierce, damageAtMaxRange: weapon.DamageAtMaxRange));
+                Vector2 direction = PlaneMath.Rotate(ship.AimDirection, angle);
+                PrimaryWeapons.Spawn(ship, world, _random, weapon, shot, direction, weapon.Damage, weapon.ProjectileRadius);
             }
+
+            if (shot.ExtraProjectiles > 0)
+                PrimaryWeapons.SpawnExtras(ship, world, _random, weapon, shot, ship.AimDirection, weapon.Damage, weapon.ProjectileRadius);
 
             ship.NotifyFired();
         }
@@ -109,14 +146,19 @@ namespace Pathfinder.Game.Player
     public sealed class ChargePrimary : IPrimaryWeapon
     {
         readonly ChargeWeapon _charge;
+        readonly IRandom _random;
 
         public PrimaryWeaponDefinition Definition { get; }
         public ChargeWeapon Charge => _charge;
 
-        public ChargePrimary(PrimaryWeaponDefinition definition)
+        public ChargePrimary(PrimaryWeaponDefinition definition, IRandom random, StatSheet stats)
         {
             Definition = definition;
-            _charge = new ChargeWeapon(definition.MinChargeTime, definition.FullChargeTime, definition.OverheatTime, definition.LockoutTime);
+            _random = random;
+
+            // Fire-rate bonuses shorten the charge.
+            float speed = Mathf.Max(0.1f, stats.Get(StatId.FireRate, 1f));
+            _charge = new ChargeWeapon(definition.MinChargeTime / speed, definition.FullChargeTime / speed, definition.OverheatTime, definition.LockoutTime);
         }
 
         public PrimaryWeaponStatus Status
@@ -139,13 +181,14 @@ namespace Pathfinder.Game.Player
                 return;
 
             var weapon = Definition;
-            world.Projectiles.Spawn(new ProjectileSpawn(
-                ship.MuzzlePosition, ship.AimDirection, weapon.ProjectileSpeed,
-                Mathf.Lerp(weapon.Damage, weapon.MaxChargeDamage, power),
-                Mathf.Lerp(weapon.ProjectileRadius, weapon.MaxChargeRadius, power),
-                weapon.Range, ship.Team, ship.EntityId, weapon.ProjectilePrefab, weapon.ImpactPrefab,
-                pierce: weapon.Pierce, damageAtMaxRange: weapon.DamageAtMaxRange,
-                visualScale: Mathf.Lerp(1f, weapon.MaxChargeVisualScale, power)));
+            var shot = ship.PrepareShot();
+            float damage = Mathf.Lerp(weapon.Damage, weapon.MaxChargeDamage, power);
+            float radius = Mathf.Lerp(weapon.ProjectileRadius, weapon.MaxChargeRadius, power);
+            float scale = Mathf.Lerp(1f, weapon.MaxChargeVisualScale, power);
+
+            PrimaryWeapons.Spawn(ship, world, _random, weapon, shot, ship.AimDirection, damage, radius, scale);
+            if (shot.ExtraProjectiles > 0)
+                PrimaryWeapons.SpawnExtras(ship, world, _random, weapon, shot, ship.AimDirection, damage, radius, scale);
 
             ship.NotifyFired();
         }

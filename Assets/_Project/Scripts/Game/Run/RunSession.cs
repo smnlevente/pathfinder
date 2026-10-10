@@ -13,9 +13,9 @@ namespace Pathfinder.Game.Run
         public static RunState Current { get; private set; }
 
         /// <summary>Starts a new run. With no seed, a fresh unpredictable one is generated (GDD §14.3).</summary>
-        public static RunState Begin(Seed? seed = null)
+        public static RunState Begin(Seed? seed = null, PilotLoadout loadout = default)
         {
-            Current = new RunState(seed ?? RunSeed.Generate());
+            Current = new RunState(seed ?? RunSeed.Generate()) { Loadout = loadout };
             return Current;
         }
 

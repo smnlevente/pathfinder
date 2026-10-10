@@ -81,6 +81,32 @@ namespace Pathfinder.Core.Combat
             return healed;
         }
 
+        /// <summary>
+        /// Sets new maximums, e.g. after equipment changes. A higher maximum also heals by the difference, and a lower one
+        /// clamps the current value.
+        /// </summary>
+        public void SetLimits(float maxHull, float maxShield)
+        {
+            if (IsDead)
+                return;
+
+            maxHull = Math.Max(1f, maxHull);
+            maxShield = Math.Max(0f, maxShield);
+            Hull = Math.Min(maxHull, Hull + Math.Max(0f, maxHull - MaxHull));
+            Shield = Math.Min(maxShield, Shield + Math.Max(0f, maxShield - MaxShield));
+            MaxHull = maxHull;
+            MaxShield = maxShield;
+        }
+
+        public void AddShield(float amount)
+        {
+            if (!IsDead && amount > 0f)
+                Shield = Math.Min(MaxShield, Shield + amount);
+        }
+
+        /// <summary>Brings a ship back from a lethal hit, e.g. Last Stand (GDD §8.5).</summary>
+        public void Revive(float hull) => Hull = Math.Max(1f, Math.Min(MaxHull, hull));
+
         /// <summary>Raises max hull, e.g. Repair's "Reinforce" option (GDD §10.4). Optionally heals by the same amount.</summary>
         public void IncreaseMaxHull(float amount, bool heal)
         {

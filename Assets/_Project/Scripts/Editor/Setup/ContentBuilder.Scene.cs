@@ -54,7 +54,7 @@ namespace Pathfinder.Editor.Setup
             EditorBuildSettings.scenes = scenes.Select(name => new EditorBuildSettingsScene($"{ScenesDir}/{name}.unity", true)).ToArray();
         }
 
-        static void PopulateScenes(Art art, Actors actors, Data data, RunArt runArt, RunConfig runConfig)
+        static void PopulateScenes(Art art, Actors actors, Data data, RunArt runArt, RunConfig runConfig, EquipmentContent equipment)
         {
             // Opening a scene can unload assets that nothing references yet, which invalidates the in-memory
             // handles from the build steps above. Capture paths first and reload afterwards.
@@ -62,19 +62,19 @@ namespace Pathfinder.Editor.Setup
             {
                 Player = AssetPathOf(actors.Player), Telegraph = AssetPathOf(art.SpawnTelegraph), Scrap = AssetPathOf(art.ScrapVisual),
                 Floor = AssetPathOf(art.Floor), Wall = AssetPathOf(art.Wall), Ship = AssetPathOf(data.Ship), Waves = AssetPathOf(data.Waves),
-                RunConfig = AssetPathOf(runConfig),
+                RunConfig = AssetPathOf(runConfig), Database = AssetPathOf(equipment.Database),
                 Primaries = Array.ConvertAll(data.Primaries, p => AssetPathOf(p)),
                 Secondaries = Array.ConvertAll(data.Secondaries, s => AssetPathOf(s)),
             };
 
             PopulateCombatScene(SandboxScenePath, assets, isRun: false);
             PopulateCombatScene(RunScenePath, assets, isRun: true);
-            PopulateHubScene();
+            PopulateHubScene(assets);
         }
 
         sealed class ScenePaths
         {
-            public string Player, Telegraph, Scrap, Floor, Wall, Ship, Waves, RunConfig;
+            public string Player, Telegraph, Scrap, Floor, Wall, Ship, Waves, RunConfig, Database;
             public string[] Primaries, Secondaries;
         }
 
@@ -95,9 +95,10 @@ namespace Pathfinder.Editor.Setup
             var primaries = Array.ConvertAll(assets.Primaries, p => (Object)Load<PrimaryWeaponDefinition>(p));
             var secondaries = Array.ConvertAll(assets.Secondaries, p => (Object)Load<SecondaryWeaponDefinition>(p));
 
+            var database = Load<ContentDatabase>(assets.Database);
             var spawner = FindOrCreate<PlayerSpawner>("Player Spawner");
             SetFields(spawner, ("world", world), ("shipPrefab", Load<PlayerShip>(assets.Player)), ("ship", Load<ShipDefinition>(assets.Ship)),
-                ("primaryWeapon", primaries[0]), ("secondaryWeapon", secondaries[0]));
+                ("primaryWeapon", primaries[0]), ("secondaryWeapon", secondaries[0]), ("useRunLoadout", isRun), ("content", database));
 
             // M2 replaced the M1 test spawner with the wave director. Its script no longer exists.
             var oldSpawner = GameObject.Find("Wave Spawner");
@@ -110,6 +111,7 @@ namespace Pathfinder.Editor.Setup
 
             var flow = FindOrCreate<RunFlow>("Run Flow");
             var hud = GetOrAdd<CombatHud>(flow.gameObject);
+            var equipmentChoice = GetOrAdd<EquipmentChoiceScreen>(flow.gameObject);
             var debug = FindOrCreate<DebugHotkeys>("Dev Tools");
 
             RunDirector runDirector = null;
@@ -121,7 +123,8 @@ namespace Pathfinder.Editor.Setup
                 var dialog = GetOrAdd<ChoiceDialog>(runDirector.gameObject);
                 var mapScreen = GetOrAdd<GalaxyMapScreen>(runDirector.gameObject);
 
-                SetFields(level, ("world", world), ("director", director), ("config", Load<RunConfig>(assets.RunConfig)), ("dialog", dialog));
+                SetFields(level, ("world", world), ("director", director), ("config", Load<RunConfig>(assets.RunConfig)), ("dialog", dialog),
+                    ("equipmentChoice", equipmentChoice), ("content", database));
                 SetFields(runDirector, ("world", world), ("level", level));
                 SetFields(mapScreen, ("director", runDirector));
                 foreach (var component in new Component[] { runDirector, level, mapScreen })
@@ -130,7 +133,8 @@ namespace Pathfinder.Editor.Setup
 
             SetFields(flow, ("world", world), ("runDirector", (Object)runDirector));
             SetFields(hud, ("world", world), ("runFlow", flow), ("waveDirector", director), ("debugHotkeys", debug), ("runDirector", (Object)runDirector));
-            SetFields(debug, ("waveDirector", director), ("primaryWeapons", primaries), ("secondaryWeapons", secondaries), ("level", (Object)level));
+            SetFields(debug, ("waveDirector", director), ("primaryWeapons", primaries), ("secondaryWeapons", secondaries), ("level", (Object)level),
+                ("content", database), ("equipmentChoice", equipmentChoice));
 
             var camera = Camera.main;
             if (camera == null)
@@ -148,10 +152,12 @@ namespace Pathfinder.Editor.Setup
             EditorSceneManager.SaveScene(scene);
         }
 
-        static void PopulateHubScene()
+        static void PopulateHubScene(ScenePaths assets)
         {
             var scene = EditorSceneManager.OpenScene(HubScenePath, OpenSceneMode.Single);
-            FindOrCreate<HubMenu>("Hub Menu");
+            var menu = FindOrCreate<HubMenu>("Hub Menu");
+            SetFields(menu, ("content", Load<ContentDatabase>(assets.Database)));
+            RequireReferences(menu);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
         }

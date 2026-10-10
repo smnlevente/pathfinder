@@ -122,7 +122,7 @@ namespace Pathfinder.Game.Combat
                 var collector = FindCollector(pickup, out float distance);
                 if (collector != null && distance <= collector.Radius + CollectPadding)
                 {
-                    collector.AddScraps(pickup.Amount);
+                    collector.CollectScraps(pickup.Amount);
                     RemoveAt(i, pickup);
                     continue;
                 }

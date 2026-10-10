@@ -42,8 +42,8 @@ namespace Pathfinder.Game.Content
                 int targetId = s_targets.Count > 0 ? s_targets[i % s_targets.Count].EntityId : 0;
 
                 world.Projectiles.Spawn(new ProjectileSpawn(
-                    ship.Position + direction * 0.6f, direction, Speed, Damage, Radius, Range, ship.Team, ship.EntityId,
-                    ProjectilePrefab, ImpactPrefab, turnRate: TurnRate, targetId: targetId));
+                    ship.Position + direction * 0.6f, direction, Speed, Damage * ship.SecondaryDamageMultiplier, Radius, Range, ship.Team, ship.EntityId,
+                    ProjectilePrefab, ImpactPrefab, turnRate: TurnRate, targetId: targetId, kind: DamageKind.Secondary));
             }
         }
     }

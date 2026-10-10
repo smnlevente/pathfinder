@@ -6,6 +6,15 @@ namespace Pathfinder.Game.Content
     [CreateAssetMenu(menuName = "Pathfinder/Ship", fileName = "Ship_")]
     public sealed class ShipDefinition : ContentDefinition
     {
+        [field: Header("Trait")]
+        [field: SerializeField] public string TraitName { get; private set; } = string.Empty;
+        [field: SerializeField, TextArea] public string TraitDescription { get; private set; } = string.Empty;
+        [field: SerializeField, Tooltip("Optional always-on effect, e.g. the Stormbringer's Lightning Core. Stat-only traits live in the stats below.")]
+        public Pathfinder.Game.Equipment.EquipmentDefinition Trait { get; private set; }
+
+        [field: SerializeField, Min(0), Tooltip("Extra options in every equipment choice and Shop catalog (Arcanum Explorer: 1).")]
+        public int ExtraEquipmentChoices { get; private set; }
+
         [field: Header("Durability")]
         [field: SerializeField, Min(1f)] public float MaxHull { get; private set; } = 100f;
         [field: SerializeField, Min(0f)] public float MaxShield { get; private set; } = 25f;

@@ -12,12 +12,13 @@ The design lives in [docs/GDD.md](docs/GDD.md).
 | M0 Project setup | ✅ |
 | M1 Core combat feel | ✅ playtested |
 | M2 Combat breadth | ✅ 3 primaries, 2 secondaries, 5 enemy types + elites, wave director, Scraps |
-| M3 Run structure | ✅ galaxy map, 7 level types, 3 galaxies, victory/defeat (equipment and real bosses are placeholders until M4/M5) |
-| M4–M6 | Planned (GDD §17) |
+| M3 Run structure | ✅ galaxy map, 7 level types, 3 galaxies, victory/defeat |
+| M4 Build system | ✅ 20 equipment items, stats, choice cards, Shop catalog, Titan + Stormbringer traits, Hub loadout |
+| M5–M6 | Planned (GDD §17): real boss, Hub meta progression, saves, polish |
 
 ## Playing
 
-**A full run:** open `Assets/_Project/Scenes/Boot.unity` (or `Hub.unity`), press Play and choose **Start Run**. You can also
+**A full run:** open `Assets/_Project/Scenes/Boot.unity` (or `Hub.unity`), press Play, choose **Start Run** and pick a ship and loadout. You can also
 open `Run.unity` directly. Pick a route on the galaxy map, clear levels, fly into the wormhole, and beat three bosses to
 reach New Home.
 
@@ -38,9 +39,9 @@ reach New Home.
 | Galaxy map: choose a node | Left/Right + Enter, or click | D-pad / stick + A |
 
 **Dev hotkeys** (Editor and development builds): **F1** cycle primary weapon, **F2** cycle secondary, **F3** god mode,
-**F4** kill all enemies, **F5** skip to the next wave, **F6** skip the current level (Run scene).
+**F4** kill all enemies, **F5** skip to the next wave, **F6** skip the current level (Run scene), **F7** offer 3 random equipment.
 
-Tuning lives in the ScriptableObjects under `Assets/_Project/Data`: ship, weapons, enemies, elites, and the wave config
+Tuning lives in the ScriptableObjects under `Assets/_Project/Data`: ships, weapons, equipment (`Data/Equipment`), enemies, elites, and the wave config
 `Waves/Waves_ShatteredExpanse`. Behaviour tuning (bursts, charge speed, launch rates) is on the brain components in the
 enemy prefabs. To replay an exact run, set a seed code on **Combat World** in the Run scene.
 

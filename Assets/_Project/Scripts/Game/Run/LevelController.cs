@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using Pathfinder.Core.Equipment;
 using Pathfinder.Core.Random;
 using Pathfinder.Core.Run;
 using Pathfinder.Game.Combat;
+using Pathfinder.Game.Content;
 using Pathfinder.Game.Enemies;
+using Pathfinder.Game.Equipment;
 using Pathfinder.Game.Player;
 using Pathfinder.Game.Presentation;
 using Pathfinder.Game.Simulation;
@@ -51,6 +54,14 @@ namespace Pathfinder.Game.Run
         [SerializeField] WaveDirector director;
         [SerializeField] RunConfig config;
         [SerializeField] ChoiceDialog dialog;
+        [SerializeField] EquipmentChoiceScreen equipmentChoice;
+        [SerializeField] ContentDatabase content;
+
+        public sealed class CatalogItem
+        {
+            public EquipmentDefinition Item;
+            public bool Sold;
+        }
 
         sealed class HarvestNode
         {
@@ -63,8 +74,12 @@ namespace Pathfinder.Game.Run
 
         readonly List<HarvestNode> _nodes = new List<HarvestNode>();
         readonly List<GameObject> _spawnedObjects = new List<GameObject>();
+        readonly List<CatalogItem> _catalog = new List<CatalogItem>();
         RunState _run;
         IRandom _random;
+        IRandom _lootRandom;
+        IRandom _shopRandom;
+        int _rerolls;
         GameObject _exit;
         Vector2 _stationPosition;
         ObjectiveMarker _stationMarker;
@@ -90,6 +105,8 @@ namespace Pathfinder.Game.Run
         public int DarkMatterHarvested { get; private set; }
         public float InstabilityRemaining { get; private set; }
         public bool CacheCollected => _cacheCollected;
+        public IReadOnlyList<CatalogItem> Catalog => _catalog;
+        public int RerollPrice => config.RerollPrice + config.RerollPriceIncrease * _rerolls;
         public Vector2? CachePosition => _cacheCollected ? null : _cachePosition;
         public Vector2 StationPosition => _stationPosition;
 
@@ -125,6 +142,9 @@ namespace Pathfinder.Game.Run
             IsActive = true;
             _exited = false;
             _random = context.Seed.CreateRandom(SeedLabels.Layout);
+            _lootRandom = context.Seed.CreateRandom(SeedLabels.Loot);
+            _shopRandom = context.Seed.CreateRandom("shop");
+            _rerolls = 0;
 
             RewardMultiplier = context.Ambush ? config.AmbushRewardMultiplier : context.FromMystery ? config.MysteryRewardMultiplier : 1f;
             float scrapsDrop = RewardMultiplier * (context.Type == MapNodeType.Scraps ? config.ScrapsDropMultiplier : 1f);
@@ -200,6 +220,7 @@ namespace Pathfinder.Game.Run
             }
             _spawnedObjects.Clear();
             _nodes.Clear();
+            _catalog.Clear();
 
             _exit = null;
             _stationMarker = null;
@@ -316,14 +337,13 @@ namespace Pathfinder.Game.Run
             if (collector == null)
                 return;
 
-            // Placeholder until M4: the cache pays Scraps instead of offering a choice of 3 equipment.
             _cacheCollected = true;
-            int scraps = Mathf.RoundToInt(config.CacheScraps * RewardMultiplier);
-            collector.AddScraps(scraps);
             if (_cacheView != null)
                 _cacheView.SetActive(false);
-            ShowBanner($"EQUIPMENT CACHE   +{scraps} SCRAPS (equipment arrives in M4)");
-            TryCompleteEquipment();
+
+            // Mystery and ambush caches guarantee Rare or better (GDD §10.5).
+            var minimum = Context.FromMystery ? Rarity.Rare : Rarity.Common;
+            OfferEquipment("EQUIPMENT CACHE", collector, minimum, took => TryCompleteEquipment());
         }
 
         void OnEquipmentWavesCleared(WaveDirector source) => TryCompleteEquipment();
@@ -331,8 +351,38 @@ namespace Pathfinder.Game.Run
         void TryCompleteEquipment()
         {
             bool carrierDone = _cacheCarrier == null || !_cacheCarrier.IsAlive;
-            if (director.IsComplete && carrierDone && _cacheCollected)
+            if (director.IsComplete && carrierDone && _cacheCollected && !equipmentChoice.IsOpen)
                 OpenExit();
+        }
+
+        /// <summary>
+        /// Shows a choice of random equipment (GDD §10.2): 3 items, plus the ship's bonus choices. Items the pilot already has
+        /// at the maximum level are never offered.
+        /// </summary>
+        void OfferEquipment(string title, PlayerShip pilot, Rarity minimum, Action<bool> onClosed)
+        {
+            var offer = RollEquipment(config.CacheChoices, minimum, pilot, _lootRandom);
+            if (offer.Count == 0)
+            {
+                pilot.AddScraps(config.SkipScraps);
+                onClosed?.Invoke(false);
+                return;
+            }
+            equipmentChoice.Show(title, offer, pilot, config.SkipScraps, onClosed);
+        }
+
+        public List<EquipmentDefinition> RollEquipment(int count, Rarity minimum, PlayerShip pilot, IRandom random)
+        {
+            var pool = content.Equipment;
+            var candidates = new LootCandidate[pool.Length];
+            for (int i = 0; i < pool.Length; i++)
+                candidates[i] = new LootCandidate(pool[i].Rarity, pool[i].Weight, excluded: pilot.PreviewEquip(pool[i]) == EquipOutcome.AlreadyMaxed);
+
+            int total = count + pilot.Definition.ExtraEquipmentChoices;
+            var offer = new List<EquipmentDefinition>();
+            foreach (int index in EquipmentRoller.Roll(candidates, total, Context.GalaxyIndex, minimum, random))
+                offer.Add(pool[index]);
+            return offer;
         }
 
         // ---------------------------------------------------------------- Dark Matter level (GDD §10.3)
@@ -416,6 +466,8 @@ namespace Pathfinder.Game.Run
         {
             _stationPosition = Vector2.zero;
             _stationUsed = false;
+            if (Context.Type == MapNodeType.Shop)
+                RollCatalog();
             if (prefab == null)
                 return;
 
@@ -477,19 +529,129 @@ namespace Pathfinder.Game.Run
             ShowBanner(choice == RepairChoice.Repair ? "HULL REPAIRED" : "HULL REINFORCED");
         }
 
-        /// <summary>Shop (M3 placeholder): hull repairs for Scraps. The equipment catalog arrives in M4.</summary>
+        /// <summary>The Shop (GDD §10.6): buy equipment, upgrade equipped items, repair hull, reroll the catalog.</summary>
         void OpenShop(PlayerShip pilot)
         {
             dialog.Show("SHOP", () => $"Scraps {pilot.Scraps}   ·   Hull {Mathf.CeilToInt(pilot.Vitals.Hull)} / {pilot.Vitals.MaxHull:0}", () =>
             {
                 var options = new List<ChoiceDialog.Option>();
-                foreach (int amount in new[] { 10, 25 })
-                    options.Add(RepairOffer(pilot, amount, $"Repair {amount} hull"));
+                for (int i = 0; i < _catalog.Count; i++)
+                {
+                    int index = i;
+                    var entry = _catalog[i];
+                    int price = PriceOf(entry.Item);
+                    var outcome = pilot.PreviewEquip(entry.Item);
+                    string state = entry.Sold ? "SOLD" : outcome == EquipOutcome.AlreadyMaxed ? "MAXED" : $"{price} Scraps";
+                    string action = outcome == EquipOutcome.LeveledUp ? "level up" : outcome == EquipOutcome.NeedsSwap ? "swap" : "new";
+                    options.Add(new ChoiceDialog.Option
+                    {
+                        Label = $"{entry.Item.DisplayName} ({entry.Item.Rarity}, {action}): {entry.Item.Describe(1)}   [{state}]",
+                        Enabled = !entry.Sold && outcome != EquipOutcome.AlreadyMaxed && pilot.Scraps >= price,
+                        OnChoose = () =>
+                        {
+                            BuyEquipment(pilot, index, reopenShop: true);
+                            return dialog.IsOpen;
+                        },
+                    });
+                }
+
+                foreach (var equipped in pilot.Equipment.All)
+                {
+                    if (equipped.Level >= EquipmentRules.MaxLevel)
+                        continue;
+                    var item = equipped.Item;
+                    int price = UpgradePrice(equipped.Level);
+                    options.Add(new ChoiceDialog.Option
+                    {
+                        Label = $"Upgrade {item.DisplayName} to {EquipmentChoiceScreen.Roman(equipped.Level + 1)}: {price} Scraps",
+                        Enabled = pilot.Scraps >= price,
+                        OnChoose = () => { UpgradeEquipment(pilot, item); return true; },
+                    });
+                }
+
+                options.Add(RepairOffer(pilot, 25, "Repair 25 hull"));
                 options.Add(RepairOffer(pilot, Mathf.CeilToInt(pilot.Vitals.MaxHull - pilot.Vitals.Hull), "Repair to full"));
-                options.Add(new ChoiceDialog.Option { Label = "Equipment catalog (arrives in M4)", Enabled = false });
+                options.Add(new ChoiceDialog.Option
+                {
+                    Label = $"Reroll catalog: {RerollPrice} Scraps",
+                    Enabled = pilot.Scraps >= RerollPrice,
+                    OnChoose = () => { RerollCatalog(pilot); return true; },
+                });
                 options.Add(new ChoiceDialog.Option { Label = "Leave", OnChoose = () => false });
                 return options;
             });
+        }
+
+        void RollCatalog()
+        {
+            _catalog.Clear();
+            var pilot = FirstLivingPilot();
+            if (pilot == null || content == null)
+                return;
+            foreach (var item in RollEquipment(config.ShopCatalogSize, Rarity.Common, pilot, _shopRandom))
+                _catalog.Add(new CatalogItem { Item = item });
+        }
+
+        int PriceOf(EquipmentDefinition item) => config.EquipmentPrices[Mathf.Clamp((int)item.Rarity, 0, config.EquipmentPrices.Length - 1)];
+
+        int UpgradePrice(int currentLevel) => config.UpgradePrices[Mathf.Clamp(currentLevel - 1, 0, config.UpgradePrices.Length - 1)];
+
+        /// <summary>
+        /// Buys catalog item <paramref name="index"/>. A full category goes through the swap screen, and the pilot pays only
+        /// if a swap is confirmed. Returns true when the purchase completed immediately. Also called directly by tests.
+        /// </summary>
+        public bool BuyEquipment(PlayerShip pilot, int index, bool reopenShop = false)
+        {
+            if (Context.Type != MapNodeType.Shop || index < 0 || index >= _catalog.Count)
+                return false;
+
+            var entry = _catalog[index];
+            int price = PriceOf(entry.Item);
+            var outcome = pilot.PreviewEquip(entry.Item);
+            if (entry.Sold || outcome == EquipOutcome.AlreadyMaxed || pilot.Scraps < price)
+                return false;
+
+            if (outcome == EquipOutcome.NeedsSwap)
+            {
+                if (dialog.IsOpen)
+                    dialog.Close();
+                equipmentChoice.ShowSwap(entry.Item, pilot, took =>
+                {
+                    if (took && pilot.TrySpendScraps(price))
+                        entry.Sold = true;
+                    if (reopenShop)
+                        OpenShop(pilot);
+                });
+                return false;
+            }
+
+            pilot.TrySpendScraps(price);
+            pilot.Equip(entry.Item);
+            entry.Sold = true;
+            return true;
+        }
+
+        /// <summary>Upgrades an equipped item one level for Scraps (35 for I→II, 60 for II→III). Also called directly by tests.</summary>
+        public bool UpgradeEquipment(PlayerShip pilot, EquipmentDefinition item)
+        {
+            var entry = pilot.Equipment.Find(item);
+            if (Context.Type != MapNodeType.Shop || entry == null || entry.Level >= EquipmentRules.MaxLevel)
+                return false;
+
+            int price = UpgradePrice(entry.Level);
+            if (!pilot.TrySpendScraps(price))
+                return false;
+            return pilot.UpgradeEquipment(item);
+        }
+
+        /// <summary>Rerolls the unsold catalog. Each reroll costs more (15, then +10). Also called directly by tests.</summary>
+        public bool RerollCatalog(PlayerShip pilot)
+        {
+            if (Context.Type != MapNodeType.Shop || !pilot.TrySpendScraps(RerollPrice))
+                return false;
+            _rerolls++;
+            RollCatalog();
+            return true;
         }
 
         ChoiceDialog.Option RepairOffer(PlayerShip pilot, int hull, string label)
@@ -550,6 +712,21 @@ namespace Pathfinder.Game.Run
             }
             ShowBanner($"BOSS DEFEATED   +{cores} SINGULARITY CORE{(cores == 1 ? "" : "S")}");
             OpenExit();
+
+            // Boss rewards include a guaranteed Rare-or-better equipment choice (GDD §7.5).
+            var pilot = FirstLivingPilot();
+            if (pilot != null)
+                OfferEquipment("BOSS REWARD", pilot, Rarity.Rare, null);
+        }
+
+        static PlayerShip FirstLivingPilot()
+        {
+            foreach (var player in CombatRegistry.Players)
+            {
+                if (player.IsAlive)
+                    return player;
+            }
+            return null;
         }
 
         // ---------------------------------------------------------------- helpers
@@ -651,11 +828,11 @@ namespace Pathfinder.Game.Run
         public static string Description(MapNodeType type) => type switch
         {
             MapNodeType.Scraps => "Four dense waves with double Scraps drops, and a bonus at the end.",
-            MapNodeType.Equipment => "Three waves. Destroy the elite Cache Carrier and grab its Equipment Cache.",
+            MapNodeType.Equipment => "Three waves. Destroy the elite Cache Carrier and grab its cache: a choice of 3 equipment.",
             MapNodeType.DarkMatter => "Harvest Dark Matter before the wormhole destabilises. Leave whenever you like.",
             MapNodeType.Repair => "No enemies. Restore 40% hull, or reinforce for +15 max hull.",
             MapNodeType.Mystery => "Could be anything except the Shop, with bigger rewards. Sometimes an ambush.",
-            MapNodeType.Shop => "Spend Scraps on repairs before the boss.",
+            MapNodeType.Shop => "Buy and upgrade equipment and repair your hull before the boss.",
             MapNodeType.Boss => "The galaxy guardian. Defeat it to jump to the next galaxy.",
             _ => string.Empty,
         };

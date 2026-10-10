@@ -18,6 +18,10 @@ namespace Pathfinder.Core.Run
         bool _repairUsedThisGalaxy;
 
         public Seed Seed { get; }
+
+        /// <summary>The pilot's chosen ship and weapons, as content IDs (GDD §5.4). Empty means the scene defaults.</summary>
+        public PilotLoadout Loadout { get; set; }
+
         public int GalaxyIndex { get; private set; }
         public GalaxyMap Map { get; private set; }
 
@@ -116,6 +120,23 @@ namespace Pathfinder.Core.Run
             _repairUsedThisGalaxy = false;
             foreach (var node in Map.Nodes)
                 _repairUsedThisGalaxy |= node.Type == MapNodeType.Repair;
+        }
+    }
+
+    /// <summary>A pilot's starting ship, primary and secondary, stored as stable content IDs for saves and network messages.</summary>
+    public readonly struct PilotLoadout
+    {
+        public string ShipId { get; }
+        public string PrimaryId { get; }
+        public string SecondaryId { get; }
+
+        public bool IsEmpty => string.IsNullOrEmpty(ShipId);
+
+        public PilotLoadout(string shipId, string primaryId, string secondaryId)
+        {
+            ShipId = shipId;
+            PrimaryId = primaryId;
+            SecondaryId = secondaryId;
         }
     }
 

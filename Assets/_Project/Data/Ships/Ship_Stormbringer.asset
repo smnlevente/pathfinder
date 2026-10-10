@@ -14,6 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: ship.stormbringer
   displayName: Stormbringer Battleship
+  <TraitName>k__BackingField: Lightning Core
+  <TraitDescription>k__BackingField: Each primary hit has an 8% chance to call a
+    lightning strike from above.
+  <Trait>k__BackingField: {fileID: 11400000, guid: 5b63f1cfa824e4e4285b4745b9aaa53e, type: 2}
+  <ExtraEquipmentChoices>k__BackingField: 0
   <MaxHull>k__BackingField: 100
   <MaxShield>k__BackingField: 25
   <ShieldRegenRate>k__BackingField: 10
@@ -22,6 +27,7 @@ MonoBehaviour:
   <DamageTakenMultiplier>k__BackingField: 1
   <MoveSpeed>k__BackingField: 8
   <AccelerationTime>k__BackingField: 0.08
+  <PickupMagnetRadius>k__BackingField: 3
   <DashDistance>k__BackingField: 5
   <DashDuration>k__BackingField: 0.15
   <DashCharges>k__BackingField: 1

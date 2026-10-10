@@ -42,7 +42,8 @@ namespace Pathfinder.Game.Run
         [field: SerializeField, Min(1)] public int EquipmentWaves { get; private set; } = 3;
         [field: SerializeField] public EnemyDefinition CacheCarrier { get; private set; }
         [field: SerializeField] public EliteModifierDefinition CacheCarrierElite { get; private set; }
-        [field: SerializeField, Min(0), Tooltip("Placeholder reward until equipment arrives in M4.")] public int CacheScraps { get; private set; } = 25;
+        [field: SerializeField, Min(1)] public int CacheChoices { get; private set; } = 3;
+        [field: SerializeField, Min(0), Tooltip("Scraps for skipping an equipment choice (GDD §10.2).")] public int SkipScraps { get; private set; } = 15;
 
         [field: Header("Dark Matter level (GDD §10.3)")]
         [field: SerializeField, Min(1)] public int DarkMatterNodesMin { get; private set; } = 8;
@@ -62,6 +63,11 @@ namespace Pathfinder.Game.Run
 
         [field: Header("Shop level (GDD §10.6)")]
         [field: SerializeField, Min(0f), Tooltip("Scraps per point of hull.")] public float RepairPricePerHull { get; private set; } = 1f;
+        [field: SerializeField, Min(1)] public int ShopCatalogSize { get; private set; } = 4;
+        [field: SerializeField, Tooltip("Price by rarity: Common, Rare, Epic.")] public int[] EquipmentPrices { get; private set; } = { 40, 75, 120 };
+        [field: SerializeField, Tooltip("Upgrade price: level I→II, II→III.")] public int[] UpgradePrices { get; private set; } = { 35, 60 };
+        [field: SerializeField, Min(0)] public int RerollPrice { get; private set; } = 15;
+        [field: SerializeField, Min(0)] public int RerollPriceIncrease { get; private set; } = 10;
 
         [field: Header("Boss level (GDD §10.7)")]
         [field: SerializeField] public BossSetup Boss { get; private set; }

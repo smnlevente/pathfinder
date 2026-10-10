@@ -147,6 +147,21 @@ namespace Pathfinder.Game.Presentation
                 float fill = i < dash.Charges ? 1f : i == dash.Charges ? dash.RechargeProgress : 0f;
                 Bar(pip, fill, DashColor);
             }
+
+            // Ship trait and equipped items (GDD §8).
+            float line = y + 140f;
+            if (!string.IsNullOrEmpty(player.Definition.TraitName))
+            {
+                GUI.Label(new Rect(x, line, 500f, 24f), $"{player.Definition.DisplayName.ToUpperInvariant()}   ·   {player.Definition.TraitName}", _small);
+                line += 26f;
+            }
+            foreach (var entry in player.Equipment.All)
+            {
+                GUI.color = EquipmentChoiceScreen.RarityColor(entry.Item.Rarity);
+                GUI.Label(new Rect(x, line, 500f, 24f), $"{entry.Item.DisplayName} {EquipmentChoiceScreen.Roman(entry.Level)}", _small);
+                GUI.color = Color.white;
+                line += 24f;
+            }
         }
 
         void DrawOverlay(float width, string title, string hint)
