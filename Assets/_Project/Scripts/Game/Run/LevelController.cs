@@ -348,6 +348,7 @@ namespace Pathfinder.Game.Run
                     player.AddScraps(bonus);
             }
             ShowBanner(Loc.T("banner.level_clear", ("bonus", bonus)));
+            world.Pickups.Vacuum = true;
             OpenExit();
         }
 
@@ -398,7 +399,10 @@ namespace Pathfinder.Game.Run
         {
             bool carrierDone = _cacheCarrier == null || !_cacheCarrier.IsAlive;
             if (director.IsComplete && carrierDone && _cacheCollected && !equipmentChoice.IsOpen)
+            {
                 OpenExit();
+                world.Pickups.Vacuum = true;
+            }
         }
 
         /// <summary>
@@ -779,8 +783,10 @@ namespace Pathfinder.Game.Run
         {
             Boss = null;
 
-            // The fight is won: every enemy bullet still in the air turns harmless and fades out (playtest 2).
+            // The fight is won: every enemy bullet still in the air turns harmless and fades out (playtest 2), and the
+            // Scraps on the floor come home.
             world.Projectiles.Defuse(Pathfinder.Core.Combat.Team.Enemy);
+            world.Pickups.Vacuum = true;
             Audio.GameAudio.Play(Audio.SoundCue.BossDefeated);
             int cores = RunConfig.ForGalaxy(config.SingularityCores, Context.GalaxyIndex);
             _run?.AddSingularityCores(cores);
@@ -794,12 +800,24 @@ namespace Pathfinder.Game.Run
             _bossRewardDelay = BossRewardDelay;
         }
 
-        /// <summary>Boss rewards include a guaranteed Rare-or-better equipment choice (GDD §7.5).</summary>
+        /// <summary>
+        /// Boss rewards include a guaranteed Rare-or-better equipment choice (GDD §7.5). Once it's made, the wormhole draws
+        /// the pilots in (playtest 4).
+        /// </summary>
         void OfferBossReward()
         {
             var pilot = FirstLivingPilot();
             if (pilot != null)
-                OfferEquipment(Loc.T("choice.boss_reward"), pilot, Rarity.Rare, null);
+                OfferEquipment(Loc.T("choice.boss_reward"), pilot, Rarity.Rare, _ => PullIntoWormhole());
+        }
+
+        void PullIntoWormhole()
+        {
+            foreach (var player in CombatRegistry.Players)
+            {
+                if (player.IsAlive)
+                    player.PullTo(config.ExitPosition);
+            }
         }
 
         static PlayerShip FirstLivingPilot()
@@ -921,6 +939,7 @@ namespace Pathfinder.Game.Run
                     player.AddScraps(bonus);
             }
             ShowBanner(Loc.T("banner.ambush_survived", ("bonus", bonus)));
+            world.Pickups.Vacuum = true;
             OpenExit();
         }
 

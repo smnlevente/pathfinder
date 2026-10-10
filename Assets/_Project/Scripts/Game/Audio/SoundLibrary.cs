@@ -29,6 +29,12 @@ namespace Pathfinder.Game.Audio
         ExitOpen,
         BossDefeated,
         RunOver,
+
+        // Each enemy type winds up with its own sound, so a crowd doesn't drone (playtest 4).
+        TelegraphLancer,
+        TelegraphGunner,
+        TelegraphSpinner,
+        TelegraphCarrier,
     }
 
     /// <summary>Background music, by context (GDD §13.2).</summary>

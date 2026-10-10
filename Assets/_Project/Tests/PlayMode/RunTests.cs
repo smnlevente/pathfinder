@@ -338,7 +338,9 @@ namespace Pathfinder.Tests.PlayMode
             reward.Skip();
             Assert.AreEqual(scraps + 15, _player.Scraps, "Skipping pays 15 Scraps.");
 
-            yield return TakeExit();
+            // With the reward chosen, the wormhole draws the ship in: no need to fly there (playtest 4).
+            Assert.IsTrue(_player.IsPulled);
+            yield return WaitUntil(() => _director.State != RunDirector.Phase.Level, 4f);
             Assert.AreEqual(RunDirector.Phase.GalaxyCleared, _director.State);
             yield return WaitUntil(() => _director.State == RunDirector.Phase.Map, 5f);
             Assert.AreEqual(1, Run.GalaxyIndex);

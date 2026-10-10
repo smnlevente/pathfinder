@@ -43,6 +43,10 @@ namespace Pathfinder.Editor.Setup
                 (SoundCue.ExitOpen, ExitOpen, 0.55f, 0.5f, 1, 0f),
                 (SoundCue.BossDefeated, BossDefeated, 0.75f, 1f, 1, 0f),
                 (SoundCue.RunOver, RunOver, 0.7f, 1f, 1, 0f),
+                (SoundCue.TelegraphLancer, TelegraphLancer, 0.4f, 0.2f, 2, 0.12f),
+                (SoundCue.TelegraphGunner, TelegraphGunner, 0.3f, 0.2f, 2, 0.15f),
+                (SoundCue.TelegraphSpinner, TelegraphSpinner, 0.32f, 0.25f, 2, 0.15f),
+                (SoundCue.TelegraphCarrier, TelegraphCarrier, 0.45f, 0.4f, 1, 0.08f),
             };
 
             var clips = new Dictionary<SoundCue, AudioClip>();
@@ -255,6 +259,44 @@ namespace Pathfinder.Editor.Setup
             Tone(b, 0f, 0.45f, Wave.Saw, 260f, 620f, 0.45f, attack: 0.05f, decayPower: 0.7f);
             Tone(b, 0f, 0.45f, Wave.Sine, 520f, 1240f, 0.3f, attack: 0.05f, decayPower: 0.7f);
             LowPass(b, 1500f, 4000f);
+            return b;
+        }
+
+        /// <summary>Lancer: a rising charge-up whine, the length of its wind-up.</summary>
+        static float[] TelegraphLancer()
+        {
+            var b = Samples(0.6f);
+            Tone(b, 0f, 0.6f, Wave.Saw, 180f, 950f, 0.4f, attack: 0.08f, decayPower: 0.5f, vibratoHz: 14f, vibratoDepth: 0.02f);
+            Tone(b, 0f, 0.6f, Wave.Noise, 1500f, 7000f, 0.15f, attack: 0.2f, decayPower: 0.6f, seed: 30);
+            LowPass(b, 1200f, 5000f);
+            return b;
+        }
+
+        /// <summary>Gunner: a short two-tone lock-on beep.</summary>
+        static float[] TelegraphGunner()
+        {
+            var b = Samples(0.22f);
+            Tone(b, 0f, 0.08f, Wave.Square, 880f, 880f, 0.35f, decayPower: 1f);
+            Tone(b, 0.11f, 0.09f, Wave.Square, 1175f, 1175f, 0.35f, decayPower: 1f);
+            LowPass(b, 3500f, 3500f);
+            return b;
+        }
+
+        /// <summary>Spinner: a quick warble as it spins up.</summary>
+        static float[] TelegraphSpinner()
+        {
+            var b = Samples(0.4f);
+            Tone(b, 0f, 0.4f, Wave.Triangle, 420f, 780f, 0.5f, attack: 0.03f, decayPower: 0.8f, vibratoHz: 22f, vibratoDepth: 0.12f);
+            return b;
+        }
+
+        /// <summary>Carrier: a low horn before it launches its drones.</summary>
+        static float[] TelegraphCarrier()
+        {
+            var b = Samples(0.7f);
+            Tone(b, 0f, 0.7f, Wave.Saw, 98f, 131f, 0.6f, attack: 0.1f, decayPower: 0.9f);
+            Tone(b, 0f, 0.7f, Wave.Saw, 147f, 196f, 0.3f, attack: 0.12f, decayPower: 1f);
+            LowPass(b, 900f, 1600f);
             return b;
         }
 

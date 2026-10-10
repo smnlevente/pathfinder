@@ -69,6 +69,21 @@ namespace Pathfinder.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator Vacuum_BringsEveryScrapHome()
+        {
+            yield return LoadRun();
+            World.Pickups.SpawnScraps(Player.Position + new Vector2(18f, 10f), 8, new Pcg32(3, 3));
+            int scraps = Player.Scraps;
+            yield return WaitTicks(30);
+            Assert.Greater(World.Pickups.TotalAmount, 0, "Far outside the magnet, the Scraps stay put.");
+
+            World.Pickups.Vacuum = true; // a won fight
+            yield return WaitUntilTicks(() => World.Pickups.TotalAmount == 0, 240);
+            Assert.AreEqual(0, World.Pickups.TotalAmount);
+            Assert.AreEqual(scraps + 8, Player.Scraps, "Every piece flew to the ship.");
+        }
+
+        [UnityTest]
         public IEnumerator DebugScraps_GrantWithoutBanking()
         {
             yield return LoadRun();

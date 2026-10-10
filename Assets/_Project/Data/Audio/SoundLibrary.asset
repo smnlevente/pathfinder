@@ -100,9 +100,9 @@ MonoBehaviour:
   - Cue: 14
     Clip: {fileID: 8300000, guid: 9af77845a251e104998e90b63560ddd1, type: 3}
     Volume: 0.45
-    PitchJitter: 0.04
-    MinInterval: 0.15
-    MaxVoices: 3
+    PitchJitter: 0.12
+    MinInterval: 0.25
+    MaxVoices: 2
   - Cue: 15
     Clip: {fileID: 8300000, guid: 9d936c36eff370246a418f7a1757b0ab, type: 3}
     Volume: 0.85
@@ -150,6 +150,30 @@ MonoBehaviour:
     Volume: 0.7
     PitchJitter: 0
     MinInterval: 1
+    MaxVoices: 1
+  - Cue: 23
+    Clip: {fileID: 8300000, guid: cc593edad4a4aed4b92c35345475de83, type: 3}
+    Volume: 0.4
+    PitchJitter: 0.12
+    MinInterval: 0.2
+    MaxVoices: 2
+  - Cue: 24
+    Clip: {fileID: 8300000, guid: 0364502ed24704b45bb4aa3f8c331d7d, type: 3}
+    Volume: 0.3
+    PitchJitter: 0.15
+    MinInterval: 0.2
+    MaxVoices: 2
+  - Cue: 25
+    Clip: {fileID: 8300000, guid: 430f2a432e8d0da409cdb8b23c913079, type: 3}
+    Volume: 0.32
+    PitchJitter: 0.15
+    MinInterval: 0.25
+    MaxVoices: 2
+  - Cue: 26
+    Clip: {fileID: 8300000, guid: e21d97dd65823584285467feaedfeeef, type: 3}
+    Volume: 0.45
+    PitchJitter: 0.08
+    MinInterval: 0.4
     MaxVoices: 1
   <HubMusic>k__BackingField: {fileID: 8300000, guid: 959ace4af4b4f39419a6d4267f7477e5, type: 3}
   <CombatMusic>k__BackingField: {fileID: 8300000, guid: bb5cf62707a5a8b498628ecaf1b5ff62, type: 3}

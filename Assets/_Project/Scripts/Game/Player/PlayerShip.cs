@@ -103,6 +103,8 @@ namespace Pathfinder.Game.Player
         bool _dashMovementOverridden;
         bool _wasDashing;
         float _intangibleRemaining;
+        Vector2? _pullTarget;
+        float _pullSpeed;
         bool _godMode;
         bool _tickInvulnerable; // dash or intangibility, as of the last tick
         float _scrapsRemainder;
@@ -145,6 +147,7 @@ namespace Pathfinder.Game.Player
                 ExternalInvulnerability = _godMode,
             };
             _tickInvulnerable = false;
+            _pullTarget = null;
             Dash = new DashState(ship.DashCharges, ship.DashDuration, ship.DashRechargeTime);
             Velocity = Vector2.zero;
             Scraps = 0;
@@ -346,8 +349,35 @@ namespace Pathfinder.Game.Player
         }
 
         /// <summary>Places the ship at a level entry point, at rest, and tells its effects a new level began.</summary>
+        /// <summary>Being drawn into the exit wormhole: no control, no damage. See <see cref="PullTo"/>.</summary>
+        public bool IsPulled => _pullTarget.HasValue;
+
+        /// <summary>
+        /// Draws the ship into a point, spinning faster as it goes, with no control and no damage: the wormhole taking it
+        /// after a boss fight (playtest 4). Ends when the ship is placed for the next level.
+        /// </summary>
+        public void PullTo(Vector2 point)
+        {
+            _pullTarget = point;
+            _pullSpeed = 3f;
+        }
+
+        void SimulatePull(float deltaTime, CombatWorld world)
+        {
+            const float Acceleration = 30f, MaxSpeed = 28f, SpinDegrees = 720f;
+            _vitals.ExternalInvulnerability = true;
+            Vector2 toTarget = _pullTarget.Value - Position;
+            float distance = toTarget.magnitude;
+            _pullSpeed = Mathf.Min(MaxSpeed, _pullSpeed + Acceleration * deltaTime);
+            float step = Mathf.Min(distance, _pullSpeed * deltaTime);
+            Velocity = distance > 1e-4f ? toTarget / distance * _pullSpeed : Vector2.zero;
+            Position = world.ClampToArena(Position + (distance > 1e-4f ? toTarget / distance * step : Vector2.zero), Radius);
+            Heading += SpinDegrees * deltaTime * Mathf.Clamp01(_pullSpeed / MaxSpeed + 0.2f);
+        }
+
         public void PlaceForLevel(Vector2 position)
         {
+            _pullTarget = null;
             Teleport(position);
             Velocity = Vector2.zero;
             AimDirection = Vector2.up;
@@ -415,6 +445,12 @@ namespace Pathfinder.Game.Player
 
         public override void Simulate(float deltaTime, CombatWorld world)
         {
+            if (_pullTarget.HasValue)
+            {
+                SimulatePull(deltaTime, world);
+                return;
+            }
+
             var command = CommandSource?.ReadCommand(this) ?? default;
             Vector2 move = Vector2.ClampMagnitude(command.Move, 1f);
             InteractPressed = command.Interact;

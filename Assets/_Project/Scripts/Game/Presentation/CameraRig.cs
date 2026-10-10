@@ -26,6 +26,7 @@ namespace Pathfinder.Game.Presentation
         [SerializeField, Min(0f)] float killShake = 0.07f;
         [SerializeField, Min(0f)] float eliteKillShake = 0.2f;
         [SerializeField, Min(0f)] float bossKillShake = 0.7f;
+        [SerializeField, Min(0f), Tooltip("A low rumble while the wormhole draws the ship in.")] float wormholePullShake = 0.1f;
         [SerializeField, Min(0f)] float shakeDecay = 2.5f;
         [SerializeField, Min(0f)] float shakeFrequency = 25f;
 
@@ -93,6 +94,8 @@ namespace Pathfinder.Game.Presentation
             }
 
             SubscribeTo(firstLocal);
+            if (firstLocal != null && firstLocal.IsPulled)
+                Kick(wormholePullShake);
             if (count == 0)
                 return false;
 

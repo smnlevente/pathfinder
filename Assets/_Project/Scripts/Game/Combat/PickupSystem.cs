@@ -20,6 +20,7 @@ namespace Pathfinder.Game.Combat
         const float CollectPadding = 0.35f;
         const float AttractAcceleration = 60f;
         const float MaxAttractSpeed = 24f;
+        const float MaxVacuumSpeed = 40f;
         const float Drag = 5f;
 
         struct Pickup
@@ -87,6 +88,12 @@ namespace Pathfinder.Game.Combat
             }
         }
 
+        /// <summary>
+        /// Every pickup flies to the nearest pilot, however far, and none expire. Switched on when a fight is won, so the
+        /// Scraps on the floor come home on their own (playtest 4). Cleared with the level.
+        /// </summary>
+        public bool Vacuum { get; set; }
+
         /// <summary>Hands every remaining pickup to a pilot, e.g. when a level ends.</summary>
         public void CollectAll(PlayerShip collector)
         {
@@ -100,6 +107,7 @@ namespace Pathfinder.Game.Combat
         {
             for (int i = _active.Count - 1; i >= 0; i--)
                 RemoveAt(i, _active[i]);
+            Vacuum = false;
         }
 
         internal void CapturePrevious()
@@ -127,7 +135,7 @@ namespace Pathfinder.Game.Combat
                     continue;
                 }
 
-                if (pickup.Age >= Lifetime)
+                if (pickup.Age >= Lifetime && !Vacuum)
                 {
                     RemoveAt(i, pickup);
                     continue;
@@ -138,7 +146,7 @@ namespace Pathfinder.Game.Combat
                     // Accelerate toward the pilot, so pickups snap in satisfyingly.
                     pickup.Attracted = true;
                     Vector2 direction = (collector.Position - pickup.Position) / Mathf.Max(distance, 1e-4f);
-                    float speed = Mathf.Min(MaxAttractSpeed, pickup.Velocity.magnitude + AttractAcceleration * deltaTime);
+                    float speed = Mathf.Min(Vacuum ? MaxVacuumSpeed : MaxAttractSpeed, pickup.Velocity.magnitude + AttractAcceleration * deltaTime);
                     pickup.Velocity = direction * speed;
                 }
                 else
@@ -169,7 +177,7 @@ namespace Pathfinder.Game.Combat
             }
         }
 
-        static PlayerShip FindCollector(in Pickup pickup, out float distance)
+        PlayerShip FindCollector(in Pickup pickup, out float distance)
         {
             PlayerShip best = null;
             distance = float.MaxValue;
@@ -179,7 +187,7 @@ namespace Pathfinder.Game.Combat
                     continue;
 
                 float d = Vector2.Distance(player.Position, pickup.Position);
-                if (d <= player.MagnetRadius && d < distance)
+                if ((Vacuum || d <= player.MagnetRadius) && d < distance)
                 {
                     best = player;
                     distance = d;

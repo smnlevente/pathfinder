@@ -197,6 +197,9 @@ MonoBehaviour:
   voices: 28
   masterVolume: 1
   panDistance: 20
+  nearDistance: 6
+  farDistance: 32
+  farVolume: 0.3
   startTrack: 1
   musicVolume: 0.55
   musicFade: 1

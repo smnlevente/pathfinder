@@ -65,6 +65,19 @@ namespace Pathfinder.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator ClosingAMenuWithEsc_DoesNotAlsoPause()
+        {
+            yield return LoadRun();
+            var shop = new object();
+            ModalScreens.SetOpen(shop, true);
+            Assert.IsTrue(ModalScreens.BlocksPause);
+            ModalScreens.SetOpen(shop, false);
+            Assert.IsTrue(ModalScreens.BlocksPause, "The press that closed the menu must not also open the pause menu.");
+            yield return null;
+            Assert.IsFalse(ModalScreens.BlocksPause, "From the next frame, Esc pauses again.");
+        }
+
+        [UnityTest]
         public IEnumerator Options_ChangeSettings()
         {
             yield return LoadRun();

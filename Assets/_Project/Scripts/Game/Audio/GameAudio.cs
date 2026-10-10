@@ -9,10 +9,11 @@ using UnityEngine;
 namespace Pathfinder.Game.Audio
 {
     /// <summary>
-    /// Plays the game's sounds (GDD §13.2) from a pool of 2D voices, panned by where the sound happens relative to the
-    /// camera. It listens to combat events itself; other code calls <see cref="Play"/>. Each cue has a voice limit and a
-    /// minimum interval, so a bullet storm stays a texture instead of a wall of noise. Presentation only: the simulation
-    /// never waits on it, and every call is safe when no director is in the scene.
+    /// Plays the game's sounds (GDD §13.2) from a pool of voices, positioned around the local ship: panned by which side
+    /// of it a sound happens and quieter with distance, so the ship is the centre of the soundscape (playtest 4). It
+    /// listens to combat events itself; other code calls <see cref="Play"/>. Each cue has a voice limit and a minimum
+    /// interval, so a bullet storm stays a texture instead of a wall of noise. Presentation only: the simulation never
+    /// waits on it, and every call is safe when no director is in the scene.
     /// </summary>
     public sealed class GameAudio : MonoBehaviour
     {
@@ -21,7 +22,10 @@ namespace Pathfinder.Game.Audio
         [SerializeField] SoundLibrary library;
         [SerializeField, Min(4)] int voices = 28;
         [SerializeField, Range(0f, 1f)] float masterVolume = 1f;
-        [SerializeField, Min(1f), Tooltip("Horizontal distance from the camera at which sounds pan fully to one side.")] float panDistance = 20f;
+        [SerializeField, Min(1f), Tooltip("Sideways distance from the ship at which sounds pan fully to one side.")] float panDistance = 14f;
+        [SerializeField, Min(0f), Tooltip("Sounds this close to the ship play at full volume.")] float nearDistance = 6f;
+        [SerializeField, Min(1f), Tooltip("Sounds this far from the ship play at the far volume.")] float farDistance = 32f;
+        [SerializeField, Range(0f, 1f)] float farVolume = 0.3f;
         [SerializeField, Tooltip("What plays when the scene starts.")] MusicTrack startTrack;
         [SerializeField, Range(0f, 1f)] float musicVolume = 0.55f;
         [SerializeField, Min(0.01f)] float musicFade = 1f;
@@ -214,7 +218,16 @@ namespace Pathfinder.Game.Audio
 
         void OnDeflected(Vector2 position) => Play(SoundCue.Deflect, new Vector3(position.x, 0f, position.y));
 
-        void OnTelegraphed(Enemy enemy) => Play(enemy.Radius > 1f ? SoundCue.Roar : SoundCue.Telegraph, enemy.transform.position);
+        void OnTelegraphed(Enemy enemy)
+        {
+            // Each type has its own wind-up; the boss's are the generic warning (its roar is played by its brain).
+            var cue = enemy.TryGetComponent(out LancerBrain _) ? SoundCue.TelegraphLancer
+                : enemy.TryGetComponent(out GunnerBrain _) ? SoundCue.TelegraphGunner
+                : enemy.TryGetComponent(out SpinnerBrain _) ? SoundCue.TelegraphSpinner
+                : enemy.TryGetComponent(out CarrierBrain _) ? SoundCue.TelegraphCarrier
+                : SoundCue.Telegraph;
+            Play(cue, enemy.transform.position, enemy.IsElite ? 1.15f : 1f);
+        }
 
         // ---------------------------------------------------------------- playback
 
@@ -258,18 +271,29 @@ namespace Pathfinder.Game.Audio
             _lastPlayed[cue] = now;
             _playing[voice] = cue;
             voice.clip = entry.Clip;
-            voice.volume = entry.Volume * volume * level;
+            Vector3 listener = ListenerPosition();
+            voice.volume = entry.Volume * volume * level * (position.HasValue ? Attenuation(position.Value, listener) : 1f);
             voice.pitch = 1f + Random.Range(-entry.PitchJitter, entry.PitchJitter); // presentation only: Unity's RNG is fine
-            voice.panStereo = position.HasValue ? Pan(position.Value) : 0f;
+            voice.panStereo = position.HasValue ? Mathf.Clamp((position.Value.x - listener.x) / panDistance, -0.85f, 0.85f) : 0f;
             voice.Play();
         }
 
-        float Pan(Vector3 position)
+        /// <summary>The local ship is the centre of the soundscape; without one (menus, after death) the camera is.</summary>
+        static Vector3 ListenerPosition()
         {
+            foreach (var player in CombatRegistry.Players)
+            {
+                if (player.IsLocal && player.IsAlive)
+                    return player.transform.position;
+            }
             var camera = Camera.main;
-            if (camera == null)
-                return 0f;
-            return Mathf.Clamp((position.x - camera.transform.position.x) / panDistance, -0.8f, 0.8f);
+            return camera != null ? camera.transform.position : Vector3.zero;
+        }
+
+        float Attenuation(Vector3 position, Vector3 listener)
+        {
+            float distance = Vector2.Distance(new Vector2(position.x, position.z), new Vector2(listener.x, listener.z));
+            return Mathf.Lerp(1f, farVolume, Mathf.InverseLerp(nearDistance, farDistance, distance));
         }
     }
 }
