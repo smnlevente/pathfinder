@@ -39,10 +39,15 @@ namespace Pathfinder.Game.Run
         /// <summary>Raised whenever the phase changes.</summary>
         public event Action<RunDirector> PhaseChanged;
 
+        float _startTime;
+        string _lastHitBy;
+
         void Start()
         {
             // The Hub starts a session and seeds the world with it. Playing the Run scene directly starts one here.
             Run = RunSession.Current ?? RunSession.Begin(world.Seed);
+            _startTime = Time.realtimeSinceStartup;
+            CombatEvents.Damaged += OnAnyDamaged;
             world.AllPlayersDown += OnAllPlayersDown;
             level.Exited += OnLevelExited;
             EnterMap();
@@ -50,6 +55,7 @@ namespace Pathfinder.Game.Run
 
         void OnDestroy()
         {
+            CombatEvents.Damaged -= OnAnyDamaged;
             GameClock.Resume(this);
             if (world != null)
                 world.AllPlayersDown -= OnAllPlayersDown;
@@ -169,6 +175,37 @@ namespace Pathfinder.Game.Run
 
             BankedRewards = MetaProgression.Current.BankRun(Run.DarkMatter, Run.SingularityCores, scraps, won, Run.GalaxyIndex + 1);
             MetaProgression.Save();
+
+            var pilot = CombatRegistry.Players.Count > 0 ? CombatRegistry.Players[0] : null;
+            RunLog.Append(new RunLog.Entry
+            {
+                timeUtc = DateTime.UtcNow.ToString("u"),
+                seed = RunLog.SeedCode(Run.Seed),
+                ship = pilot != null ? pilot.Definition.Id : Run.Loadout.ShipId,
+                primary = pilot != null ? pilot.PrimaryWeapon.Id : Run.Loadout.PrimaryId,
+                secondary = pilot != null && pilot.SecondaryWeapon != null ? pilot.SecondaryWeapon.Id : Run.Loadout.SecondaryId,
+                won = won,
+                galaxyReached = Run.GalaxyIndex + 1,
+                levelsCleared = Run.LevelsCleared,
+                darkMatter = Run.DarkMatter,
+                singularityCores = Run.SingularityCores,
+                scrapsCollected = scraps,
+                minutes = (Time.realtimeSinceStartup - _startTime) / 60f,
+                killedBy = won ? string.Empty : _lastHitBy ?? "abandoned",
+            });
+        }
+
+        /// <summary>Remembers what last hurt a pilot, for the run log's "killed by".</summary>
+        void OnAnyDamaged(CombatEntity target, DamageInfo info, Pathfinder.Core.Combat.DamageResult result)
+        {
+            if (target is not PlayerShip || result.TotalDamage <= 0f || info.SourceTeam != Pathfinder.Core.Combat.Team.Enemy)
+                return;
+            _lastHitBy = "unknown";
+            foreach (var entity in CombatRegistry.OnTeam(Pathfinder.Core.Combat.Team.Enemy))
+            {
+                if (entity.EntityId == info.SourceId && entity is Enemies.Enemy enemy)
+                    _lastHitBy = enemy.Definition.DisplayName;
+            }
         }
 
         void EnterMap()

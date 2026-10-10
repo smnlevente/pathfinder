@@ -161,6 +161,17 @@ namespace Pathfinder.Editor.Setup
             trail.emitting = false;
             trail.shadowCastingMode = ShadowCastingMode.Off;
 
+            // Engine exhaust: a faint, always-on trail that shows where the ship has been flying.
+            var exhaust = new GameObject("EngineTrail");
+            exhaust.transform.SetParent(model, false);
+            exhaust.transform.localPosition = new Vector3(0f, 0f, -0.7f);
+            var exhaustTrail = exhaust.AddComponent<TrailRenderer>();
+            exhaustTrail.time = 0.35f;
+            exhaustTrail.minVertexDistance = 0.05f;
+            exhaustTrail.widthCurve = AnimationCurve.Linear(0f, 0.3f, 1f, 0f);
+            exhaustTrail.sharedMaterial = art.Exhaust;
+            exhaustTrail.shadowCastingMode = ShadowCastingMode.Off;
+
             var ship = root.AddComponent<PlayerShip>();
             SetFields(root.AddComponent<MuzzleFlash>(), ("ship", ship), ("flashPrefab", art.MuzzleFlash));
             SetFields(ship, ("radius", 0.45f), ("ship", data.Ship), ("primaryWeapon", data.PhotonRepeater), ("secondaryWeapon", data.SeekerSwarm));

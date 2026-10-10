@@ -79,6 +79,20 @@ Assets/_Project/
   and Hub scenes. ScriptableObject data is never overwritten. New definitions are created when missing.
   Run tuning is in `Data/Run/RunConfig`.
 
+## Playtest builds
+
+- **Pathfinder > Build > Windows Playtest Build** writes `Builds/Windows/ProjectPathfinder.exe` (no dev hotkeys).
+  **Windows Dev Build** keeps the hotkeys. From the command line (Editor closed):
+
+```bash
+"D:/UnityInstalls/6000.0.67f1/Editor/Unity.exe" -batchmode -projectPath . -executeMethod Pathfinder.Editor.Build.PlayerBuild.BuildBatch -logFile build.log
+```
+
+- Zip the whole `Builds/Windows` folder for testers.
+- Every finished run appends a line to `run-log.jsonl`, next to the profile, in
+  `%USERPROFILE%\AppData\LocalLow\DefaultCompany\pathfinder\`. Ask testers to send it back. Each line has the
+  seed, loadout, how far the run got, play time and what killed the pilot, and any run can be replayed from its seed.
+
 ## Running tests from the command line
 
 Close the Editor first, because batch mode can't open a project the Editor has open.

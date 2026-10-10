@@ -13,7 +13,7 @@ namespace Pathfinder.Editor.Setup
             // glow; enemy bullets the only magenta; pickups gold; weak points yellow.
             public Material Floor, Wall, ShipHull, ShipGlow, EnemyHull, EnemyGlow, EnemyHalo, WeakPoint;
             public Material PlayerBolt, ChargeBolt, PlayerMissile, EnemyBulletCore, EnemyBulletBody, EnemyBulletHalo, Scrap;
-            public Material Telegraph, LancerLine, EliteRing, NovaRing, WeakPointRing, ShockRing, FxOrange, FxCyan, FxMagenta, FxRed, FxGrey;
+            public Material Telegraph, LancerLine, EliteRing, NovaRing, WeakPointRing, ShockRing, FxOrange, FxCyan, FxMagenta, FxRed, FxGrey, Exhaust;
 
             public GameObject BoltImpact, BulletImpact, MissileImpact, EnemyExplosion, PlayerExplosion, Deflect, MuzzleFlash;
             public GameObject SpawnTelegraph, NovaPulse, EliteMarker, ChargeLane;
@@ -93,6 +93,7 @@ namespace Pathfinder.Editor.Setup
                 FxMagenta = Additive("M_FX_Magenta", new Color(2.2f, 0.35f, 1.7f), dot),
                 FxRed = Additive("M_FX_Red", new Color(3f, 0.25f, 0.15f), dot),
                 FxGrey = Additive("M_FX_Grey", new Color(1.1f, 1.15f, 1.25f), dot),
+                Exhaust = Additive("M_FX_Exhaust", new Color(0.15f, 0.55f, 0.95f), dot), // below the bloom threshold: a hint, not a glare
             };
 
             BuildEffects(art);

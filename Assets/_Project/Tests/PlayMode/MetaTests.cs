@@ -31,6 +31,8 @@ namespace Pathfinder.Tests.PlayMode
         [TearDown]
         public void DeleteTemporarySave()
         {
+            if (File.Exists(RunLog.FilePath))
+                File.Delete(RunLog.FilePath);
             MetaProgression.SavePath = null;
             if (File.Exists(_savePath))
                 File.Delete(_savePath);
@@ -78,6 +80,15 @@ namespace Pathfinder.Tests.PlayMode
             Assert.AreEqual(10, MetaProgression.Current.DarkMatter);
             Assert.AreEqual(1, MetaProgression.Current.RunsPlayed);
             Assert.IsTrue(File.Exists(_savePath), "Banking saves the profile.");
+
+            // Playtests: every finished run leaves a line in the run log, next to the save.
+            var lines = File.ReadAllLines(RunLog.FilePath);
+            var entry = JsonUtility.FromJson<RunLog.Entry>(lines[lines.Length - 1]);
+            Assert.AreEqual(RunSeed.ToCode(new Seed(31)), entry.seed, "The log keeps the seed, so the run can be replayed.");
+            Assert.IsFalse(entry.won);
+            Assert.AreEqual(1, entry.galaxyReached);
+            Assert.AreEqual(5, entry.darkMatter);
+            Assert.IsFalse(string.IsNullOrEmpty(entry.killedBy));
         }
 
         [UnityTest]

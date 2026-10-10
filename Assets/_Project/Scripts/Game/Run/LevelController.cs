@@ -96,6 +96,7 @@ namespace Pathfinder.Game.Run
         bool _exited;
         float _bannerTimer;
         float _bossRewardDelay;
+        float _levelTime;
         IRandom _eventRandom;
         bool _eventFinished;
 
@@ -155,6 +156,7 @@ namespace Pathfinder.Game.Run
             IsActive = true;
             _exited = false;
             _bossRewardDelay = 0f;
+            _levelTime = 0f;
             _random = context.Seed.CreateRandom(SeedLabels.Layout);
             _lootRandom = context.Seed.CreateRandom(SeedLabels.Loot);
             _shopRandom = context.Seed.CreateRandom("shop");
@@ -297,6 +299,7 @@ namespace Pathfinder.Game.Run
             }
 
             float deltaTime = Time.fixedDeltaTime;
+            _levelTime += deltaTime;
             switch (Context.Type)
             {
                 case MapNodeType.Equipment: TickCache(); break;
@@ -994,6 +997,8 @@ namespace Pathfinder.Game.Run
                     break;
                 case MapNodeType.Boss:
                     Objective = ExitOpen ? "Boss defeated: fly into the wormhole" : "Defeat the boss";
+                    if (!ExitOpen && _levelTime < 8f)
+                        Prompt = "Its shell deflects shots: hit the yellow crystals, and its maw when it opens";
                     break;
                 case MapNodeType.Mystery:
                     Objective = ExitOpen ? "Ambush survived: fly into the wormhole"
