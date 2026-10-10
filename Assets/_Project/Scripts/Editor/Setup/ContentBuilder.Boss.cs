@@ -17,7 +17,7 @@ namespace Pathfinder.Editor.Setup
         static EnemyDefinition BuildQuarryMaw(Art art)
         {
             var definition = Definition<EnemyDefinition>("Enemies/Enemy_QuarryMaw", "boss.quarry-maw", "The Quarry Maw", so => Set(so,
-                ("MaxHealth", 4000f), ("MoveSpeed", 6f), ("ContactDamage", 15f), ("BudgetCost", 20), ("ScrapsDrop", 30), ("ScrapsDropChance", 1f)));
+                ("MaxHealth", 5500f), ("MoveSpeed", 4.5f), ("ContactDamage", 15f), ("BudgetCost", 20), ("ScrapsDrop", 30), ("ScrapsDropChance", 1f)));
 
             var telegraph = new GameObject("FX_EruptTelegraph");
             var glow = FlatQuad("Glow", telegraph.transform, art.FxRed, 0.03f, 6.6f);
@@ -42,6 +42,7 @@ namespace Pathfinder.Editor.Setup
             weakPoint.SetActive(false);
             var segment = segmentRoot.AddComponent<BossSegment>();
             SetFields(segment, ("radius", 0.85f), ("shatterEffect", art.EnemyExplosion), ("weakPointMarker", weakPoint));
+            SetFields(segmentRoot.AddComponent<SinkVisual>(), ("source", segment), ("model", segmentModel));
             var segmentVisual = AddVisual(segmentRoot, segment, null);
             SetFields(segmentVisual, ("flashExclusions", new Object[] { segmentHalo }));
             var segmentPrefab = SavePrefab(segmentRoot, "Enemies").GetComponent<BossSegment>();
@@ -72,7 +73,9 @@ namespace Pathfinder.Editor.Setup
             exposedMaw.SetActive(false);
 
             var brain = head.AddComponent<QuarryMawBrain>();
-            SetFields(brain, ("segmentPrefab", segmentPrefab), ("eruptTelegraphPrefab", telegraphPrefab), ("exposedMawMarker", exposedMaw),
+            var dust = SavePrefab(Burst("FX_BurrowDust", art.FxGrey, count: 36, speed: 4.5f, size: 0.7f, lifetime: 0.9f), "FX");
+            SetFields(head.AddComponent<SinkVisual>(), ("source", brain), ("model", headModel));
+            SetFields(brain, ("segmentPrefab", segmentPrefab), ("eruptTelegraphPrefab", telegraphPrefab), ("exposedMawMarker", exposedMaw), ("burrowDustPrefab", dust),
                 ("eruptEffect", art.EnemyExplosion), ("bulletPrefab", art.EnemyBulletVisual), ("bulletImpactPrefab", art.BulletImpact));
             var lane = ChargeLane("SweepLane", art, head.transform, size: 1.7f, spacing: 1.9f);
             SetFields(head.AddComponent<TelegraphLine>(), ("source", brain), ("lane", lane.GetComponent<ChevronLane>()));

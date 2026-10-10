@@ -19,17 +19,18 @@ namespace Pathfinder.Game.Presentation
     /// </summary>
     public sealed class HubMenu : MonoBehaviour
     {
-        static readonly string[] MainOptions = { "START RUN", "PATHFINDER LAB", "COMBAT SANDBOX", "QUIT" };
+        static readonly string[] MainOptions = { "START RUN", "PATHFINDER LAB", "OPTIONS", "COMBAT SANDBOX", "QUIT" };
 
         static readonly string[] MainDetails =
         {
             "Choose a ship and weapons, then jump into the Shattered Expanse.",
             "Spend Dark Matter and Singularity Cores on permanent upgrades.",
+            "Volume, screen shake, fullscreen, and the controls.",
             "Endless waves for practice and tuning.",
             null,
         };
 
-        public enum Page { Main, Loadout, Lab }
+        public enum Page { Main, Loadout, Lab, Options }
 
         [SerializeField] ContentDatabase content;
 
@@ -63,6 +64,11 @@ namespace Pathfinder.Game.Presentation
 
             if (_page == Page.Loadout && step.x != 0 && _selected < 3)
                 Cycle(_selected, step.x);
+            else if (_page == Page.Options && step.x != 0 && _selected < SettingsOptions.All.Count)
+            {
+                SettingsOptions.All[_selected].Change(step.x, false);
+                ShowPage(Page.Options, keepSelection: true);
+            }
             else if (_input.Submitted)
                 Activate(_selected);
             else if (_input.Cancelled && _page != Page.Main)
@@ -87,6 +93,17 @@ namespace Pathfinder.Game.Presentation
                         StartRun();
                     else
                         Cycle(index, 1);
+                    break;
+                case Page.Options:
+                    if (index < SettingsOptions.All.Count)
+                    {
+                        SettingsOptions.All[index].Change(1, true);
+                        ShowPage(Page.Options, keepSelection: true);
+                    }
+                    else
+                    {
+                        ShowPage(Page.Main);
+                    }
                     break;
                 case Page.Lab:
                     if (index < content.MetaUpgrades.Length)
@@ -116,6 +133,9 @@ namespace Pathfinder.Game.Presentation
                     ShowPage(Page.Lab);
                     break;
                 case 2:
+                    ShowPage(Page.Options);
+                    break;
+                case 3:
                     SceneManager.LoadScene(SceneNames.Sandbox);
                     break;
                 default:
@@ -223,6 +243,14 @@ namespace Pathfinder.Game.Presentation
                     _hint.text = "Up / Down: choose row     Left / Right or click: change     Esc: back";
                     break;
                 }
+
+                case Page.Options:
+                    _pageTitle.text = "OPTIONS";
+                    foreach (var option in SettingsOptions.All)
+                        AddRow(option.Label, option.Value(), option.Detail, noteColor: UiKit.Accent);
+                    AddRow("BACK");
+                    _hint.text = "Up / Down: choose     Left / Right or click: change     Esc: back";
+                    break;
 
                 case Page.Lab:
                 {

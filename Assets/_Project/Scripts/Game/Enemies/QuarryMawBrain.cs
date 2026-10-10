@@ -11,33 +11,37 @@ namespace Pathfinder.Game.Enemies
 {
     /// <summary>
     /// The Quarry Maw, guardian of the Shattered Expanse (GDD §7.5): a colossal rock-worm with three phases. Its shell
-    /// is armour: shots only hurt the glowing yellow weak points along its body, and in the last phase its cracked maw.
+    /// is armour: shots only hurt the glowing yellow weak points along its body, and its maw whenever it opens.
     /// <list type="number">
-    /// <item><b>Burrow</b> (above 66%): it chases on the surface spitting aimed bursts, then dives. A red glow tracks the
-    /// ship and marks where it erupts; the eruption hits hard and throws out two rings of rocks at different speeds.</item>
-    /// <item><b>Sweep</b> (66–33%): volleys of three charges across the arena, each through the ship's position and shown
-    /// by a chevron lane first. Charging, it sheds walls of rocks to both sides. After a volley it rests and coils
-    /// towards the ship: the window to shoot its weak points.</item>
-    /// <item><b>Enrage</b> (below 33%): its maw cracks open and can be hit. It circles the ship spewing bullet streams,
-    /// with rock showers and spinning spiral barrages.</item>
+    /// <item><b>Burrow</b> (above 66%): it slithers around the ship side-on, spitting aimed bursts, so its weak points
+    /// face the guns. Then it rears up, opens its maw and sinks into the ground, a window to shoot it. A red glow tracks
+    /// the ship and marks where it erupts; it bursts out with two rings of rocks and rises, maw open again.</item>
+    /// <item><b>Sweep</b> (66–33%): volleys of two charges from wherever it is, through the ship's position, each shown by
+    /// a chevron lane first. Charging, it sheds walls of rocks to both sides. After a volley it rests, maw open, coiling
+    /// slowly around the ship: the big window to hurt it.</item>
+    /// <item><b>Enrage</b> (below 33%): its maw stays open. It circles the ship spewing bullet streams, with rock showers
+    /// and spinning spiral barrages.</item>
     /// </list>
     /// Each phase change starts with a roar, during which it is fully armoured.
     /// </summary>
-    public sealed class QuarryMawBrain : EnemyBrain, IDamageModifier, IChargeTelegraph
+    public sealed class QuarryMawBrain : EnemyBrain, IDamageModifier, IChargeTelegraph, ISinkDepth
     {
         public enum Phase { Burrow, Sweep, Enrage }
 
-        enum Action { Surfaced, Underground, Roar, SweepWindUp, Sweeping, SweepRest, Orbiting, SpiralWindUp, Spiral }
+        enum Action { Surfaced, Diving, Underground, Emerging, Roar, SweepWindUp, Sweeping, SweepRest, Orbiting, SpiralWindUp, Spiral }
 
         [Header("Body")]
         [SerializeField] BossSegment segmentPrefab;
         [SerializeField, Min(1)] int segmentCount = 12;
         [SerializeField, Min(0.2f)] float segmentSpacing = 1.1f;
         [SerializeField, Min(2)] int weakPointEvery = 3;
-        [SerializeField, Tooltip("Shown on the head while its maw is exposed (Enrage).")] GameObject exposedMawMarker;
+        [SerializeField, Tooltip("Shown on the head while its maw is open and can be shot.")] GameObject exposedMawMarker;
 
         [Header("Phase 1: Burrow")]
-        [SerializeField, Min(0.1f)] float surfacedTime = 3f;
+        [SerializeField, Min(0.1f)] float surfacedTime = 5f;
+        [SerializeField, Min(1f), Tooltip("It slithers around the ship at about this distance, side-on.")] float slitherDistance = 8f;
+        [SerializeField, Min(0.1f), Tooltip("Rearing up and sinking: maw open, can be shot.")] float diveTime = 1.4f;
+        [SerializeField, Min(0.1f), Tooltip("Rising after the eruption: maw open, can be shot.")] float emergeTime = 1.2f;
         [SerializeField, Min(0.1f)] float undergroundTime = 1.8f;
         [SerializeField, Min(0.1f), Tooltip("The glow tracks the ship for this long, then locks.")] float trackTime = 1.1f;
         [SerializeField, Min(0.1f)] float eruptRadius = 3f;
@@ -45,27 +49,28 @@ namespace Pathfinder.Game.Enemies
         [SerializeField, Min(3)] int rockCount = 16;
         [SerializeField, Min(0.1f)] float rockSpeed = 6f;
         [SerializeField, Min(0.1f), Tooltip("The eruption's second, slower ring.")] float slowRockSpeed = 3.8f;
-        [SerializeField, Min(0.1f)] float surfacedBurstInterval = 1.4f;
+        [SerializeField, Min(0.1f)] float surfacedBurstInterval = 1.6f;
         [SerializeField] GameObject eruptTelegraphPrefab;
         [SerializeField] GameObject eruptEffect;
+        [SerializeField, Tooltip("Kicked up as it digs in and out.")] GameObject burrowDustPrefab;
 
         [Header("Phase 2: Sweep")]
-        [SerializeField, Min(0.1f)] float sweepSpeed = 18f;
-        [SerializeField, Min(0f)] float firstSweepWindUp = 1.1f;
-        [SerializeField, Min(0f)] float chainedSweepWindUp = 0.75f;
-        [SerializeField, Min(1)] int sweepsPerVolley = 3;
-        [SerializeField, Min(0f)] float sweepRestTime = 3.2f;
-        [SerializeField, Min(0.02f), Tooltip("Seconds between the rock pairs shed while charging.")] float wallInterval = 0.14f;
+        [SerializeField, Min(0.1f)] float sweepSpeed = 13f;
+        [SerializeField, Min(0f)] float firstSweepWindUp = 1.4f;
+        [SerializeField, Min(0f)] float chainedSweepWindUp = 1f;
+        [SerializeField, Min(1)] int sweepsPerVolley = 2;
+        [SerializeField, Min(0f)] float sweepRestTime = 4.5f;
+        [SerializeField, Min(0.02f), Tooltip("Seconds between the rock pairs shed while charging.")] float wallInterval = 0.18f;
         [SerializeField, Min(0.1f)] float wallRockSpeed = 3.5f;
         [SerializeField, Min(1f)] float sweepContactMultiplier = 1.6f;
 
         [Header("Phase 3: Enrage")]
         [SerializeField, Min(1f)] float orbitDistance = 9f;
-        [SerializeField, Min(0.1f)] float streamInterval = 0.5f;
+        [SerializeField, Min(0.1f)] float streamInterval = 0.6f;
         [SerializeField, Min(1)] int streamBullets = 5;
         [SerializeField, Min(0f)] float streamSpread = 36f;
         [SerializeField, Min(1f)] float rockShowerInterval = 5f;
-        [SerializeField, Min(1f)] float spiralInterval = 7f;
+        [SerializeField, Min(1f)] float spiralInterval = 8f;
         [SerializeField, Min(0f)] float spiralWindUp = 0.6f;
         [SerializeField, Min(0.1f)] float spiralDuration = 2.4f;
         [SerializeField, Min(1)] int spiralArms = 3;
@@ -102,8 +107,23 @@ namespace Pathfinder.Game.Enemies
         public bool IsBurrowed => _action == Action.Underground;
         public bool IsRoaring => _action == Action.Roar;
 
-        /// <summary>The head can be hit: only while enraged, outside its roar.</summary>
-        public bool IsMawExposed => CurrentPhase == Phase.Enrage && !IsRoaring;
+        /// <summary>
+        /// The maw is open and the head can be hit: while it dives and emerges, while it rests between sweeps, and all
+        /// through the enrage, but never during a roar.
+        /// </summary>
+        public bool IsMawExposed => !IsRoaring && (CurrentPhase == Phase.Enrage
+            || _action == Action.Diving || _action == Action.Emerging || _action == Action.SweepRest);
+
+        /// <summary>0 on the surface, 1 underground; in between while diving or emerging.</summary>
+        public float SinkDepth => _action switch
+        {
+            Action.Diving => Progress,
+            Action.Underground => 1f,
+            Action.Emerging => 1f - Progress,
+            _ => 0f,
+        };
+
+        float Progress => _actionDuration > 0f ? Mathf.Clamp01(1f - _timer / _actionDuration) : 1f;
 
         public IReadOnlyList<BossSegment> Segments => _segments;
 
@@ -131,8 +151,10 @@ namespace Pathfinder.Game.Enemies
             var target = Target(self);
             Vector2 desired = Vector2.zero;
 
+            // A phase change waits until it is back on the surface, so a dive always plays out.
             var phase = PhaseFor(self.Vitals.Hull / self.Vitals.MaxHull);
-            if (phase != CurrentPhase && _action != Action.Underground)
+            bool digging = _action == Action.Diving || _action == Action.Underground || _action == Action.Emerging;
+            if (phase != CurrentPhase && !digging)
             {
                 CurrentPhase = phase;
                 Enter(self, Action.Roar, roarTime);
@@ -153,13 +175,35 @@ namespace Pathfinder.Game.Enemies
                 case Action.Surfaced:
                     if (target != null)
                     {
-                        Vector2 toTarget = target.Position - self.Position;
-                        desired = toTarget.normalized * self.MoveSpeed;
+                        // Slither around the ship, side-on, so the weak points on its flank face the guns.
+                        desired = Circle(self, target, slitherDistance, 1f);
                         if (Tick(ref _attackTimer, deltaTime * self.AttackRate, surfacedBurstInterval))
-                            FireFan(self, world, toTarget.normalized, 3, 20f, bulletSpeed);
+                            FireFan(self, world, (target.Position - self.Position).normalized, 3, 20f, bulletSpeed);
                     }
                     if (_timer <= 0f)
+                        Enter(self, Action.Diving, diveTime, dust: true);
+                    break;
+
+                case Action.Diving:
+                    // Rear up, maw open, and sink: a window to shoot it.
+                    self.SpeedMultiplier = 0f;
+                    self.AccelerationMultiplier = 4f;
+                    if (target != null)
+                        self.FaceTowards(target.Position - self.Position);
+                    if (_timer <= 0f)
                         Dive(self, target);
+                    break;
+
+                case Action.Emerging:
+                    self.SpeedMultiplier = 0f;
+                    self.AccelerationMultiplier = 10f;
+                    if (target != null)
+                        self.FaceTowards(target.Position - self.Position);
+                    if (_timer <= 0f)
+                    {
+                        _attackTimer = surfacedBurstInterval;
+                        Enter(self, Action.Surfaced, surfacedTime);
+                    }
                     break;
 
                 case Action.Underground:
@@ -216,13 +260,12 @@ namespace Pathfinder.Game.Enemies
                 }
 
                 case Action.SweepRest:
-                    // Coil slowly towards the ship, body trailing behind: the weak points are exposed.
+                    // Tired, maw open, coiling slowly around the ship side-on: the big window to hurt it.
                     if (target != null)
                     {
-                        Vector2 toTarget = target.Position - self.Position;
-                        desired = toTarget.normalized * self.MoveSpeed * 0.6f;
-                        if (Tick(ref _attackTimer, deltaTime * self.AttackRate, surfacedBurstInterval))
-                            FireFan(self, world, toTarget.normalized, 3, 20f, bulletSpeed);
+                        desired = Circle(self, target, slitherDistance, 0.6f);
+                        if (Tick(ref _attackTimer, deltaTime * self.AttackRate, surfacedBurstInterval * 1.5f))
+                            FireFan(self, world, (target.Position - self.Position).normalized, 3, 20f, bulletSpeed);
                     }
                     if (_timer <= 0f && target != null)
                         StartVolley(self, world, target);
@@ -281,6 +324,19 @@ namespace Pathfinder.Game.Enemies
             UpdateArmour(self);
             UpdateBody(self);
             return desired;
+        }
+
+        /// <summary>Moves around the target at about <paramref name="distance"/>, mostly sideways, facing along its path.</summary>
+        Vector2 Circle(Enemy self, PlayerShip target, float distance, float speedFactor)
+        {
+            Vector2 toTarget = target.Position - self.Position;
+            float range = toTarget.magnitude;
+            Vector2 forward = range > 1e-4f ? toTarget / range : Vector2.up;
+            Vector2 tangent = new Vector2(-forward.y, forward.x) * _orbitSign;
+            float radial = Mathf.Clamp((range - distance) * 0.4f, -1f, 1f);
+            Vector2 direction = (tangent + forward * radial).normalized;
+            self.FaceTowards(direction);
+            return direction * self.MoveSpeed * speedFactor;
         }
 
         static Phase PhaseFor(float healthFraction) =>
@@ -354,8 +410,7 @@ namespace Pathfinder.Game.Enemies
             GameAudio.Play(SoundCue.Erupt, PlaneMath.ToWorld(_eruptTarget));
             Presentation.CameraRig.Kick(0.45f);
 
-            _attackTimer = surfacedBurstInterval;
-            Enter(self, Action.Surfaced, surfacedTime);
+            Enter(self, Action.Emerging, emergeTime, dust: true);
         }
 
         void StartVolley(Enemy self, CombatWorld world, PlayerShip target)
@@ -365,22 +420,19 @@ namespace Pathfinder.Game.Enemies
         }
 
         /// <summary>
-        /// Lines up a charge across the arena through the ship's current position, from one edge to the other at a
-        /// random angle. The head burrows over to the start, and the lane shows during the wind-up.
+        /// Lines up a charge from where the head is, through the ship's current position, to the far side of the arena.
+        /// It never teleports, so it is always in sight. The lane shows during the wind-up.
         /// </summary>
         void PrepareSweep(Enemy self, CombatWorld world, PlayerShip target, float windUp)
         {
             Vector2 half = world.ArenaSize * 0.5f - new Vector2(2f, 2f);
+            Vector2 from = self.Position;
+            Vector2 toTarget = target.Position - from;
+            Vector2 axis = toTarget.sqrMagnitude > 1f ? toTarget.normalized : PlaneMath.FromHeading(self.Random.Range(0f, 360f));
             Vector2 through = world.ClampToArena(target.Position, 2.5f);
-            Vector2 axis = PlaneMath.FromHeading(self.Random.Range(0f, 360f));
 
-            // Distance from the point to the inset arena boundary, backwards and forwards along the axis.
-            float back = DistanceToEdge(through, -axis, half), ahead = DistanceToEdge(through, axis, half);
-            _sweepFrom = through - axis * back;
-            _sweepTo = through + axis * ahead;
-
-            self.Teleport(_sweepFrom);
-            ResetTrail(_sweepFrom);
+            _sweepFrom = from;
+            _sweepTo = through + axis * DistanceToEdge(through, axis, half);
             Enter(self, Action.SweepWindUp, windUp);
         }
 
@@ -415,12 +467,14 @@ namespace Pathfinder.Game.Enemies
             world.Projectiles.Spawn(new ProjectileSpawn(position, direction, speed, bulletDamage, 0.28f, range,
                 self.Team, self.EntityId, bulletPrefab, bulletImpactPrefab));
 
-        void Enter(Enemy self, Action action, float duration)
+        void Enter(Enemy self, Action action, float duration, bool dust = false)
         {
             _action = action;
             _timer = _actionDuration = duration;
             self.Burrowed = action == Action.Underground;
-            self.IsTelegraphing = action == Action.Roar || action == Action.SweepWindUp || action == Action.SpiralWindUp;
+            self.IsTelegraphing = action == Action.Roar || action == Action.Diving || action == Action.SweepWindUp || action == Action.SpiralWindUp;
+            if (dust && burrowDustPrefab != null)
+                Instantiate(burrowDustPrefab, PlaneMath.ToWorld(self.Position, 0.3f), Quaternion.identity);
         }
 
         /// <summary>The shell is armour. Weak points take hits unless it is roaring; the head only once its maw is exposed.</summary>
@@ -487,7 +541,7 @@ namespace Pathfinder.Game.Enemies
                 if (_segments[s] == null)
                     continue;
                 Vector2 position = PointAlongTrail((s + 1) * segmentSpacing, out Vector2 facing);
-                _segments[s].Follow(position, facing);
+                _segments[s].Follow(position, facing, SinkDepth);
             }
         }
 

@@ -102,6 +102,11 @@ namespace Pathfinder.Tests.PlayMode
             yield return null;
             Screenshots.CaptureWithUi(Path.Combine(directory, "boss_surfaced.png"));
 
+            // Diving: maw open and half sunk into the ground, a window to shoot it.
+            yield return WaitTicks(() => brain.SinkDepth > 0.45f && !brain.IsBurrowed, 600);
+            yield return null;
+            Screenshots.CaptureCamera(Path.Combine(directory, "boss_diving.png"));
+
             // Sweep: the chevron lane of an incoming charge.
             var weakPoint = brain.Segments.First(segment => segment.IsWeakPoint);
             yield return WaitTicks(() => !brain.IsBurrowed && !brain.IsRoaring, 600);

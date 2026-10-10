@@ -140,7 +140,7 @@ namespace Pathfinder.Game.Presentation
                 return Vector3.zero;
 
             float t = Time.unscaledTime * shakeFrequency;
-            var offset = new Vector3(Mathf.PerlinNoise(t, 0f) - 0.5f, 0f, Mathf.PerlinNoise(0f, t) - 0.5f) * (2f * _shake);
+            var offset = new Vector3(Mathf.PerlinNoise(t, 0f) - 0.5f, 0f, Mathf.PerlinNoise(0f, t) - 0.5f) * (2f * _shake * Settings.GameSettings.ScreenShake);
             _shake = Mathf.Max(0f, _shake - shakeDecay * Time.unscaledDeltaTime);
             return offset;
         }

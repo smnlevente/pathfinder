@@ -67,5 +67,15 @@ namespace Pathfinder.Tests.PlayMode
             foreach (var enemy in CombatRegistry.Enemies)
                 Assert.That(Vector2.Distance(enemy.Position, Player.Position), Is.GreaterThan(5.5f));
         }
+
+        [UnityTest]
+        public IEnumerator DebugScraps_GrantWithoutBanking()
+        {
+            yield return LoadRun();
+            int scraps = Player.Scraps, gained = Player.TotalScrapsGained;
+            Object.FindAnyObjectByType<Pathfinder.Game.Dev.DebugHotkeys>().GrantScraps(100);
+            Assert.AreEqual(scraps + 100, Player.Scraps, "F8 gives 100 Scraps.");
+            Assert.AreEqual(gained, Player.TotalScrapsGained, "A debug grant doesn't bank back as Dark Matter.");
+        }
     }
 }

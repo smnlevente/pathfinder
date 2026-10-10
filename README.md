@@ -24,7 +24,8 @@ The design lives in [docs/GDD.md](docs/GDD.md).
 open `Run.unity` directly. Pick a route on the galaxy map, clear levels, fly into the wormhole, and beat three bosses to
 reach New Home. The galaxy boss is **the Quarry Maw**: it burrows and erupts under you, charges across the arena in
 telegraphed volleys that shed walls of rocks, then enrages and spews bullet streams and spirals. Its shell deflects
-everything: shoot the yellow weak-point crystals on its body, and its cracked maw once it enrages.
+everything: shoot the yellow weak-point crystals on its flank, and its maw whenever it opens (diving, emerging, resting
+between charges, and all through the enrage).
 
 Mystery (?) nodes are usually **events**: a short scene and a choice with upsides and downsides.
 
@@ -47,12 +48,13 @@ it to start a fresh profile.
 | Fire secondary | Right mouse | Left trigger |
 | Dash (i-frames) | Space | A / Cross, RB |
 | Reload | R | X / Square |
-| Pause | Esc | Start |
+| Pause menu (options, controls, abandon run) | Esc | Start |
 | Interact (stations), restart after a run | E | Y / Triangle |
 | Galaxy map: choose a node | Left/Right + Enter, or click | D-pad / stick + A |
 
 **Dev hotkeys** (Editor and development builds): **F1** cycle primary weapon, **F2** cycle secondary, **F3** god mode,
-**F4** kill all enemies, **F5** skip to the next wave, **F6** skip the current level (Run scene), **F7** offer 3 random equipment.
+**F4** kill all enemies, **F5** skip to the next wave, **F6** skip the current level (Run scene), **F7** offer 3 random equipment,
+**F8** +100 Scraps.
 
 Tuning lives in the ScriptableObjects under `Assets/_Project/Data`: ships, weapons, equipment (`Data/Equipment`), meta upgrades (`Data/Meta`), enemies, elites, and the wave config
 `Waves/Waves_ShatteredExpanse`. Behaviour tuning (bursts, charge speed, launch rates, the Quarry Maw's phases) is on the brain components in the

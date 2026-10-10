@@ -105,6 +105,15 @@ namespace Pathfinder.Game.Run
             PlayLevelMusic();
         }
 
+        /// <summary>Gives up the run from the pause menu: it counts as lost, and what it earned is banked.</summary>
+        public void Abandon()
+        {
+            if (Run == null || Run.IsOver)
+                return;
+            Run.MarkLost();
+            BankRun(won: false);
+        }
+
         void PlayLevelMusic() =>
             Audio.GameAudio.PlayMusic(level.Context.Type == MapNodeType.Boss ? Audio.MusicTrack.Boss : Audio.MusicTrack.Combat);
 

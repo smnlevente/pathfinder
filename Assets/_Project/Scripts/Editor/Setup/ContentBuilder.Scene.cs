@@ -116,15 +116,17 @@ namespace Pathfinder.Editor.Setup
             var flow = FindOrCreate<RunFlow>("Run Flow");
             var hud = GetOrAdd<CombatHud>(flow.gameObject);
             var equipmentChoice = GetOrAdd<EquipmentChoiceScreen>(flow.gameObject);
+            var pause = GetOrAdd<PauseMenu>(flow.gameObject);
             var debug = FindOrCreate<DebugHotkeys>("Dev Tools");
 
             RunDirector runDirector = null;
             LevelController level = null;
+            ChoiceDialog dialog = null;
             if (isRun)
             {
                 runDirector = FindOrCreate<RunDirector>("Run Director");
                 level = GetOrAdd<LevelController>(runDirector.gameObject);
-                var dialog = GetOrAdd<ChoiceDialog>(runDirector.gameObject);
+                dialog = GetOrAdd<ChoiceDialog>(runDirector.gameObject);
                 var mapScreen = GetOrAdd<GalaxyMapScreen>(runDirector.gameObject);
 
                 SetFields(level, ("world", world), ("director", director), ("config", Load<RunConfig>(assets.RunConfig)), ("dialog", dialog),
@@ -136,9 +138,10 @@ namespace Pathfinder.Editor.Setup
             }
 
             SetFields(flow, ("world", world), ("runDirector", (Object)runDirector));
+            SetFields(pause, ("runFlow", flow), ("runDirector", (Object)runDirector));
             SetFields(hud, ("world", world), ("runFlow", flow), ("waveDirector", director), ("debugHotkeys", debug), ("runDirector", (Object)runDirector));
             SetFields(debug, ("waveDirector", director), ("primaryWeapons", primaries), ("secondaryWeapons", secondaries), ("level", (Object)level),
-                ("content", database), ("equipmentChoice", equipmentChoice));
+                ("content", database), ("equipmentChoice", equipmentChoice), ("dialog", (Object)dialog));
 
             var camera = Camera.main;
             if (camera == null)
@@ -150,7 +153,7 @@ namespace Pathfinder.Editor.Setup
                 RequireReferences(component);
             RequireReferences(flow, optional: "runDirector");
             RequireReferences(hud, optional: "runDirector");
-            RequireReferences(debug, optional: "level");
+            RequireReferences(debug, "level", "dialog");
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);

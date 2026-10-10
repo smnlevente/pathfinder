@@ -21,12 +21,13 @@ namespace Pathfinder.Game.Dev
         [SerializeField, Tooltip("Optional. In the Run scene, F6 skips the current level.")] LevelController level;
         [SerializeField, Tooltip("F7 offers a choice of 3 random items from here.")] ContentDatabase content;
         [SerializeField] EquipmentChoiceScreen equipmentChoice;
+        [SerializeField, Tooltip("Optional. Refreshed after F8 so newly affordable Shop items light up.")] ChoiceDialog dialog;
         [SerializeField] PrimaryWeaponDefinition[] primaryWeapons = new PrimaryWeaponDefinition[0];
         [SerializeField] SecondaryWeaponDefinition[] secondaryWeapons = new SecondaryWeaponDefinition[0];
 
         public string HintText => level != null
-            ? "DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F6 skip level   F7 equipment"
-            : "DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F7 equipment";
+            ? "DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F6 skip level   F7 equipment   F8 +100 Scraps"
+            : "DEV   F1 primary   F2 secondary   F3 god   F4 kill all   F5 next wave   F7 equipment   F8 +100 Scraps";
 
         Pathfinder.Core.Random.IRandom _random = new Pathfinder.Core.Random.Pcg32(7UL, 7UL);
         public ContentDatabase Content => content;
@@ -61,6 +62,17 @@ namespace Pathfinder.Game.Dev
                 level.DebugTakeExit();
             if (keyboard.f7Key.wasPressedThisFrame)
                 OfferRandomEquipment();
+            if (keyboard.f8Key.wasPressedThisFrame)
+                GrantScraps(100);
+        }
+
+        /// <summary>Gives every local pilot Scraps, e.g. to try the Shop. Works while menus are open.</summary>
+        public void GrantScraps(int amount)
+        {
+            // A grant isn't collected, so it doesn't bank 10% back as Dark Matter.
+            ForEachLocalPlayer(p => p.AddStartingScraps(amount));
+            if (dialog != null && dialog.IsOpen)
+                dialog.RefreshOptions();
         }
 
         void OfferRandomEquipment()

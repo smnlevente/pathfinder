@@ -70,7 +70,7 @@ namespace Pathfinder.Game.Presentation
             {
                 _wasOpen = open;
                 _canvas.gameObject.SetActive(open);
-                ModalScreens.SetOpen(this, open);
+                ModalScreens.SetOpen(this, open, blocksPause: false); // the map is a good moment to pause
                 if (open)
                     Rebuild();
             }

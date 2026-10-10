@@ -33,16 +33,6 @@ namespace Pathfinder.Game.Audio
         AudioSource _musicA, _musicB;
         MusicTrack _track;
 
-        public static float MasterVolume
-        {
-            get => s_instance != null ? s_instance.masterVolume : 0f;
-            set
-            {
-                if (s_instance != null)
-                    s_instance.masterVolume = Mathf.Clamp01(value);
-            }
-        }
-
         /// <summary>Crossfades to a music track, or fades out for <see cref="MusicTrack.None"/>. Safe without a director.</summary>
         public static void PlayMusic(MusicTrack track)
         {
@@ -107,7 +97,7 @@ namespace Pathfinder.Game.Audio
         void FadeMusic()
         {
             float step = Time.unscaledDeltaTime / musicFade;
-            float target = musicVolume * masterVolume;
+            float target = musicVolume * masterVolume * Settings.GameSettings.MasterVolume * Settings.GameSettings.MusicVolume;
             _musicA.volume = Mathf.MoveTowards(_musicA.volume, _musicA.clip != null ? target : 0f, step * Mathf.Max(target, 0.01f));
             _musicB.volume = Mathf.MoveTowards(_musicB.volume, 0f, step * Mathf.Max(target, 0.01f));
             if (_musicB.isPlaying && _musicB.volume <= 0f)
@@ -221,7 +211,8 @@ namespace Pathfinder.Game.Audio
         void PlayInternal(SoundCue cue, Vector3? position, float volume)
         {
             var entry = library != null ? library.Find(cue) : null;
-            if (entry == null || entry.Clip == null || masterVolume <= 0f)
+            float level = masterVolume * Settings.GameSettings.MasterVolume * Settings.GameSettings.EffectsVolume;
+            if (entry == null || entry.Clip == null || level <= 0f)
                 return;
 
             float now = Time.unscaledTime;
@@ -257,7 +248,7 @@ namespace Pathfinder.Game.Audio
             _lastPlayed[cue] = now;
             _playing[voice] = cue;
             voice.clip = entry.Clip;
-            voice.volume = entry.Volume * volume * masterVolume;
+            voice.volume = entry.Volume * volume * level;
             voice.pitch = 1f + Random.Range(-entry.PitchJitter, entry.PitchJitter); // presentation only: Unity's RNG is fine
             voice.panStereo = position.HasValue ? Pan(position.Value) : 0f;
             voice.Play();

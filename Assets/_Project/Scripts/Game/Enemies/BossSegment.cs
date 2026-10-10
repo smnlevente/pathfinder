@@ -10,7 +10,7 @@ namespace Pathfinder.Game.Enemies
     /// hits on a weak point pass to the owner, while armoured segments (see <see cref="CombatEntity.Armoured"/>) deflect
     /// them. Its owner's brain positions it and sets its armour.
     /// </summary>
-    public sealed class BossSegment : CombatEntity
+    public sealed class BossSegment : CombatEntity, ISinkDepth
     {
         const float ContactCooldown = 0.75f;
 
@@ -28,6 +28,9 @@ namespace Pathfinder.Game.Enemies
 
         public Enemy Owner => _owner;
         public bool IsWeakPoint { get; private set; }
+
+        /// <summary>How far it has sunk while the boss burrows. Set by the owner's brain.</summary>
+        public float SinkDepth { get; private set; }
 
         public void Attach(Enemy owner, bool weakPoint)
         {
@@ -48,9 +51,10 @@ namespace Pathfinder.Game.Enemies
         }
 
         /// <summary>Moves the segment along its owner's body. Called by the owner's brain each tick.</summary>
-        public void Follow(Vector2 position, Vector2 facing)
+        public void Follow(Vector2 position, Vector2 facing, float sinkDepth = 0f)
         {
             Position = position;
+            SinkDepth = sinkDepth;
             if (facing.sqrMagnitude > 1e-6f)
                 Heading = PlaneMath.HeadingDegrees(facing);
         }

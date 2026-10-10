@@ -39,7 +39,7 @@ namespace Pathfinder.Tests.PlayMode
             yield return SpawnBoss();
             Assert.AreEqual(12, _brain.Segments.Count);
             Assert.AreEqual(4, _brain.Segments.Count(s => s.IsWeakPoint), "Every third segment is a weak point.");
-            Assert.AreEqual(4000f, _boss.Vitals.MaxHull);
+            Assert.AreEqual(5500f, _boss.Vitals.MaxHull);
             yield return WaitUntilVulnerable();
 
             var armoured = _brain.Segments.First(s => !s.IsWeakPoint);
@@ -109,14 +109,14 @@ namespace Pathfinder.Tests.PlayMode
             Assert.AreEqual(QuarryMawBrain.Phase.Burrow, _brain.CurrentPhase);
 
             yield return WaitUntilVulnerable();
-            Hit(WeakPoint, 1500f); // 2500 / 4000 = 62.5%
+            Hit(WeakPoint, 2100f); // 3400 / 5500 = 62%
             yield return WaitUntilTicks(() => _brain.CurrentPhase == QuarryMawBrain.Phase.Sweep, 600);
             Assert.AreEqual(QuarryMawBrain.Phase.Sweep, _brain.CurrentPhase);
             Assert.IsTrue(_brain.IsRoaring, "Each phase opens with a roar.");
             Assert.IsTrue(WeakPoint.Armoured, "Roaring, even the weak points are shut.");
 
             yield return WaitUntilVulnerable();
-            Hit(WeakPoint, 1300f); // 1200 / 4000 = 30%
+            Hit(WeakPoint, 1600f); // 1800 / 5500 = 33%
             yield return WaitUntilTicks(() => _brain.CurrentPhase == QuarryMawBrain.Phase.Enrage, 600);
             Assert.AreEqual(QuarryMawBrain.Phase.Enrage, _brain.CurrentPhase);
 
@@ -132,7 +132,7 @@ namespace Pathfinder.Tests.PlayMode
         {
             yield return SpawnBoss();
             yield return WaitUntilVulnerable();
-            Hit(WeakPoint, 1500f);
+            Hit(WeakPoint, 2100f);
             var telegraph = (IChargeTelegraph)_brain;
 
             yield return WaitUntilTicks(() => telegraph.ShowsCharge, 400);
@@ -146,8 +146,8 @@ namespace Pathfinder.Tests.PlayMode
 
             yield return WaitUntilTicks(() => !telegraph.ShowsCharge, 120);
             int before = World.Projectiles.CountForTeam(Team.Enemy);
-            yield return WaitTicks(60);
-            Assert.Greater(World.Projectiles.CountForTeam(Team.Enemy), before + 10, "Charging, it sheds walls of rocks (a pair every 0.14 s).");
+            yield return WaitTicks(90);
+            Assert.Greater(World.Projectiles.CountForTeam(Team.Enemy), before + 10, "Charging, it sheds walls of rocks (a pair every 0.18 s).");
         }
 
         [UnityTest]
@@ -156,7 +156,7 @@ namespace Pathfinder.Tests.PlayMode
             yield return SpawnBoss();
             yield return WaitUntilVulnerable();
 
-            Hit(WeakPoint, 5000f); // the killing blow lands on a segment
+            Hit(WeakPoint, 100_000f); // the killing blow lands on a segment
             yield return null;
             yield return null;
 

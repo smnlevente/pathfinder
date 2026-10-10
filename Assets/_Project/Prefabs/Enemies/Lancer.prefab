@@ -449,13 +449,14 @@ MonoBehaviour:
   engageDistance: 9
   windUpTime: 0.7
   chargesPerAttack: 2
-  followUpWindUpTime: 0.45
+  followUpWindUpTime: 0.6
+  windDownTime: 0.6
   chargeSpeed: 24
   chargeDistance: 14
   chargeContactMultiplier: 2.5
-  recoverTime: 0.9
+  recoverTime: 1
   recoverSpeedFactor: 0.3
-  cooldown: 1.2
+  cooldown: 1.8
 --- !u!114 &8461062642133045061
 MonoBehaviour:
   m_ObjectHideFlags: 0

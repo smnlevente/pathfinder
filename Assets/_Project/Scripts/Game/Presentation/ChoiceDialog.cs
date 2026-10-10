@@ -107,6 +107,13 @@ namespace Pathfinder.Game.Presentation
             _canvas.gameObject.SetActive(false);
         }
 
+        /// <summary>Rebuilds the options, e.g. after the pilot's Scraps changed outside the dialog.</summary>
+        public void RefreshOptions()
+        {
+            if (IsOpen)
+                Refresh();
+        }
+
         void Refresh()
         {
             _options = _buildOptions?.Invoke() ?? Array.Empty<Option>();

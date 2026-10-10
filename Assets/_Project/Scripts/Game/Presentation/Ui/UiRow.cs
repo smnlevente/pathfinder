@@ -52,6 +52,8 @@ namespace Pathfinder.Game.Presentation.Ui
 
         public void SetLabel(string text) => _label.text = text;
 
+        public void SetNote(string text) => _note.text = text ?? string.Empty;
+
         public void SetState(bool selected, bool enabled)
         {
             _background.color = selected ? UiKit.RowSelected : UiKit.Row;

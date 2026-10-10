@@ -127,7 +127,7 @@ namespace Pathfinder.Game.Presentation
         void RefreshStatus(PlayerShip player)
         {
             _scraps.gameObject.SetActive(player != null);
-            _seed.text = world != null ? $"SEED {RunSeed.ToCode(world.Seed)}    {_fps:0} FPS" : string.Empty;
+            _seed.text = world != null ? $"SEED {RunSeed.ToCode(world.Seed)}{(Settings.GameSettings.ShowFps ? $"    {_fps:0} FPS" : "")}" : string.Empty;
 
             var run = runDirector != null ? runDirector.Run : null;
             _darkMatter.text = run != null ? $"DARK MATTER {run.DarkMatter}    CORES {run.SingularityCores}" : string.Empty;
@@ -176,11 +176,6 @@ namespace Pathfinder.Game.Presentation
             {
                 title = "GALAXY CLEARED";
                 hint = $"Jumping to {runDirector.GalaxyName}...";
-            }
-            else if (runFlow != null && runFlow.IsPaused)
-            {
-                title = "PAUSED";
-                hint = "Press Esc / Start to resume";
             }
 
             _overlay.SetActive(title != null);

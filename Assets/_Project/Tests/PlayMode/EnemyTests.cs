@@ -77,10 +77,16 @@ namespace Pathfinder.Tests.PlayMode
             Script(_ => new ShipCommand { Move = Vector2.right });
             yield return WaitUntilTicks(() => brain.Current != LancerBrain.State.Charge, 120);
 
+            Assert.AreEqual(LancerBrain.State.WindDown, brain.Current, "Every charge ends by skidding to a stop.");
+            int windDown = World.Tick;
+            yield return WaitUntilTicks(() => brain.Current != LancerBrain.State.WindDown, 120);
+            Assert.GreaterOrEqual(World.Tick - windDown, 30, "The wind-down lasts long enough to read.");
             Assert.AreEqual(LancerBrain.State.WindUp, brain.Current, "After a miss it re-aims for a second joust.");
             yield return WaitUntilTicks(() => brain.Current != LancerBrain.State.WindUp, 120);
             Assert.AreEqual(LancerBrain.State.Charge, brain.Current);
             yield return WaitUntilTicks(() => brain.Current != LancerBrain.State.Charge, 120);
+            Assert.AreEqual(LancerBrain.State.WindDown, brain.Current);
+            yield return WaitUntilTicks(() => brain.Current != LancerBrain.State.WindDown, 120);
             Assert.AreEqual(LancerBrain.State.Recover, brain.Current, "Two jousts per attack, then it recovers.");
         }
 

@@ -6,23 +6,25 @@ namespace Pathfinder.Game.Enemies
 {
     /// <summary>
     /// Lancer: closes in, locks a direction and shows a chevron lane, then charges along it at high speed and hits
-    /// hard. Each attack is a double joust: after the first charge it re-aims at the ship and charges again after a
-    /// shorter wind-up. It is vulnerable while it recovers (GDD §7.3).
+    /// hard. Every charge ends in a wind-down: it skids to a stop before doing anything else. After a miss it re-aims and
+    /// jousts once more; after its last charge it recovers, then keeps its distance for a while (GDD §7.3). It is
+    /// vulnerable while it winds down and recovers.
     /// </summary>
     public sealed class LancerBrain : EnemyBrain, IChargeTelegraph
     {
-        public enum State { Approach, WindUp, Charge, Recover }
+        public enum State { Approach, WindUp, Charge, WindDown, Recover }
 
         [SerializeField, Min(0f), Tooltip("Starts winding up within this distance of the target.")] float engageDistance = 9f;
         [SerializeField, Min(0f)] float windUpTime = 0.7f;
         [SerializeField, Min(1)] int chargesPerAttack = 2;
-        [SerializeField, Min(0f), Tooltip("Wind-up before each follow-up charge.")] float followUpWindUpTime = 0.45f;
+        [SerializeField, Min(0f), Tooltip("Wind-up before each follow-up charge.")] float followUpWindUpTime = 0.6f;
+        [SerializeField, Min(0f), Tooltip("Skid to a stop after every charge.")] float windDownTime = 0.6f;
         [SerializeField, Min(0.1f)] float chargeSpeed = 24f;
         [SerializeField, Min(0.1f)] float chargeDistance = 14f;
         [SerializeField, Min(1f)] float chargeContactMultiplier = 2.5f;
-        [SerializeField, Min(0f)] float recoverTime = 0.9f;
+        [SerializeField, Min(0f)] float recoverTime = 1f;
         [SerializeField, Range(0f, 1f)] float recoverSpeedFactor = 0.3f;
-        [SerializeField, Min(0f), Tooltip("Pause after recovering before the next wind-up.")] float cooldown = 1.2f;
+        [SerializeField, Min(0f), Tooltip("Pause after recovering before the next wind-up.")] float cooldown = 1.8f;
 
         float _timer;
         float _windUpDuration;
@@ -102,16 +104,27 @@ namespace Pathfinder.Game.Enemies
                     bool pinned = _charged > 0.5f && moved < chargeSpeed * deltaTime * 0.25f;
                     if (Advance(deltaTime) || _charged >= chargeDistance || self.DealtContactDamage || pinned)
                     {
-                        // A hit ends the attack; a miss lets it re-aim and joust again.
-                        _chargesLeft--;
-                        if (_chargesLeft > 0 && !self.DealtContactDamage && target != null)
-                            WindUp(self, target.Position - self.Position, followUpWindUpTime);
-                        else
-                            Enter(self, State.Recover, recoverTime);
+                        // A hit ends the attack; a miss allows one more joust after the wind-down.
+                        _chargesLeft = self.DealtContactDamage ? 0 : _chargesLeft - 1;
+                        Enter(self, State.WindDown, windDownTime);
                         return Vector2.zero;
                     }
                     return ChargeDirection * chargeSpeed;
                 }
+
+                case State.WindDown:
+                    // Skid to a stop: momentum carries it a little further, so the charge has weight.
+                    self.FaceTowards(ChargeDirection);
+                    self.SpeedMultiplier = 0f;
+                    self.AccelerationMultiplier = 3f; // from full charge speed to a halt in about 0.45 s
+                    if (Advance(attackDelta))
+                    {
+                        if (_chargesLeft > 0 && target != null)
+                            WindUp(self, target.Position - self.Position, followUpWindUpTime);
+                        else
+                            Enter(self, State.Recover, recoverTime);
+                    }
+                    return Vector2.zero;
 
                 default: // Recover
                     self.SpeedMultiplier = recoverSpeedFactor;

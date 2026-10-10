@@ -524,6 +524,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3487024904690110260}
   - component: {fileID: 4789437758752376074}
+  - component: {fileID: 203120256004057674}
   - component: {fileID: 1118318948199737539}
   m_Layer: 0
   m_Name: QuarryMawSegment
@@ -565,6 +566,22 @@ MonoBehaviour:
   weakPointMultiplier: 1
   shatterEffect: {fileID: 800930524078674997, guid: 22506e3a31e483b4f957a4a7aea5b199, type: 3}
   weakPointMarker: {fileID: 6307004792426370403}
+--- !u!114 &203120256004057674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8618048600799427491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff98aed6eea5eb24eb64225ef7116537, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  source: {fileID: 4789437758752376074}
+  model: {fileID: 5352798852478728464}
+  depthDistance: 1.8
+  shakeDegrees: 6
 --- !u!114 &1118318948199737539
 MonoBehaviour:
   m_ObjectHideFlags: 0

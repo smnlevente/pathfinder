@@ -308,7 +308,7 @@ namespace Pathfinder.Tests.PlayMode
 
             Assert.IsNotNull(_level.Boss, "The boss level spawns its boss.");
             Assert.AreEqual("boss.quarry-maw", _level.Boss.Definition.Id, "Galaxy 1's boss is the Quarry Maw (GDD §7.5).");
-            Assert.AreEqual(4000f, _level.Boss.Vitals.MaxHull, 1f);
+            Assert.AreEqual(5500f, _level.Boss.Vitals.MaxHull, 1f);
             yield return WaitTicks(3); // the body emerges on the boss's first tick
 
             // Bullets already in the air when it dies must not hurt the pilot (playtest 2).

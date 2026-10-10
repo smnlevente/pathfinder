@@ -8,8 +8,8 @@ using UnityEngine.SceneManagement;
 namespace Pathfinder.Game.Run
 {
     /// <summary>
-    /// Scene-level flow: the pause menu (single-player only), and what happens when the run ends. Interact restarts
-    /// and Pause returns to the Hub.
+    /// Scene-level flow: pausing (single-player only), and what happens when the run ends. Pause opens the pause menu,
+    /// which closes itself; after the run, Interact restarts and Pause returns to the Hub.
     /// </summary>
     public sealed class RunFlow : MonoBehaviour
     {
@@ -42,14 +42,17 @@ namespace Pathfinder.Game.Run
                 return;
             }
 
-            // Menus such as the galaxy map hold their own pause, so the pause key only toggles this one.
-            if (_pause != null && _pause.WasPressedThisFrame())
-            {
-                if (IsPaused)
-                    GameClock.Resume(this);
-                else
-                    GameClock.Pause(this);
-            }
+            // The pause key only opens the pause menu; the menu itself resumes. Menus that use Esc themselves come first.
+            if (!IsPaused && _pause != null && _pause.WasPressedThisFrame() && !Presentation.Ui.ModalScreens.BlocksPause)
+                SetPaused(true);
+        }
+
+        public void SetPaused(bool paused)
+        {
+            if (paused)
+                GameClock.Pause(this);
+            else
+                GameClock.Resume(this);
         }
 
         public void Restart()
