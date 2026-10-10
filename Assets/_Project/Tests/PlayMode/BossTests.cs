@@ -102,6 +102,49 @@ namespace Pathfinder.Tests.PlayMode
             Assert.Greater(DamageTaken, 0f, "A stationary ship is caught by the eruption, its rocks or the aimed bursts.");
         }
 
+        /// <summary>Burrows, follows the ship until the spot locks, and reports whether the eruption caught it.</summary>
+        IEnumerator EruptionAfterLock(ShipCommand first, ShipCommand after, System.Action<bool> caught)
+        {
+            yield return SpawnBoss();
+            Player.GodMode = false;
+            Player.PlaceForLevel(new Vector2(4f, -6f));
+            yield return WaitUntilTicks(() => _brain.IsBurrowed, 600);
+            Assert.IsTrue(_brain.IsBurrowed, "Phase 1 dives underground.");
+
+            Player.PlaceForLevel(new Vector2(6f, -5f));
+            yield return WaitTicks(3);
+            Assert.Less(Vector2.Distance(_brain.EruptTarget, Player.Position), 0.3f, "Until it locks, the glow follows the ship.");
+
+            yield return WaitUntilTicks(() => _brain.EruptLocked, 200);
+            Assert.IsTrue(_brain.EruptLocked);
+            Vector2 spot = _brain.EruptTarget;
+            bool hit = false;
+            void OnDamaged(CombatEntity entity, DamageInfo info, DamageResult result) =>
+                hit |= info.Kind == DamageKind.Contact && info.SourceId == _boss.EntityId && (info.Point - spot).sqrMagnitude < 0.01f;
+            Player.Damaged += OnDamaged;
+            Script(Once(first, after));
+            yield return WaitUntilTicks(() => !_brain.IsBurrowed, 60);
+            Player.Damaged -= OnDamaged;
+            caught(hit);
+        }
+
+        [UnityTest]
+        public IEnumerator Eruption_LocksTooLateToWalkAway()
+        {
+            bool caught = false;
+            var walk = new ShipCommand { Move = Vector2.right };
+            yield return EruptionAfterLock(walk, walk, hit => caught = hit);
+            Assert.IsTrue(caught, "Once the spot locks, walking can't clear the 4 u blast (playtest 6).");
+        }
+
+        [UnityTest]
+        public IEnumerator Eruption_CanBeDashedOutOf()
+        {
+            bool caught = true;
+            yield return EruptionAfterLock(new ShipCommand { Move = Vector2.right, Dash = true }, new ShipCommand { Move = Vector2.right }, hit => caught = hit);
+            Assert.IsFalse(caught, "A dash the moment it locks gets clear.");
+        }
+
         [UnityTest]
         public IEnumerator Phases_ChangeAtTwoThirdsAndOneThird()
         {

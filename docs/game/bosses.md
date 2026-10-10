@@ -34,10 +34,15 @@ weak points. Each phase change opens with a **1.5 s roar**, during which even th
 - It **slithers around you side-on** at about 8 u, so its weak points face your guns, spitting a 3-bullet burst every
   1.6 s.
 - After 5 s it **rears up, opens its maw and sinks** into the ground over 1.4 s: shoot it all the way down.
-- Underground it can't be hit. A **red glow tracks you** for 1.1 s, then locks. It **erupts** there: 30 damage within
-  3 u and **two rings of rocks**, a fast one and a slower one offset between them. It rises with its maw open.
+- Underground it can't be hit. A **red glow follows you**, with an outline at its 4 u reach and a **ring closing in**
+  on the outline: when the ring meets it, it erupts. Half a second before, the spot locks and the glow flickers. It
+  **erupts** there: 30 damage within 4 u and **two rings of rocks**, a fast one and a slower one offset between them.
+  It rises with its maw open.
 
-> When the glow locks, move. Then weave through the gap between the two rings.
+![The eruption telegraph: a red glow under the ship, its outline, and a ring closing in](../images/maw-erupt-telegraph.png)
+
+> Walking won't get you clear once it locks: **dash** as the ring closes. Then weave through the gap between the two
+> rings.
 
 ### Phase 2: Sweep (2/3 to 1/3)
 

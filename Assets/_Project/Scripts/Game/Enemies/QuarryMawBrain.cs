@@ -15,7 +15,9 @@ namespace Pathfinder.Game.Enemies
     /// <list type="number">
     /// <item><b>Burrow</b> (above 66%): it slithers around the ship side-on, spitting aimed bursts, so its weak points
     /// face the guns. Then it rears up, opens its maw and sinks into the ground, a window to shoot it. A red glow tracks
-    /// the ship and marks where it erupts; it bursts out with two rings of rocks and rises, maw open again.</item>
+    /// the ship and marks where it erupts, with a ring closing in on it as a timer; the spot locks only half a second
+    /// before impact, too late to walk clear, so it has to be dashed (playtest 6). It bursts out with two rings of rocks
+    /// and rises, maw open again.</item>
     /// <item><b>Sweep</b> (66–33%): volleys of two charges from wherever it is, through the ship's position, each shown by
     /// a chevron lane first. Charging, it sheds walls of rocks to both sides. After a volley it rests, maw open, coiling
     /// slowly around the ship: the big window to hurt it.</item>
@@ -42,9 +44,9 @@ namespace Pathfinder.Game.Enemies
         [SerializeField, Min(1f), Tooltip("It slithers around the ship at about this distance, side-on.")] float slitherDistance = 8f;
         [SerializeField, Min(0.1f), Tooltip("Rearing up and sinking: maw open, can be shot.")] float diveTime = 1.4f;
         [SerializeField, Min(0.1f), Tooltip("Rising after the eruption: maw open, can be shot.")] float emergeTime = 1.2f;
-        [SerializeField, Min(0.1f)] float undergroundTime = 1.8f;
-        [SerializeField, Min(0.1f), Tooltip("The glow tracks the ship for this long, then locks.")] float trackTime = 1.1f;
-        [SerializeField, Min(0.1f)] float eruptRadius = 3f;
+        [SerializeField, Min(0.1f)] float undergroundTime = 2f;
+        [SerializeField, Min(0.05f), Tooltip("The glow follows the ship until this long before the eruption, then locks.")] float lockTime = 0.5f;
+        [SerializeField, Min(0.1f)] float eruptRadius = 4f;
         [SerializeField, Min(0f)] float eruptDamage = 30f;
         [SerializeField, Min(3)] int rockCount = 16;
         [SerializeField, Min(0.1f)] float rockSpeed = 6f;
@@ -99,6 +101,7 @@ namespace Pathfinder.Game.Enemies
         float _spiralAngle;
         Vector2 _eruptTarget;
         GameObject _telegraph;
+        Presentation.EruptTelegraph _telegraphView;
         Vector2 _sweepFrom, _sweepTo;
         int _sweepsLeft;
         float _orbitSign = 1f;
@@ -106,6 +109,13 @@ namespace Pathfinder.Game.Enemies
 
         public Phase CurrentPhase { get; private set; }
         public bool IsBurrowed => _action == Action.Underground;
+
+        /// <summary>Where it will burst out, while burrowed.</summary>
+        public Vector2 EruptTarget => _eruptTarget;
+        public float EruptRadius => eruptRadius;
+
+        /// <summary>Burrowed and no longer following the ship: the eruption is less than <c>lockTime</c> away.</summary>
+        public bool EruptLocked => IsBurrowed && _timer <= lockTime;
         public bool IsRoaring => _action == Action.Roar;
 
         /// <summary>
@@ -210,10 +220,12 @@ namespace Pathfinder.Game.Enemies
                 case Action.Underground:
                     self.SpeedMultiplier = 0f;
                     self.AccelerationMultiplier = 20f;
-                    if (target != null && _timer > undergroundTime - trackTime)
+                    if (target != null && _timer > lockTime)
                         _eruptTarget = world.ClampToArena(target.Position, 2f);
                     if (_telegraph != null)
                         _telegraph.transform.position = PlaneMath.ToWorld(_eruptTarget);
+                    if (_telegraphView != null)
+                        _telegraphView.Show(eruptRadius, 1f - _timer / undergroundTime, _timer <= lockTime);
                     if (_timer <= 0f)
                         Erupt(self, world);
                     break;
@@ -381,7 +393,11 @@ namespace Pathfinder.Game.Enemies
         {
             _eruptTarget = target != null ? target.Position : self.Position;
             if (eruptTelegraphPrefab != null)
+            {
                 _telegraph = Instantiate(eruptTelegraphPrefab, PlaneMath.ToWorld(_eruptTarget), Quaternion.identity);
+                _telegraphView = _telegraph.GetComponent<Presentation.EruptTelegraph>();
+                _telegraphView?.Show(eruptRadius, 0f, false);
+            }
             Enter(self, Action.Underground, undergroundTime);
         }
 

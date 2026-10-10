@@ -1181,9 +1181,9 @@ MonoBehaviour:
   slitherDistance: 8
   diveTime: 1.4
   emergeTime: 1.2
-  undergroundTime: 1.8
-  trackTime: 1.1
-  eruptRadius: 3
+  undergroundTime: 2
+  lockTime: 0.5
+  eruptRadius: 4
   eruptDamage: 30
   rockCount: 16
   rockSpeed: 6

@@ -107,6 +107,13 @@ namespace Pathfinder.Tests.PlayMode
             yield return null;
             Screenshots.CaptureCamera(Path.Combine(directory, "boss_diving.png"));
 
+            // Underground: the glow under the ship and the ring closing in on it.
+            yield return WaitTicks(() => brain.IsBurrowed, 200);
+            for (int i = 0; i < 50; i++)
+                yield return new WaitForFixedUpdate();
+            yield return null;
+            Screenshots.CaptureCamera(Path.Combine(directory, "boss_erupt_telegraph.png"));
+
             // Sweep: the chevron lane of an incoming charge.
             var weakPoint = brain.Segments.First(segment => segment.IsWeakPoint);
             yield return WaitTicks(() => !brain.IsBurrowed && !brain.IsRoaring, 600);

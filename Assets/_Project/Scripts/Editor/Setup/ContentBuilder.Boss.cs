@@ -20,11 +20,17 @@ namespace Pathfinder.Editor.Setup
                 ("MaxHealth", 5500f), ("MoveSpeed", 4.5f), ("ContactDamage", 15f), ("BudgetCost", 20), ("ScrapsDrop", 30), ("ScrapsDropChance", 1f),
                 ("KnockbackMultiplier", 0f)));
 
+            // Eruption telegraph, authored at a radius of 1 (the boss scales it): a red glow, an outline at the radius, and a
+            // ring that closes in on the outline as the eruption nears (the ring band sits at 88% of a ring quad's half-size).
+            var impactRing = Additive("M_FX_ImpactRing", new Color(3f, 0.35f, 0.15f), Load<Texture2D>(TexturesDir + "/T_Ring.png"));
             var telegraph = new GameObject("FX_EruptTelegraph");
-            var glow = FlatQuad("Glow", telegraph.transform, art.FxRed, 0.03f, 6.6f);
+            var glow = FlatQuad("Glow", telegraph.transform, art.FxRed, 0.03f, 2.2f);
             SetFields(glow.AddComponent<SimpleMotion>(), ("pulseAmount", 0.12f), ("pulseFrequency", 4f));
-            var core = Primitive(PrimitiveType.Cylinder, "Core", telegraph.transform, art.Telegraph, new Vector3(0f, 0.02f, 0f), new Vector3(0.6f, 0.01f, 0.6f));
+            FlatQuad("Outline", telegraph.transform, impactRing, 0.04f, 2f / 0.88f);
+            var closing = FlatQuad("ClosingRing", telegraph.transform, impactRing, 0.05f, 2f / 0.88f);
+            var core = Primitive(PrimitiveType.Cylinder, "Core", telegraph.transform, art.Telegraph, new Vector3(0f, 0.02f, 0f), new Vector3(0.2f, 0.01f, 0.2f));
             SetFields(core.AddComponent<SimpleMotion>(), ("pulseAmount", 0.5f), ("pulseFrequency", 4f));
+            SetFields(telegraph.AddComponent<EruptTelegraph>(), ("closingRing", closing.transform), ("glow", glow.GetComponent<Renderer>()));
             var telegraphPrefab = SavePrefab(telegraph, "FX");
 
             // Segment: a craggy crimson rock chunk. Weak points carry a pulsing yellow crystal ringed in yellow, the only
