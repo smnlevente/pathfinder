@@ -32,6 +32,9 @@ namespace Pathfinder.Core.Combat
         public bool IsDead => Hull <= 0f;
         public bool IsInvulnerable => _hitInvulnerabilityRemaining > 0f || ExternalInvulnerability;
 
+        /// <summary>Only the brief invulnerability after a hull hit, not outside sources such as dash i-frames.</summary>
+        public bool HasHitInvulnerability => _hitInvulnerabilityRemaining > 0f;
+
         float _hitInvulnerabilityRemaining;
         float _timeSinceDamage;
 
@@ -76,6 +79,17 @@ namespace Pathfinder.Core.Combat
             float healed = Math.Min(amount, MaxHull - Hull);
             Hull += healed;
             return healed;
+        }
+
+        /// <summary>Raises max hull, e.g. Repair's "Reinforce" option (GDD §10.4). Optionally heals by the same amount.</summary>
+        public void IncreaseMaxHull(float amount, bool heal)
+        {
+            if (amount <= 0f || IsDead)
+                return;
+
+            MaxHull += amount;
+            if (heal)
+                Hull += amount;
         }
 
         public void Tick(float deltaTime)

@@ -4,6 +4,7 @@ using Pathfinder.Core.Combat;
 using Pathfinder.Core.Random;
 using Pathfinder.Game.Content;
 using Pathfinder.Game.Enemies;
+using Pathfinder.Game.Player;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
 
@@ -45,8 +46,15 @@ namespace Pathfinder.Game.Combat
 
         public bool IsOver { get; private set; }
 
+        /// <summary>Enemy health multiplier for the current level, e.g. ×1.6 in galaxy 2 (GDD §7.3).</summary>
+        public float EnemyHealthMultiplier { get; private set; } = 1f;
+
+        /// <summary>Scraps drop multiplier for the current level, e.g. ×2 in a Scraps level (GDD §10.1).</summary>
+        public float ScrapsDropMultiplier { get; private set; } = 1f;
+
         readonly List<CombatEntity> _scratch = new List<CombatEntity>(128);
         int _enemySpawnCount;
+        Seed _levelSeed;
 
         void Awake()
         {
@@ -61,6 +69,7 @@ namespace Pathfinder.Game.Combat
             }
 
             CombatRegistry.ResetEntityIds();
+            _levelSeed = Seed;
             var projectileRoot = new GameObject("Projectiles").transform;
             projectileRoot.SetParent(transform, false);
             Projectiles = new ProjectileSystem(projectileRoot);
@@ -118,12 +127,39 @@ namespace Pathfinder.Game.Combat
         /// Spawns an enemy. Authority only. Each spawn gets its own deterministic random streams, keyed by
         /// spawn order, so the same seed and inputs replay identically.
         /// </summary>
-        public Enemy SpawnEnemy(EnemyDefinition definition, Vector2 position, EliteModifierDefinition elite = null, bool dropsLoot = true)
+        public Enemy SpawnEnemy(EnemyDefinition definition, Vector2 position, EliteModifierDefinition elite = null, bool dropsLoot = true,
+            float extraHealthMultiplier = 1f)
         {
-            var seed = Seed.Derive(SeedLabels.Enemy).Derive(_enemySpawnCount++);
+            var seed = _levelSeed.Derive(SeedLabels.Enemy).Derive(_enemySpawnCount++);
             var enemy = Instantiate(definition.Prefab, PlaneMath.ToWorld(position), Quaternion.identity);
-            enemy.Initialize(this, definition, seed.CreateRandom(SeedLabels.Ai), seed.CreateRandom(SeedLabels.Loot), elite, dropsLoot);
+            enemy.Initialize(this, definition, seed.CreateRandom(SeedLabels.Ai), seed.CreateRandom(SeedLabels.Loot), elite, dropsLoot,
+                EnemyHealthMultiplier * extraHealthMultiplier);
             return enemy;
+        }
+
+        /// <summary>
+        /// Starts a new level in this arena. Enemy streams restart from the level seed, so a level plays the same
+        /// regardless of which levels came before it (GDD §14.3).
+        /// </summary>
+        public void BeginLevel(Seed levelSeed, float enemyHealthMultiplier, float scrapsDropMultiplier)
+        {
+            _levelSeed = levelSeed;
+            _enemySpawnCount = 0;
+            EnemyHealthMultiplier = enemyHealthMultiplier;
+            ScrapsDropMultiplier = scrapsDropMultiplier;
+        }
+
+        /// <summary>Removes everything a level left behind. Leftover Scraps go to the collector, if given.</summary>
+        public void ClearLevel(PlayerShip collector)
+        {
+            var enemies = new List<Enemy>(CombatRegistry.Enemies);
+            foreach (var enemy in enemies)
+                enemy.Despawn();
+
+            Projectiles.Clear();
+            if (collector != null)
+                Pickups.CollectAll(collector);
+            Pickups.Clear();
         }
 
         public Vector2 ClampToArena(Vector2 position, float radius)

@@ -48,11 +48,15 @@ namespace Pathfinder.Game.Player
             _aimMode = Mouse.current != null ? AimMode.Pointer : AimMode.Stick;
         }
 
+        bool _pausedLastFrame;
+
         void Update()
         {
-            if (GameClock.Paused)
+            bool pausedLastFrame = _pausedLastFrame;
+            _pausedLastFrame = GameClock.Paused;
+            if (GameClock.Paused || pausedLastFrame)
             {
-                // Presses made while paused must not fire the moment the game resumes.
+                // Presses made while paused, including the menu confirm that unpaused the game, must not fire on resume.
                 _dashLatched = _reloadLatched = _interactLatched = _secondaryLatched = false;
                 return;
             }

@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e3740f1949f6fe4eae6828f940396e0, type: 3}
+  m_Name: RunConfig
+  m_EditorClassIdentifier: 
+  id: run.config
+  displayName: Run Config
+  <PlayerEntry>k__BackingField: {x: 0, y: -14}
+  <ExitPosition>k__BackingField: {x: 0, y: 14}
+  <ExitRadius>k__BackingField: 1.6
+  <GalaxyEnemyHealth>k__BackingField:
+  - 1
+  - 1.6
+  - 2.4
+  <MysteryRewardMultiplier>k__BackingField: 1.5
+  <AmbushRewardMultiplier>k__BackingField: 2
+  <AmbushBudgetMultiplier>k__BackingField: 1.5
+  <ScrapsWaves>k__BackingField: 4
+  <ScrapsBudgetMultiplier>k__BackingField: 1.3
+  <ScrapsDropMultiplier>k__BackingField: 2
+  <ScrapsCompletionBonus>k__BackingField: 1e0000002d0000003c000000
+  <EquipmentWaves>k__BackingField: 3
+  <CacheCarrier>k__BackingField: {fileID: 11400000, guid: 01658effe96b3d84a87736e521d9ffff, type: 2}
+  <CacheCarrierElite>k__BackingField: {fileID: 11400000, guid: 699e8ed91a1215a47812d97152f3d47a, type: 2}
+  <CacheScraps>k__BackingField: 25
+  <DarkMatterNodesMin>k__BackingField: 8
+  <DarkMatterNodesMax>k__BackingField: 12
+  <HarvestTime>k__BackingField: 1
+  <HarvestRadius>k__BackingField: 1.6
+  <DarkMatterPerNode>k__BackingField:
+  - 5
+  - 7.5
+  - 10
+  <InstabilityTime>k__BackingField: 90
+  <PressureBudgetMultiplier>k__BackingField: 0.5
+  <PressureWaveInterval>k__BackingField: 12
+  <EscalatedBudgetMultiplier>k__BackingField: 1.5
+  <EscalatedWaveInterval>k__BackingField: 5
+  <RepairFraction>k__BackingField: 0.4
+  <ReinforceHull>k__BackingField: 15
+  <RepairPricePerHull>k__BackingField: 1
+  <Boss>k__BackingField:
+    Enemy: {fileID: 11400000, guid: e1e1c80330dbd2b4d85bb88f739cb923, type: 2}
+    Elite: {fileID: 11400000, guid: 699e8ed91a1215a47812d97152f3d47a, type: 2}
+    HealthMultiplier: 3
+    Escort: {fileID: 11400000, guid: 01658effe96b3d84a87736e521d9ffff, type: 2}
+    EscortCount: 2
+  <SingularityCores>k__BackingField: 010000000200000003000000
+  <BossHealFraction>k__BackingField: 0.3
+  <ExitPrefab>k__BackingField: {fileID: 1460294685376848309, guid: b74a5534ce7f41c4abed1503ef20fd83, type: 3}
+  <DarkMatterNodePrefab>k__BackingField: {fileID: 3926833002581884884, guid: 176b6fd5cb18502419f06cca0d8da08e, type: 3}
+  <RepairStationPrefab>k__BackingField: {fileID: 1947758191507598400, guid: c1f34cf4e1ed1e14eae1c768c1e2d2a5, type: 3}
+  <ShopTerminalPrefab>k__BackingField: {fileID: 7730497755224227096, guid: 5965c3e461badfd42bbdf295e73de9ac, type: 3}
+  <CachePrefab>k__BackingField: {fileID: 7310113870252941974, guid: 2f5e7fc6c39e6cc41824c9ec4f5ac049, type: 3}

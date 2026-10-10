@@ -4,6 +4,7 @@ using Pathfinder.Game.Combat;
 using Pathfinder.Game.Content;
 using Pathfinder.Game.Enemies;
 using Pathfinder.Game.Player;
+using Pathfinder.Game.Run;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -16,10 +17,13 @@ namespace Pathfinder.Game.Dev
     public sealed class DebugHotkeys : MonoBehaviour
     {
         [SerializeField] WaveDirector waveDirector;
+        [SerializeField, Tooltip("Optional. In the Run scene, F6 skips the current level.")] LevelController level;
         [SerializeField] PrimaryWeaponDefinition[] primaryWeapons = new PrimaryWeaponDefinition[0];
         [SerializeField] SecondaryWeaponDefinition[] secondaryWeapons = new SecondaryWeaponDefinition[0];
 
-        public string HintText => "DEV   F1 primary   F2 secondary   F3 god mode   F4 kill all   F5 next wave";
+        public string HintText => level != null
+            ? "DEV   F1 primary   F2 secondary   F3 god mode   F4 kill all   F5 next wave   F6 skip level"
+            : "DEV   F1 primary   F2 secondary   F3 god mode   F4 kill all   F5 next wave";
         public IReadOnlyList<PrimaryWeaponDefinition> PrimaryWeapons => primaryWeapons;
         public IReadOnlyList<SecondaryWeaponDefinition> SecondaryWeapons => secondaryWeapons;
 
@@ -47,6 +51,8 @@ namespace Pathfinder.Game.Dev
                 KillAllEnemies();
             if (keyboard.f5Key.wasPressedThisFrame && waveDirector != null)
                 waveDirector.SkipToNextWave();
+            if (keyboard.f6Key.wasPressedThisFrame && level != null && level.IsActive)
+                level.DebugTakeExit();
         }
 
         static T Next<T>(T[] options, T current) where T : Object

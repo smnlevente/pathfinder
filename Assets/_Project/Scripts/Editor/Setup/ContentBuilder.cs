@@ -9,8 +9,8 @@ using Object = UnityEngine.Object;
 namespace Pathfinder.Editor.Setup
 {
     /// <summary>
-    /// Generates the combat sandbox: placeholder materials, textures, prefabs and effects, the content definitions,
-    /// and the wiring of the Run scene.
+    /// Generates the game content: placeholder materials, textures, prefabs and effects, the content definitions, and the
+    /// wiring of the Sandbox, Run and Hub scenes.
     /// Rerunning rebuilds the placeholder art and prefabs (asset GUIDs are kept) but never overwrites tuning in
     /// existing content definitions.
     /// Batch mode: <c>Unity.exe -batchmode -projectPath . -executeMethod Pathfinder.Editor.Setup.ContentBuilder.BuildBatch</c>
@@ -70,13 +70,16 @@ namespace Pathfinder.Editor.Setup
                 EnsureFolder(dir);
             DeleteObsoleteAssets();
 
+            EnsureScenes();
             var art = BuildArt();
             var data = BuildDefinitions();
             var actors = BuildActors(art, data);
             LinkDefinitions(art, actors, data);
+            var runArt = BuildRunArt(art);
+            var runConfig = BuildRunConfig(data, runArt);
 
             TunePostProcessing();
-            PopulateRunScene(art, actors, data);
+            PopulateScenes(art, actors, data, runArt, runConfig);
             AssetDatabase.SaveAssets();
             Debug.Log("[ContentBuilder] Combat sandbox built.");
         }
@@ -221,6 +224,7 @@ namespace Pathfinder.Editor.Setup
         {
             switch (value)
             {
+                case null: property.objectReferenceValue = null; break;
                 case Object reference: property.objectReferenceValue = reference; break;
                 case Object[] references:
                     property.arraySize = references.Length;
@@ -244,13 +248,14 @@ namespace Pathfinder.Editor.Setup
         static T Load<T>(string path) where T : Object =>
             AssetDatabase.LoadAssetAtPath<T>(path) ?? throw new InvalidOperationException($"Missing {typeof(T).Name} at '{path}'.");
 
-        /// <summary>Fails the build if any object reference on the component is still empty.</summary>
-        static void RequireReferences(Object target)
+        /// <summary>Fails the build if any object reference on the component is still empty, except the listed optional fields.</summary>
+        static void RequireReferences(Object target, params string[] optional)
         {
             var property = new SerializedObject(target).GetIterator();
             while (property.NextVisible(enterChildren: true))
             {
-                if (property.propertyType == SerializedPropertyType.ObjectReference && property.objectReferenceValue == null && property.name != "m_Script")
+                if (property.propertyType == SerializedPropertyType.ObjectReference && property.objectReferenceValue == null
+                    && property.name != "m_Script" && System.Array.IndexOf(optional, property.name) < 0)
                     throw new InvalidOperationException($"{target.GetType().Name}.{property.propertyPath} on '{target.name}' is not assigned.");
             }
         }

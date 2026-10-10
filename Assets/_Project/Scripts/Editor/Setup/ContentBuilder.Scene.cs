@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using Pathfinder.Game.Boot;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Content;
 using Pathfinder.Game.Dev;
@@ -16,6 +18,10 @@ namespace Pathfinder.Editor.Setup
 {
     public static partial class ContentBuilder
     {
+        const string ScenesDir = Root + "/Scenes";
+        const string SandboxScenePath = ScenesDir + "/Sandbox.unity";
+        const string HubScenePath = ScenesDir + "/Hub.unity";
+
         /// <summary>Strong bloom sells the neon look (GDD §13.1): emissive parts are authored well above 1.0.</summary>
         static void TunePostProcessing()
         {
@@ -29,32 +35,68 @@ namespace Pathfinder.Editor.Setup
             EditorUtility.SetDirty(profile);
         }
 
-        static void PopulateRunScene(Art art, Actors actors, Data data)
+        /// <summary>
+        /// M3 split the combat scene: the endless combat playground became Sandbox, and Run became the full run.
+        /// An existing Run scene from M1–M2 is moved to Sandbox, keeping its GUID, and Run is recreated from it.
+        /// </summary>
+        static void EnsureScenes()
+        {
+            if (!System.IO.File.Exists(SandboxScenePath) && System.IO.File.Exists(RunScenePath))
+            {
+                string error = AssetDatabase.MoveAsset(RunScenePath, SandboxScenePath);
+                if (!string.IsNullOrEmpty(error))
+                    throw new InvalidOperationException($"Could not move the Run scene to Sandbox: {error}");
+            }
+            if (!System.IO.File.Exists(RunScenePath) && !AssetDatabase.CopyAsset(SandboxScenePath, RunScenePath))
+                throw new InvalidOperationException("Could not create the Run scene from Sandbox.");
+
+            var scenes = new[] { SceneNames.Boot, SceneNames.Hub, SceneNames.Run, SceneNames.Sandbox };
+            EditorBuildSettings.scenes = scenes.Select(name => new EditorBuildSettingsScene($"{ScenesDir}/{name}.unity", true)).ToArray();
+        }
+
+        static void PopulateScenes(Art art, Actors actors, Data data, RunArt runArt, RunConfig runConfig)
         {
             // Opening a scene can unload assets that nothing references yet, which invalidates the in-memory
             // handles from the build steps above. Capture paths first and reload afterwards.
-            string Path(Object asset) => AssetDatabase.GetAssetPath(asset);
-            string playerPath = Path(actors.Player), telegraphPath = Path(art.SpawnTelegraph), scrapPath = Path(art.ScrapVisual);
-            string floorPath = Path(art.Floor), wallPath = Path(art.Wall);
-            string shipPath = Path(data.Ship), wavesPath = Path(data.Waves);
-            string[] primaryPaths = Array.ConvertAll(data.Primaries, p => Path(p));
-            string[] secondaryPaths = Array.ConvertAll(data.Secondaries, s => Path(s));
+            var assets = new ScenePaths
+            {
+                Player = AssetPathOf(actors.Player), Telegraph = AssetPathOf(art.SpawnTelegraph), Scrap = AssetPathOf(art.ScrapVisual),
+                Floor = AssetPathOf(art.Floor), Wall = AssetPathOf(art.Wall), Ship = AssetPathOf(data.Ship), Waves = AssetPathOf(data.Waves),
+                RunConfig = AssetPathOf(runConfig),
+                Primaries = Array.ConvertAll(data.Primaries, p => AssetPathOf(p)),
+                Secondaries = Array.ConvertAll(data.Secondaries, s => AssetPathOf(s)),
+            };
 
-            var scene = EditorSceneManager.OpenScene(RunScenePath, OpenSceneMode.Single);
+            PopulateCombatScene(SandboxScenePath, assets, isRun: false);
+            PopulateCombatScene(RunScenePath, assets, isRun: true);
+            PopulateHubScene();
+        }
+
+        sealed class ScenePaths
+        {
+            public string Player, Telegraph, Scrap, Floor, Wall, Ship, Waves, RunConfig;
+            public string[] Primaries, Secondaries;
+        }
+
+        static string AssetPathOf(Object asset) => AssetDatabase.GetAssetPath(asset);
+
+        static void PopulateCombatScene(string scenePath, ScenePaths assets, bool isRun)
+        {
+            var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
 
             var world = FindOrCreate<CombatWorld>("Combat World");
-            SetFields(world, ("arenaSize", ArenaSize), ("scrapPickupPrefab", Load<GameObject>(scrapPath)));
+            SetFields(world, ("arenaSize", ArenaSize), ("scrapPickupPrefab", Load<GameObject>(assets.Scrap)));
 
             var floor = GameObject.Find("ArenaFloor");
             if (floor != null)
-                floor.GetComponent<MeshRenderer>().sharedMaterial = Load<Material>(floorPath);
-            BuildArenaWalls(Load<Material>(wallPath));
+                floor.GetComponent<MeshRenderer>().sharedMaterial = Load<Material>(assets.Floor);
+            BuildArenaWalls(Load<Material>(assets.Wall));
 
-            var primaries = Array.ConvertAll(primaryPaths, p => (Object)Load<PrimaryWeaponDefinition>(p));
-            var secondaries = Array.ConvertAll(secondaryPaths, p => (Object)Load<SecondaryWeaponDefinition>(p));
+            var primaries = Array.ConvertAll(assets.Primaries, p => (Object)Load<PrimaryWeaponDefinition>(p));
+            var secondaries = Array.ConvertAll(assets.Secondaries, p => (Object)Load<SecondaryWeaponDefinition>(p));
 
             var spawner = FindOrCreate<PlayerSpawner>("Player Spawner");
-            SetFields(spawner, ("world", world), ("shipPrefab", Load<PlayerShip>(playerPath)), ("ship", Load<ShipDefinition>(shipPath)),
+            SetFields(spawner, ("world", world), ("shipPrefab", Load<PlayerShip>(assets.Player)), ("ship", Load<ShipDefinition>(assets.Ship)),
                 ("primaryWeapon", primaries[0]), ("secondaryWeapon", secondaries[0]));
 
             // M2 replaced the M1 test spawner with the wave director. Its script no longer exists.
@@ -63,25 +105,53 @@ namespace Pathfinder.Editor.Setup
                 Object.DestroyImmediate(oldSpawner);
 
             var director = FindOrCreate<WaveDirector>("Wave Director");
-            SetFields(director, ("world", world), ("config", Load<WaveDirectorConfig>(wavesPath)), ("telegraphPrefab", Load<GameObject>(telegraphPath)));
-
-            var debug = FindOrCreate<DebugHotkeys>("Dev Tools");
-            SetFields(debug, ("waveDirector", director), ("primaryWeapons", primaries), ("secondaryWeapons", secondaries));
+            SetFields(director, ("world", world), ("config", Load<WaveDirectorConfig>(assets.Waves)), ("telegraphPrefab", Load<GameObject>(assets.Telegraph)),
+                ("autoStart", !isRun));
 
             var flow = FindOrCreate<RunFlow>("Run Flow");
-            SetFields(flow, ("world", world));
             var hud = GetOrAdd<CombatHud>(flow.gameObject);
-            SetFields(hud, ("world", world), ("runFlow", flow), ("waveDirector", director), ("debugHotkeys", debug));
+            var debug = FindOrCreate<DebugHotkeys>("Dev Tools");
+
+            RunDirector runDirector = null;
+            LevelController level = null;
+            if (isRun)
+            {
+                runDirector = FindOrCreate<RunDirector>("Run Director");
+                level = GetOrAdd<LevelController>(runDirector.gameObject);
+                var dialog = GetOrAdd<ChoiceDialog>(runDirector.gameObject);
+                var mapScreen = GetOrAdd<GalaxyMapScreen>(runDirector.gameObject);
+
+                SetFields(level, ("world", world), ("director", director), ("config", Load<RunConfig>(assets.RunConfig)), ("dialog", dialog));
+                SetFields(runDirector, ("world", world), ("level", level));
+                SetFields(mapScreen, ("director", runDirector));
+                foreach (var component in new Component[] { runDirector, level, mapScreen })
+                    RequireReferences(component);
+            }
+
+            SetFields(flow, ("world", world), ("runDirector", (Object)runDirector));
+            SetFields(hud, ("world", world), ("runFlow", flow), ("waveDirector", director), ("debugHotkeys", debug), ("runDirector", (Object)runDirector));
+            SetFields(debug, ("waveDirector", director), ("primaryWeapons", primaries), ("secondaryWeapons", secondaries), ("level", (Object)level));
 
             var camera = Camera.main;
             if (camera == null)
-                throw new InvalidOperationException("Run scene has no camera tagged MainCamera.");
+                throw new InvalidOperationException($"{scenePath} has no camera tagged MainCamera.");
             var rig = GetOrAdd<CameraRig>(camera.gameObject);
             SetFields(rig, ("world", world), ("distance", 20f));
 
-            foreach (var component in new Component[] { world, spawner, director, debug, flow, hud, rig })
+            foreach (var component in new Component[] { world, spawner, director, rig })
                 RequireReferences(component);
+            RequireReferences(flow, optional: "runDirector");
+            RequireReferences(hud, optional: "runDirector");
+            RequireReferences(debug, optional: "level");
 
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+        }
+
+        static void PopulateHubScene()
+        {
+            var scene = EditorSceneManager.OpenScene(HubScenePath, OpenSceneMode.Single);
+            FindOrCreate<HubMenu>("Hub Menu");
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
         }

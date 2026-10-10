@@ -17,12 +17,12 @@ using Object = UnityEngine.Object;
 namespace Pathfinder.Tests.PlayMode
 {
     /// <summary>
-    /// Loads the real Run scene and drives it with scripted pilot commands. The same <see cref="IShipCommandSource"/>
+    /// Loads the combat Sandbox scene and drives it with scripted pilot commands. The same <see cref="IShipCommandSource"/>
     /// seam is what a network peer or bot would use.
     /// </summary>
     public abstract class SandboxTestBase
     {
-        const string RunScene = "Run";
+        const string SandboxScene = "Sandbox";
 
         protected CombatWorld World { get; private set; }
         protected WaveDirector Director { get; private set; }
@@ -45,9 +45,9 @@ namespace Pathfinder.Tests.PlayMode
 
         protected IEnumerator LoadRun(bool keepDirector = false, ulong seed = 1234UL)
         {
-            GameClock.Paused = false;
+            GameClock.ResumeAll();
             CombatWorld.NextSeedOverride = new Seed(seed);
-            yield return SceneManager.LoadSceneAsync(RunScene, LoadSceneMode.Single);
+            yield return SceneManager.LoadSceneAsync(SandboxScene, LoadSceneMode.Single);
             yield return null; // let Start run so the player spawns
 
             World = Object.FindAnyObjectByType<CombatWorld>();

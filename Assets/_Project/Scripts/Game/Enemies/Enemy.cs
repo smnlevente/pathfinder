@@ -71,7 +71,7 @@ namespace Pathfinder.Game.Enemies
 
         /// <summary>Use <see cref="CombatWorld.SpawnEnemy"/> rather than calling this directly.</summary>
         public void Initialize(CombatWorld world, EnemyDefinition enemyDefinition, IRandom random, IRandom lootRandom,
-            EliteModifierDefinition elite, bool dropsLoot)
+            EliteModifierDefinition elite, bool dropsLoot, float healthMultiplier = 1f)
         {
             _world = world;
             definition = enemyDefinition;
@@ -80,7 +80,7 @@ namespace Pathfinder.Game.Enemies
             _dropsLoot = dropsLoot;
             Elite = elite;
 
-            float health = definition.MaxHealth * (elite != null ? elite.HealthMultiplier : 1f);
+            float health = definition.MaxHealth * healthMultiplier * (elite != null ? elite.HealthMultiplier : 1f);
             _vitals = new Vitals(health);
             Velocity = Vector2.zero;
             _knockback = Vector2.zero;
@@ -148,6 +148,14 @@ namespace Pathfinder.Game.Enemies
             _vitals.Tick(deltaTime);
         }
 
+        /// <summary>Removes the enemy without a kill: no loot and no death event. Used when a level is torn down.</summary>
+        public void Despawn()
+        {
+            _dropsLoot = false;
+            gameObject.SetActive(false);
+            Destroy(gameObject);
+        }
+
         protected override float IncomingDamageMultiplier(in DamageInfo info) =>
             _brain is IDamageModifier modifier ? modifier.IncomingDamageMultiplier(this, info) : 1f;
 
@@ -160,7 +168,7 @@ namespace Pathfinder.Game.Enemies
 
         void DropLoot()
         {
-            int amount = Mathf.RoundToInt(definition.ScrapsDrop * (Elite != null ? Elite.ScrapsMultiplier : 1f));
+            int amount = Mathf.RoundToInt(definition.ScrapsDrop * (Elite != null ? Elite.ScrapsMultiplier : 1f) * _world.ScrapsDropMultiplier);
             bool drops = Elite != null || _lootRandom.Chance(definition.ScrapsDropChance);
             if (drops && amount > 0)
                 _world.Pickups.SpawnScraps(Position, amount, _lootRandom);

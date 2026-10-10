@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 1.3 (M2 implemented; weapon, enemy, wave and drop tuning recorded) |
+| **Version** | 1.4 (M3 implemented: run structure, galaxy map, level types) |
 | **Date** | 2026-10-09 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
@@ -372,6 +372,13 @@ Each galaxy is a **reversed tree**: several entry nodes at the base converge upw
 - No path may contain three consecutive nodes of the same type.
 - Node types are **visible on the map** (except for Mystery), so route planning is informed.
 
+**Implemented in M3:**
+- **Edges** are built row by row with a left-to-right "staircase" sweep. Both lane indices only ever increase, so edges never cross, and every node gets at least one edge in each direction. That guarantees reachability and that every path reaches the Shop. A node can have up to 3 outgoing edges when a narrow row feeds a wide one.
+- **Bridges** add an extra diagonal edge to the next lane over, but only when it crosses nothing.
+- **Types** are assigned row by row from the weights. A type is excluded for a node if a parent and grandparent on some path already share it. If row 1 rolls no Equipment, one of its nodes is converted. The single Repair node (60% chance) then replaces a random node in rows 3–4.
+- **Seeds:** galaxy *n*'s map comes from `seed → "map" → n`. Level content comes from `seed → "level" → galaxy → node`, so a node plays the same whatever route led to it. Mystery outcomes are seeded per node too.
+- 500-seed EditMode tests check every rule above.
+
 ---
 
 ## 10. Level Types
@@ -425,6 +432,18 @@ Every level ends by flying into the **exit wormhole**, which opens once the leve
 - **On victory:** Singularity Cores, a 30% hull repair and an equipment choice, then a **wormhole jump to the next galaxy** in the same run. The player starts at the base of a new galaxy map.
 - **Defeating the Galaxy 3 boss** wins the run: New Home is reached, the ending plays (the first time; it is shorter on later wins), and the player returns to the Hub.
 
+### 10.8 Implementation notes (M3)
+- **Arena flow:** every level reuses the same arena. The ship enters at the bottom (0, −14). Once the objective is met, a cyan **exit wormhole** opens at the top (0, 14), and flying into it ends the level. Leaving clears the arena: remaining enemies vanish without loot, and leftover Scraps are collected automatically.
+- **Hull carries over** between levels. The shield refills naturally between fights.
+- **Scraps level:** 4 waves at ×1.3 budget with ×2 Scraps drops. The bonus is paid to every living pilot.
+- **Equipment level:** 3 waves. When the final wave starts, an **Armored elite Gunner** joins as the Cache Carrier. Its cache must be collected and the waves cleared before the exit opens. *Placeholder until M4:* the cache pays 25 Scraps instead of a choice of 3 equipment.
+- **Dark Matter level:** 8–12 indigo crystals, at least 5 u apart and away from the entry and exit. Standing within 1.6 u fills a harvest ring (1 s; it drains at half speed when left). Light pressure means a wave every 12 s at ×0.5 budget. After the 90 s timer it escalates to a wave every 5 s at ×1.5 budget. The exit is open from the start.
+- **Repair level:** a green station at the arena centre. Press Interact for the choice; it can be used once. The exit is open from the start.
+- **Shop level:** a gold terminal. *Placeholder until M4:* it sells hull repairs only (10, 25 or to full, at 1 Scrap per hull), and the equipment catalog is shown greyed out.
+- **Mystery:** the HUD announces the revealed type, and rewards are ×1.5. An ambush has a ×1.5 budget and ×2 rewards.
+- **Boss level** *(placeholder until M5)*: an **Armored elite Carrier** at ×3 health (900 HP in galaxy 1) with 2 Gunner escorts. It pays Singularity Cores and a 30% heal, but no equipment choice yet.
+- **Galaxy scaling:** enemy health ×1.0 / ×1.6 / ×2.4 per galaxy, on top of the director's galaxy budget multiplier. All three galaxies use the Shattered Expanse enemy pool and arena until their themes arrive.
+
 ---
 
 ## 11. Economy & Meta Progression
@@ -470,6 +489,7 @@ Boot → Main Menu → Hub ──► Ship Select → Loadout Select → Galaxy M
                      ▲                                        │
                      └──── Run Summary ◄── Death / Victory ◄──┘
 ```
+*M3 state:* Boot → Hub (placeholder menu: **Start Run**, **Combat Sandbox**) → Run scene (galaxy map ⇄ levels → galaxy cleared → … → victory or defeat summary). Ship and loadout selection come with the Hub in M5. Until then the run starts with the Stormbringer, Photon Repeater and Seeker Swarm. The **Sandbox** scene keeps the endless combat playground for tuning.
 
 ### 12.2 HUD (in level)
 - **Top left:** Hull bar (with the numeric value) with the Shield bar layered over it.
@@ -645,7 +665,7 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 | **M0** ✅ | Project setup | 3D URP and Forward+ are configured, the folder structure exists, the Input actions are set up, and Boot/Hub/Run scenes exist. The PCG32 `IRandom` and seed-derivation code exist, with determinism tests. |
 | **M1** ✅ | Core combat feel | The ship moves, aims, shoots (Photon Repeater) and dashes with i-frames, and one arena has Drones and Gunners. Hull, shield and death work. Built on the co-op rules ([§14.4](#144-co-op-readiness)): `ShipCommand` input, `CombatRegistry` and an authority boundary. *Test: are the first 2 minutes fun?* |
 | **M2** ✅ | Combat breadth | 3 primaries, 2 secondaries, 5 archetypes, the wave director, Scraps drops and pickups. |
-| **M3** | Run structure | Galaxy map generation with its rules and tests, the map UI, all 7 level types, and RunState. |
+| **M3** ✅ | Run structure | Galaxy map generation with its rules and tests, the map UI, all 7 level types, and RunState. |
 | **M4** | Build system | Equipment slots, the modifier system, event hooks, choice cards, the Shop, and the 2 ships with their traits. |
 | **M5** | Boss + meta | The Quarry Maw, run end and summary, the Hub, meta upgrades, and save/load. |
 | **M6** | Slice polish | VFX, juice, audio pass, balance pass, and an external playtest. |

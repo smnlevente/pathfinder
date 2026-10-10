@@ -48,6 +48,9 @@ namespace Pathfinder.Game.Player
         /// <summary>Run currency carried by this pilot (GDD §11.1).</summary>
         public int Scraps { get; private set; }
 
+        /// <summary>The pilot pressed Interact during the latest tick. Interactables read it after the players simulate.</summary>
+        public bool InteractPressed { get; private set; }
+
         public event Action<PlayerShip> Dashed;
         public event Action<PlayerShip> Fired;
         public event Action<PlayerShip, SecondaryWeaponDefinition> SecondaryActivated;
@@ -113,12 +116,42 @@ namespace Pathfinder.Game.Player
             ScrapsCollected?.Invoke(this, amount);
         }
 
+        /// <summary>Spends Scraps if the pilot has enough. Authority only.</summary>
+        public bool TrySpendScraps(int amount)
+        {
+            if (!Authority.IsAuthority || amount < 0 || amount > Scraps)
+                return false;
+
+            Scraps -= amount;
+            return true;
+        }
+
+        /// <summary>Restores hull and returns the amount healed. Authority only.</summary>
+        public float Heal(float amount) => Authority.IsAuthority ? _vitals.Heal(amount) : 0f;
+
+        /// <summary>Raises max hull for the rest of the run (the Reinforce repair option, GDD §10.4). Authority only.</summary>
+        public void Reinforce(float amount)
+        {
+            if (Authority.IsAuthority)
+                _vitals.IncreaseMaxHull(amount, heal: false);
+        }
+
+        /// <summary>Places the ship at a level entry point, at rest.</summary>
+        public void PlaceForLevel(Vector2 position)
+        {
+            Teleport(position);
+            Velocity = Vector2.zero;
+            AimDirection = Vector2.up;
+            Heading = 0f;
+        }
+
         internal void NotifyFired() => Fired?.Invoke(this);
 
         public override void Simulate(float deltaTime, CombatWorld world)
         {
             var command = CommandSource?.ReadCommand(this) ?? default;
             Vector2 move = Vector2.ClampMagnitude(command.Move, 1f);
+            InteractPressed = command.Interact;
 
             if (command.Aim.sqrMagnitude > 1e-4f)
                 AimDirection = command.Aim.normalized;

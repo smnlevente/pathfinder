@@ -101,6 +101,13 @@ namespace Pathfinder.Game.Combat
             _active.Add(projectile);
         }
 
+        /// <summary>Removes every projectile, e.g. between levels.</summary>
+        public void Clear()
+        {
+            for (int i = _active.Count - 1; i >= 0; i--)
+                RemoveAt(i, _active[i]);
+        }
+
         /// <summary>Removes the team's projectiles inside the circle, e.g. Nova Pulse erasing enemy bullets.</summary>
         public int DestroyInRadius(Team team, Vector2 center, float radius)
         {

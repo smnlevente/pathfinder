@@ -9,7 +9,6 @@ using Pathfinder.Game.Enemies;
 using Pathfinder.Game.Player;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
-using UnityEngine.Rendering;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
@@ -102,15 +101,6 @@ namespace Pathfinder.Tests.PlayMode
 
         static string F(float value) => value.ToString("R", CultureInfo.InvariantCulture);
 
-        static string ScreenshotDirectory()
-        {
-            string directory = Environment.GetEnvironmentVariable("PATHFINDER_SCREENSHOT_DIR");
-            if (string.IsNullOrEmpty(directory))
-                Assert.Ignore("Set PATHFINDER_SCREENSHOT_DIR to capture screenshots.");
-            Directory.CreateDirectory(directory);
-            return directory;
-        }
-
         /// <summary>
         /// Saves screenshots of live combat for visual review. Runs only when PATHFINDER_SCREENSHOT_DIR is set,
         /// and needs a graphics device, so it doesn't work with -nographics.
@@ -118,7 +108,7 @@ namespace Pathfinder.Tests.PlayMode
         [UnityTest, Category("Screenshot")]
         public IEnumerator CaptureCombatScreenshots()
         {
-            string directory = ScreenshotDirectory();
+            string directory = Screenshots.Directory();
             yield return LoadRun(keepDirector: true, seed: 0xC0FFEEUL);
             Script(DemoPilot);
 
@@ -126,7 +116,7 @@ namespace Pathfinder.Tests.PlayMode
             {
                 yield return WaitUntilTicks(() => World.Tick >= tick, maxTicks: 1600);
                 yield return null; // let visuals interpolate to the latest tick
-                Capture(Path.Combine(directory, $"combat_{tick}.png"));
+                Screenshots.CaptureCamera(Path.Combine(directory, $"combat_{tick}.png"));
             }
         }
 
@@ -137,7 +127,7 @@ namespace Pathfinder.Tests.PlayMode
         [UnityTest, Category("Screenshot")]
         public IEnumerator CaptureReadabilityShowcase()
         {
-            string directory = ScreenshotDirectory();
+            string directory = Screenshots.Directory();
             yield return LoadRun();
             Vector2 center = Player.Position + new Vector2(0f, 4f);
 
@@ -158,14 +148,14 @@ namespace Pathfinder.Tests.PlayMode
 
             yield return WaitTicks(25);
             yield return null;
-            Capture(Path.Combine(directory, "readability.png"));
+            Screenshots.CaptureCamera(Path.Combine(directory, "readability.png"));
         }
 
         /// <summary>Captures each weapon in action: Plasma Cutter, a charged shot, a Seeker Swarm, and a Nova Pulse.</summary>
         [UnityTest, Category("Screenshot")]
         public IEnumerator CaptureWeaponShowcase()
         {
-            string directory = ScreenshotDirectory();
+            string directory = Screenshots.Directory();
             yield return LoadRun();
             for (int i = 0; i < 5; i++)
                 Spawn("enemy.drone", new Vector2(-8f + i * 4f, 9f));
@@ -174,7 +164,7 @@ namespace Pathfinder.Tests.PlayMode
             Script(_ => new ShipCommand { Aim = new Vector2(-0.3f, 1f), FirePrimary = true });
             yield return WaitTicks(8);
             yield return null;
-            Capture(Path.Combine(directory, "weapon_plasma.png"));
+            Screenshots.CaptureCamera(Path.Combine(directory, "weapon_plasma.png"));
 
             Player.EquipPrimary(PrimaryWeapon("primary.quantum-charger"));
             bool release = false;
@@ -183,50 +173,19 @@ namespace Pathfinder.Tests.PlayMode
             release = true;
             yield return WaitTicks(6);
             yield return null;
-            Capture(Path.Combine(directory, "weapon_charger.png"));
+            Screenshots.CaptureCamera(Path.Combine(directory, "weapon_charger.png"));
 
             Player.EquipSecondary(SecondaryWeapon("secondary.seeker-swarm"));
             Script(Once(new ShipCommand { Aim = Vector2.up, FireSecondary = true }, new ShipCommand { Aim = Vector2.up }));
             yield return WaitTicks(14);
             yield return null;
-            Capture(Path.Combine(directory, "weapon_seekers.png"));
+            Screenshots.CaptureCamera(Path.Combine(directory, "weapon_seekers.png"));
 
             Player.EquipSecondary(SecondaryWeapon("secondary.nova-pulse"));
             Script(Once(new ShipCommand { FireSecondary = true }));
             yield return WaitTicks(6);
             yield return null;
-            Capture(Path.Combine(directory, "weapon_nova.png"));
-        }
-
-        static void Capture(string path)
-        {
-            var camera = Camera.main;
-            const int width = 1600, height = 900;
-            var target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
-
-            var request = new RenderPipeline.StandardRequest { destination = target };
-            if (RenderPipeline.SupportsRenderRequest(camera, request))
-            {
-                RenderPipeline.SubmitRenderRequest(camera, request);
-            }
-            else
-            {
-                camera.targetTexture = target;
-                camera.Render();
-                camera.targetTexture = null;
-            }
-
-            var previous = RenderTexture.active;
-            RenderTexture.active = target;
-            var image = new Texture2D(width, height, TextureFormat.RGB24, mipChain: false);
-            image.ReadPixels(new Rect(0, 0, width, height), 0, 0);
-            image.Apply();
-            RenderTexture.active = previous;
-
-            File.WriteAllBytes(path, image.EncodeToPNG());
-            Object.Destroy(image);
-            target.Release();
-            Object.Destroy(target);
+            Screenshots.CaptureCamera(Path.Combine(directory, "weapon_nova.png"));
         }
     }
 }

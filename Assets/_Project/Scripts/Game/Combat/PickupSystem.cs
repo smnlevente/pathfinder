@@ -87,6 +87,21 @@ namespace Pathfinder.Game.Combat
             }
         }
 
+        /// <summary>Hands every remaining pickup to a pilot, e.g. when a level ends.</summary>
+        public void CollectAll(PlayerShip collector)
+        {
+            int total = TotalAmount;
+            if (total > 0)
+                collector.AddScraps(total);
+            Clear();
+        }
+
+        public void Clear()
+        {
+            for (int i = _active.Count - 1; i >= 0; i--)
+                RemoveAt(i, _active[i]);
+        }
+
         internal void CapturePrevious()
         {
             for (int i = 0; i < _active.Count; i++)

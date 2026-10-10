@@ -97,8 +97,8 @@ namespace Pathfinder.Game.Presentation
             if (dashTrail != null)
                 dashTrail.emitting = player != null && player.IsIntangible;
 
-            // Blink while invulnerable after a hit. Dash i-frames have their own trail cue instead.
-            bool hidden = player != null && player.Vitals.IsInvulnerable && !player.IsIntangible && Mathf.Repeat(Time.time * 16f, 1f) < 0.5f;
+            // Blink only during post-hit invulnerability. Dash i-frames have their own trail cue, and god mode has none.
+            bool hidden = player != null && player.Vitals.HasHitInvulnerability && Mathf.Repeat(Time.time * 16f, 1f) < 0.5f;
             foreach (var renderer in _renderers)
                 renderer.enabled = !hidden;
 

@@ -21,6 +21,7 @@ namespace Pathfinder.Game.Presentation
         [SerializeField] RunFlow runFlow;
         [SerializeField] WaveDirector waveDirector;
         [SerializeField, Tooltip("Optional. Shows the debug key hints when present and enabled.")] DebugHotkeys debugHotkeys;
+        [SerializeField, Tooltip("Optional. In the Run scene: level, objective and run status.")] RunDirector runDirector;
 
         static readonly Color HullColor = new Color(0.95f, 0.35f, 0.3f);
         static readonly Color ShieldColor = new Color(0.3f, 0.85f, 1f);
@@ -30,13 +31,18 @@ namespace Pathfinder.Game.Presentation
         static readonly Color WarningColor = new Color(1f, 0.6f, 0.2f);
         static readonly Color ScrapsColor = new Color(1f, 0.8f, 0.3f);
 
-        GUIStyle _label, _big, _small, _scraps;
+        static readonly Color DarkMatterColor = new Color(0.65f, 0.55f, 1f);
+        static readonly Color BossColor = new Color(1f, 0.3f, 0.25f);
+
+        GUIStyle _label, _big, _small, _scraps, _darkMatter, _banner, _prompt;
         float _fps;
 
         void Update() => _fps = Mathf.Lerp(_fps, 1f / Mathf.Max(Time.unscaledDeltaTime, 1e-4f), 0.05f);
 
         void OnGUI()
         {
+            // Menus (map, dialogs) draw on top of the HUD.
+            GUI.depth = 10;
             EnsureStyles();
             float scale = Screen.height / ReferenceHeight;
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
@@ -49,8 +55,19 @@ namespace Pathfinder.Game.Presentation
                 GUI.Label(new Rect(width - 420f, 54f, 400f, 40f), $"SCRAPS {player.Scraps}", _scraps);
             }
 
-            string wave = waveDirector != null ? $"WAVE {waveDirector.Wave}   ENEMIES {CombatRegistry.Enemies.Count}" : string.Empty;
-            GUI.Label(new Rect(width * 0.5f - 300f, 20f, 600f, 40f), wave, _label);
+            var level = runDirector != null ? runDirector.Level : null;
+            if (level != null && level.IsActive)
+            {
+                DrawLevelStatus(width, level);
+            }
+            else if (runDirector == null)
+            {
+                string wave = waveDirector != null ? $"WAVE {waveDirector.Wave}   ENEMIES {CombatRegistry.Enemies.Count}" : string.Empty;
+                GUI.Label(new Rect(width * 0.5f - 300f, 20f, 600f, 40f), wave, _label);
+            }
+
+            if (runDirector != null && runDirector.Run != null)
+                GUI.Label(new Rect(width - 420f, 92f, 400f, 36f), $"DARK MATTER {runDirector.Run.DarkMatter}   CORES {runDirector.Run.SingularityCores}", _darkMatter);
 
             if (world != null)
                 GUI.Label(new Rect(width - 420f, 20f, 400f, 30f), $"SEED {RunSeed.ToCode(world.Seed)}   {_fps:0} FPS", _small);
@@ -58,10 +75,44 @@ namespace Pathfinder.Game.Presentation
             if (debugHotkeys != null && debugHotkeys.isActiveAndEnabled)
                 GUI.Label(new Rect(40f, ReferenceHeight - 44f, width - 80f, 30f), debugHotkeys.HintText, _small);
 
-            if (runFlow != null && runFlow.IsGameOver)
-                DrawOverlay(width, "SHIP DESTROYED", "Press E / (Y) to restart");
-            else if (GameClock.Paused)
+            if (runFlow != null && runFlow.IsVictory)
+                DrawOverlay(width, "NEW HOME REACHED", $"{RunSummary()}\nPress E / (Y) for a new run   ·   Esc / Start for the Hub");
+            else if (runFlow != null && runFlow.IsGameOver)
+                DrawOverlay(width, runDirector != null ? "RUN OVER" : "SHIP DESTROYED",
+                    runDirector != null ? $"{RunSummary()}\nPress E / (Y) for a new run   ·   Esc / Start for the Hub" : "Press E / (Y) to restart");
+            else if (runDirector != null && runDirector.State == RunDirector.Phase.GalaxyCleared)
+                DrawOverlay(width, "GALAXY CLEARED", $"Jumping to {runDirector.GalaxyName}...");
+            else if (runFlow != null && runFlow.IsPaused)
                 DrawOverlay(width, "PAUSED", "Press Esc / Start to resume");
+        }
+
+        void DrawLevelStatus(float width, LevelController level)
+        {
+            var context = level.Context;
+            string header = $"GALAXY {context.GalaxyIndex + 1}   ·   ROW {context.Row + 1}   ·   {LevelNames.Title(context.Type)}{(context.Ambush ? " (AMBUSH)" : context.FromMystery ? " (MYSTERY)" : "")}";
+            GUI.Label(new Rect(width * 0.5f - 450f, 14f, 900f, 34f), header, _label);
+            GUI.Label(new Rect(width * 0.5f - 450f, 46f, 900f, 30f), level.Objective, _prompt);
+
+            if (level.Boss != null && level.Boss.IsAlive)
+            {
+                var boss = level.Boss;
+                var rect = new Rect(width * 0.5f - 400f, 86f, 800f, 18f);
+                Bar(rect, boss.Vitals.Hull / boss.Vitals.MaxHull, BossColor);
+                GUI.Label(new Rect(rect.x, rect.y + 18f, rect.width, 26f), $"{boss.Definition.DisplayName.ToUpperInvariant()} (PLACEHOLDER BOSS)", _small);
+            }
+
+            if (!string.IsNullOrEmpty(level.Banner))
+                GUI.Label(new Rect(0f, ReferenceHeight * 0.22f, width, 60f), level.Banner, _banner);
+            if (!string.IsNullOrEmpty(level.Prompt))
+                GUI.Label(new Rect(0f, ReferenceHeight * 0.7f, width, 40f), level.Prompt, _label);
+        }
+
+        string RunSummary()
+        {
+            var run = runDirector != null ? runDirector.Run : null;
+            if (run == null)
+                return string.Empty;
+            return $"Galaxy {run.GalaxyIndex + 1}   ·   Levels cleared {run.LevelsCleared}   ·   Dark Matter {run.DarkMatter}   ·   Singularity Cores {run.SingularityCores}\nSeed {RunSeed.ToCode(run.Seed)}";
         }
 
         void DrawPlayerPanel(PlayerShip player)
@@ -105,7 +156,7 @@ namespace Pathfinder.Game.Presentation
             GUI.DrawTexture(new Rect(0f, 0f, width, height), Texture2D.whiteTexture);
             GUI.color = Color.white;
             GUI.Label(new Rect(0f, height * 0.4f, width, 80f), title, _big);
-            GUI.Label(new Rect(0f, height * 0.4f + 80f, width, 40f), hint, _label);
+            GUI.Label(new Rect(0f, height * 0.4f + 80f, width, 120f), hint, _label);
         }
 
         static void Bar(Rect rect, float fill, Color color)
@@ -138,6 +189,12 @@ namespace Pathfinder.Game.Presentation
             _small = new GUIStyle(_label) { fontSize = 18, alignment = TextAnchor.MiddleLeft };
             _scraps = new GUIStyle(_label) { fontSize = 26, alignment = TextAnchor.MiddleLeft };
             _scraps.normal.textColor = ScrapsColor;
+            _darkMatter = new GUIStyle(_small) { fontSize = 20 };
+            _darkMatter.normal.textColor = DarkMatterColor;
+            _banner = new GUIStyle(_label) { fontSize = 40 };
+            _banner.normal.textColor = new Color(1f, 0.95f, 0.6f);
+            _prompt = new GUIStyle(_label) { fontSize = 20, fontStyle = FontStyle.Normal };
+            _prompt.normal.textColor = new Color(0.8f, 0.92f, 1f);
         }
     }
 }

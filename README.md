@@ -12,11 +12,18 @@ The design lives in [docs/GDD.md](docs/GDD.md).
 | M0 Project setup | ✅ |
 | M1 Core combat feel | ✅ playtested |
 | M2 Combat breadth | ✅ 3 primaries, 2 secondaries, 5 enemy types + elites, wave director, Scraps |
-| M3–M6 | Planned (GDD §17) |
+| M3 Run structure | ✅ galaxy map, 7 level types, 3 galaxies, victory/defeat (equipment and real bosses are placeholders until M4/M5) |
+| M4–M6 | Planned (GDD §17) |
 
-## Playing the combat sandbox
+## Playing
 
-Open `Assets/_Project/Scenes/Run.unity` and press Play. The wave director sends endless, escalating waves of Drones, Gunners, Spinners, Lancers and Carriers, with the occasional gold-ringed elite, until the ship is destroyed. Enemies drop gold Scraps that fly to the ship.
+**A full run:** open `Assets/_Project/Scenes/Boot.unity` (or `Hub.unity`), press Play and choose **Start Run**. You can also
+open `Run.unity` directly. Pick a route on the galaxy map, clear levels, fly into the wormhole, and beat three bosses to
+reach New Home.
+
+![A generated galaxy map: entries at the bottom converge to the Shop and Boss](docs/images/m3-map-graph.png)
+
+**The combat sandbox:** open `Assets/_Project/Scenes/Sandbox.unity` and press Play. The wave director sends endless, escalating waves of Drones, Gunners, Spinners, Lancers and Carriers, with the occasional gold-ringed elite, until the ship is destroyed. Enemies drop gold Scraps that fly to the ship.
 
 | Action | Keyboard & Mouse | Gamepad |
 |---|---|---|
@@ -27,10 +34,11 @@ Open `Assets/_Project/Scenes/Run.unity` and press Play. The wave director sends 
 | Dash (i-frames) | Space | A / Cross, RB |
 | Reload | R | X / Square |
 | Pause | Esc | Start |
-| Restart after death | E | Y / Triangle |
+| Interact (stations), restart after a run | E | Y / Triangle |
+| Galaxy map: choose a node | Left/Right + Enter, or click | D-pad / stick + A |
 
 **Dev hotkeys** (Editor and development builds): **F1** cycle primary weapon, **F2** cycle secondary, **F3** god mode,
-**F4** kill all enemies, **F5** skip to the next wave.
+**F4** kill all enemies, **F5** skip to the next wave, **F6** skip the current level (Run scene).
 
 Tuning lives in the ScriptableObjects under `Assets/_Project/Data`: ship, weapons, enemies, elites, and the wave config
 `Waves/Waves_ShatteredExpanse`. Behaviour tuning (bursts, charge speed, launch rates) is on the brain components in the
@@ -51,8 +59,9 @@ Assets/_Project/
 ## Editor tools
 
 - **Pathfinder > Setup > Apply M0 Project Setup**: converts a fresh template into the 3D URP setup. Safe to rerun.
-- **Pathfinder > Setup > Build Content**: regenerates the placeholder art, prefabs and Run scene wiring.
-  ScriptableObject data is never overwritten. New definitions are created when missing.
+- **Pathfinder > Setup > Build Content**: regenerates the placeholder art and prefabs, and the wiring of the Sandbox, Run
+  and Hub scenes. ScriptableObject data is never overwritten. New definitions are created when missing.
+  Run tuning is in `Data/Run/RunConfig`.
 
 ## Running tests from the command line
 

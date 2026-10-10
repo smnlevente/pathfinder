@@ -14,6 +14,8 @@ namespace Pathfinder.Game.Enemies
     /// number, on a weighted mix of the theme's enemies, some of which may roll as elites. The next wave starts
     /// when most of the current wave is dead or a timeout passes. Spawns are telegraphed and never land on a
     /// player. Authority only.
+    /// The run's level controller reconfigures the director for each level. The combat sandbox lets it start
+    /// itself in endless mode.
     /// </summary>
     [DefaultExecutionOrder(-50)]
     public sealed class WaveDirector : MonoBehaviour
@@ -22,10 +24,11 @@ namespace Pathfinder.Game.Enemies
         [SerializeField] WaveDirectorConfig config;
         [SerializeField] GameObject telegraphPrefab;
 
-        [Header("Level")]
+        [Header("Sandbox")]
+        [SerializeField, Tooltip("Start by itself with the settings below. The run's level controller turns this off.")] bool autoStart = true;
         [SerializeField, Min(0), Tooltip("0-based galaxy index (GDD §2).")] int galaxyIndex;
-        [SerializeField, Min(1), Tooltip("Galaxy map row of this level (GDD §9).")] int row = 1;
-        [SerializeField, Min(0), Tooltip("Number of waves in this level. 0 = endless (combat sandbox).")] int waveCount;
+        [SerializeField, Min(1), Tooltip("Galaxy map row (GDD §9).")] int row = 1;
+        [SerializeField, Min(0), Tooltip("Number of waves. 0 = endless.")] int waveCount;
 
         struct PendingSpawn
         {
@@ -42,11 +45,23 @@ namespace Pathfinder.Game.Enemies
         IRandom _random;
         float _waveTimer;
         int _waveSize;
+        bool _running;
 
         public WaveDirectorConfig Config => config;
         public int Wave { get; private set; }
+        public int WaveCount => waveCount;
         public int CurrentBudget { get; private set; }
+        public bool IsRunning => _running;
         public bool IsComplete { get; private set; }
+
+        /// <summary>Multiplies every wave budget, e.g. ×1.3 in Scraps levels.</summary>
+        public float BudgetMultiplier { get; set; } = 1f;
+
+        /// <summary>Seconds before the next wave starts anyway. Lower values keep pressure constant.</summary>
+        public float WaveTimeout { get; set; }
+
+        /// <summary>Living enemies of the current wave, plus those still telegraphing.</summary>
+        public int RemainingInWave => _waveEnemies.Count + _pending.Count;
 
         /// <summary>Raised when a wave's spawns are queued.</summary>
         public event Action<WaveDirector> WaveStarted;
@@ -54,17 +69,55 @@ namespace Pathfinder.Game.Enemies
         /// <summary>Raised once, when the final wave of a finite level is cleared.</summary>
         public event Action<WaveDirector> Completed;
 
-        void Start()
+        void Awake()
         {
-            _random = world.Seed.Derive(SeedLabels.Level).Derive(galaxyIndex).Derive(row).CreateRandom(SeedLabels.Waves);
             foreach (var entry in config.Enemies)
                 _entries.Add(new WaveEntry(entry.Enemy.BudgetCost, entry.Weight, Mathf.Max(1, entry.MinWave)));
-            _waveTimer = config.WaveTimeout - config.FirstWaveDelay;
+            WaveTimeout = config.WaveTimeout;
+        }
+
+        void Start()
+        {
+            if (autoStart && !_running)
+                Begin(world.Seed.Derive(SeedLabels.Level).Derive(galaxyIndex).Derive(row), galaxyIndex, row, waveCount);
+        }
+
+        /// <summary>
+        /// Starts spawning for a level. <paramref name="waves"/> = 0 is endless. The first wave arrives after
+        /// <paramref name="firstWaveDelay"/> seconds (config default when negative).
+        /// </summary>
+        public void Begin(Seed levelSeed, int galaxy, int mapRow, int waves, float budgetMultiplier = 1f, float firstWaveDelay = -1f)
+        {
+            Stop();
+            _random = levelSeed.CreateRandom(SeedLabels.Waves);
+            galaxyIndex = galaxy;
+            row = mapRow;
+            waveCount = waves;
+            BudgetMultiplier = budgetMultiplier;
+            WaveTimeout = config.WaveTimeout;
+            Wave = 0;
+            IsComplete = false;
+            _waveSize = 0;
+            _waveTimer = WaveTimeout - (firstWaveDelay >= 0f ? firstWaveDelay : config.FirstWaveDelay);
+            _running = true;
+        }
+
+        /// <summary>Stops spawning and cancels pending telegraphs. Enemies already spawned are left alone.</summary>
+        public void Stop()
+        {
+            foreach (var pending in _pending)
+            {
+                if (pending.Telegraph != null)
+                    Destroy(pending.Telegraph);
+            }
+            _pending.Clear();
+            _waveEnemies.Clear();
+            _running = false;
         }
 
         void FixedUpdate()
         {
-            if (GameClock.Paused || !Authority.IsAuthority || world.IsOver || IsComplete)
+            if (!_running || GameClock.Paused || !Authority.IsAuthority || world.IsOver || IsComplete)
                 return;
 
             float deltaTime = Time.fixedDeltaTime;
@@ -77,35 +130,35 @@ namespace Pathfinder.Game.Enemies
                 if (_pending.Count == 0 && _waveEnemies.Count == 0)
                 {
                     IsComplete = true;
+                    _running = false;
                     Completed?.Invoke(this);
                 }
                 return;
             }
 
             _waveTimer += deltaTime;
-            if (_waveTimer >= config.WaveTimeout || (Wave > 0 && IsWaveMostlyCleared()))
+            if (_waveTimer >= WaveTimeout || (Wave > 0 && IsWaveMostlyCleared()))
                 StartNextWave();
         }
 
         /// <summary>Starts the next wave immediately. For debug tools.</summary>
         public void SkipToNextWave()
         {
-            if (!IsComplete && (waveCount == 0 || Wave < waveCount))
+            if (_running && !IsComplete && (waveCount == 0 || Wave < waveCount))
                 StartNextWave();
         }
 
         bool IsWaveMostlyCleared()
         {
-            int alive = _waveEnemies.Count + _pending.Count;
             int allowed = Mathf.FloorToInt(_waveSize * (1f - config.ClearFraction));
-            return alive <= allowed;
+            return RemainingInWave <= allowed;
         }
 
         void StartNextWave()
         {
             Wave++;
             _waveTimer = 0f;
-            CurrentBudget = config.Budget(Wave, galaxyIndex, row);
+            CurrentBudget = Mathf.Max(1, Mathf.RoundToInt(config.Budget(Wave, galaxyIndex, row) * BudgetMultiplier));
             float eliteChance = config.Elites.Length > 0 ? config.EliteChance(Wave, galaxyIndex, row) : 0f;
 
             var orders = WaveComposer.Compose(_entries, CurrentBudget, Wave, eliteChance, config.EliteCostMultiplier, _random);
@@ -153,7 +206,8 @@ namespace Pathfinder.Game.Enemies
             }
         }
 
-        Vector2 PickSpawnPoint()
+        /// <summary>A random arena point clear of every player. Also used by levels to place their own spawns.</summary>
+        public Vector2 PickSpawnPoint()
         {
             Vector2 half = world.ArenaSize * 0.5f - new Vector2(config.ArenaInset, config.ArenaInset);
             Vector2 candidate = Vector2.zero;
