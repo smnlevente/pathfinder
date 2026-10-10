@@ -16,12 +16,14 @@ frame or on change.
 | `UiRow` | A selectable menu row: accent stripe, bold label, right-aligned note (price or state), wrapping detail line |
 | `UiBar` | A filled bar with a track, for hull, shield, ammo, cooldowns and boss health |
 | `UiPointer` | Mouse hover, click and right click on any element |
+| `UiScrollList` | A list of rows that grows with its content up to a height limit, then scrolls with a slim scrollbar; menus scroll it to keep the keyboard selection in view |
 | `UiSlider` | A draggable 0–1 slider (track, fill, handle) that snaps to steps; takes its own left clicks, passes right clicks to its row |
 | `MenuInput` | Keyboard and gamepad navigation with key repeat, Submit and Cancel, each with its menu sound; works while paused |
 | `ModalScreens` | Tracks open menus. `AnyOpen` brings the cursor back; `BlocksPause` stops Esc from closing a menu *and* opening the pause menu in the same frame |
 | `SettingsOptions`, `OptionRows` | The options shared by the Hub and the pause menu (language, volumes, sound in background, screen shake, fullscreen, FPS), each a choice, a slider or a tickbox, and the builder that makes their rows the same way in both menus |
 
-Layout groups size rows and cards to their text, so descriptions wrap instead of being cut off, and long lists scroll.
+Layout groups size rows and cards to their text, so descriptions wrap instead of being cut off, and long lists scroll:
+the Hub, the pause menu and the dialogs never grow past a 1080-unit-high screen.
 Every string goes through `Loc.T`, and menus rebuild when the language changes (`Loc.Changed`).
 
 ### The screens

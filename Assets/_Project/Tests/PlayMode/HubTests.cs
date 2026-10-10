@@ -43,6 +43,23 @@ namespace Pathfinder.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator OptionsPage_FitsA1080pScreen_AndScrollsToItsLastRow()
+        {
+            yield return LoadHub();
+            var menu = Object.FindAnyObjectByType<HubMenu>();
+            menu.Open(HubMenu.Page.Options);
+            yield return null;
+            yield return null;
+
+            // The panel starts 300 units from the top of the 1080-unit canvas (playtest 5: Back ran off the bottom).
+            Assert.LessOrEqual(menu.Panel.rect.height, 1080f - 300f - 30f + 1f, "The options panel fits on a 1080p screen.");
+            var back = menu.Rows[menu.Rows.Count - 1].Rect;
+            menu.List.ScrollTo(back);
+            yield return null;
+            Assert.IsTrue(menu.List.IsVisible(back), "Scrolling brings the last row (Back) into view.");
+        }
+
+        [UnityTest]
         public IEnumerator StartRun_LaunchesTheRunWithTheChosenLoadout()
         {
             yield return LoadHub();
@@ -76,6 +93,12 @@ namespace Pathfinder.Tests.PlayMode
             menu.Open(HubMenu.Page.Lab);
             yield return null;
             Screenshots.CaptureWithUi(Path.Combine(directory, "hub_lab.png"));
+            menu.Open(HubMenu.Page.Options);
+            yield return null;
+            Screenshots.CaptureWithUi(Path.Combine(directory, "hub_options.png"));
+            menu.List.ScrollTo(menu.Rows[menu.Rows.Count - 1].Rect);
+            yield return null;
+            Screenshots.CaptureWithUi(Path.Combine(directory, "hub_options_scrolled.png"));
         }
     }
 }

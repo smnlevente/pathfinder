@@ -31,7 +31,11 @@ namespace Pathfinder.Game.Presentation
         InputAction _pause;
         Canvas _canvas;
         Text _title, _hint;
-        RectTransform _list;
+        RectTransform _list, _panel;
+        UiScrollList _scroll;
+
+        /// <summary>The list that scrolls the page's rows. For tests.</summary>
+        public UiScrollList List => _scroll;
         readonly List<Row> _rows = new List<Row>();
         int _selected;
         int _openedFrame;
@@ -66,7 +70,10 @@ namespace Pathfinder.Game.Presentation
 
             var step = _input.ReadStep();
             if (step.y != 0 && _rows.Count > 0)
+            {
                 _selected = (_selected - step.y + _rows.Count) % _rows.Count;
+                _scroll.ScrollTo(_rows[_selected].View.Rect);
+            }
             if (step.x != 0 && _selected < _rows.Count)
                 _rows[_selected].Step?.Invoke(step.x);
 
@@ -109,6 +116,7 @@ namespace Pathfinder.Game.Presentation
             for (int i = _list.childCount - 1; i >= 0; i--)
                 Destroy(_list.GetChild(i).gameObject);
             _list.DetachChildren();
+            _list.anchoredPosition = Vector2.zero;
             _rows.Clear();
 
             switch (page)
@@ -145,7 +153,8 @@ namespace Pathfinder.Game.Presentation
                     _hint.text = Loc.T("pause.controls.hint");
                     break;
             }
-            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_list.parent);
+            // Centred, with a margin above and below; a longer page scrolls.
+            _scroll.Fit(_panel, UiKit.ReferenceSize.y - 80f);
         }
 
         /// <summary>Changes an option. A new language rebuilds the page, so every row is in the new language.</summary>
@@ -186,8 +195,9 @@ namespace Pathfinder.Game.Presentation
             UiKit.Vertical(panel, 14f, new RectOffset(40, 40, 30, 26));
             UiKit.FitContent(panel);
             _title = UiKit.Text(panel.transform, "Title", "PAUSED", 40, UiKit.TextBright, TextAnchor.MiddleCenter, FontStyle.Bold);
-            _list = UiKit.Node("Rows", panel.transform);
-            UiKit.Vertical(_list, 8f);
+            _panel = panel.rectTransform;
+            _scroll = new UiScrollList(panel.transform);
+            _list = _scroll.Content;
             _hint = UiKit.Text(panel.transform, "Hint", string.Empty, 17, UiKit.TextDim, TextAnchor.MiddleCenter);
         }
 

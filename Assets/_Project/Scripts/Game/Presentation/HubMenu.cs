@@ -32,7 +32,16 @@ namespace Pathfinder.Game.Presentation
         int _ship, _primary, _secondary;
 
         Text _title, _subtitle, _meta, _pageTitle, _hint;
-        RectTransform _list;
+        RectTransform _list, _panel;
+        UiScrollList _scroll;
+
+        /// <summary>The panel starts this far below the top of the 1080-unit-high canvas and must end above its bottom.</summary>
+        const float PanelTop = 300f, BottomMargin = 30f;
+
+        /// <summary>The page's rows and the list that scrolls them. For tests.</summary>
+        public IReadOnlyList<UiRow> Rows => _rows;
+        public UiScrollList List => _scroll;
+        public RectTransform Panel => _panel;
         readonly List<UiRow> _rows = new List<UiRow>();
         readonly List<bool> _enabled = new List<bool>();
 
@@ -57,7 +66,10 @@ namespace Pathfinder.Game.Presentation
         {
             var step = _input.ReadStep();
             if (step.y != 0 && _rows.Count > 0)
+            {
                 _selected = (_selected - step.y + _rows.Count) % _rows.Count;
+                _scroll.ScrollTo(_rows[_selected].Rect); // keep the selection in view on a long page
+            }
 
             if (_page == Page.Loadout && step.x != 0 && _selected < 3)
                 Cycle(_selected, step.x);
@@ -206,8 +218,9 @@ namespace Pathfinder.Game.Presentation
             UiKit.Vertical(panel, 12f, new RectOffset(40, 40, 28, 26));
             UiKit.FitContent(panel);
             _pageTitle = UiKit.Text(panel.transform, "Page", string.Empty, 30, UiKit.TextBright, TextAnchor.MiddleCenter, FontStyle.Bold);
-            _list = UiKit.Node("Rows", panel.transform);
-            UiKit.Vertical(_list, 8f);
+            _panel = panel.rectTransform;
+            _scroll = new UiScrollList(panel.transform);
+            _list = _scroll.Content;
             _hint = UiKit.Text(panel.transform, "Hint", string.Empty, 17, UiKit.TextDim, TextAnchor.MiddleCenter);
         }
 
@@ -220,6 +233,8 @@ namespace Pathfinder.Game.Presentation
             for (int i = _list.childCount - 1; i >= 0; i--)
                 Destroy(_list.GetChild(i).gameObject);
             _list.DetachChildren();
+            if (!keepSelection)
+                _list.anchoredPosition = Vector2.zero;
             _rows.Clear();
             _enabled.Clear();
             _title.text = Loc.T("hub.title");
@@ -285,7 +300,10 @@ namespace Pathfinder.Game.Presentation
             }
 
             _selected = Mathf.Clamp(_selected, 0, Mathf.Max(0, _rows.Count - 1));
-            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_list.parent);
+            // A page taller than the screen scrolls instead of running off the bottom (playtest 5).
+            _scroll.Fit(_panel, UiKit.ReferenceSize.y - PanelTop - BottomMargin);
+            if (_selected < _rows.Count)
+                _scroll.ScrollTo(_rows[_selected].Rect);
         }
 
         void AddRow(string label, string note = null, string detail = null, Color? accent = null, bool enabled = true, Color? noteColor = null) =>
