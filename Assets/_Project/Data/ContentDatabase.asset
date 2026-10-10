@@ -43,3 +43,16 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4cf598338fa5a3e41b3d8da8478735fa, type: 2}
   - {fileID: 11400000, guid: 31901fcc3b0ec0a47add451aec7ca882, type: 2}
   - {fileID: 11400000, guid: df1c289a918a7de42853f17e7e53c712, type: 2}
+  <Enemies>k__BackingField:
+  - {fileID: 11400000, guid: ec5933fb65d6e1c4b98b2b7d0c0b3206, type: 2}
+  - {fileID: 11400000, guid: 01658effe96b3d84a87736e521d9ffff, type: 2}
+  - {fileID: 11400000, guid: d7c2872e103c31d41826d638fd967655, type: 2}
+  - {fileID: 11400000, guid: 5dc004278d5d6f94c9b191753882bcd3, type: 2}
+  - {fileID: 11400000, guid: e1e1c80330dbd2b4d85bb88f739cb923, type: 2}
+  - {fileID: 11400000, guid: 01bcb54dda66fd549a68fb4cef6a5748, type: 2}
+  <MetaUpgrades>k__BackingField:
+  - {fileID: 11400000, guid: 88f98723147a0f440a874aeb0cae9ae8, type: 2}
+  - {fileID: 11400000, guid: c5a3c7ced10899a4bbf50cdda0ff7f9e, type: 2}
+  - {fileID: 11400000, guid: 49de56d2acca9314ba9e2196579c6d4b, type: 2}
+  - {fileID: 11400000, guid: 69d7a0d95bf427544acfc286efbbc901, type: 2}
+  - {fileID: 11400000, guid: 1c054644e7f31464681e798a5a5650da, type: 2}

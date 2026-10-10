@@ -20,7 +20,7 @@ namespace Pathfinder.Editor.Setup
             public ContentDatabase Database;
         }
 
-        static EquipmentContent BuildEquipment(Art art, Data data)
+        static EquipmentContent BuildEquipment(Art art, Data data, EnemyDefinition quarryMaw)
         {
             var content = new EquipmentContent();
             var fx = BuildEquipmentEffects(art);
@@ -65,7 +65,7 @@ namespace Pathfinder.Editor.Setup
                 ("TraitName", "Reinforced Hull"), ("TraitDescription", "+50% hull and 10% less damage taken. The beginner ship.")));
             UpgradeStormbringer(data.Ship, content.LightningCore);
 
-            content.Database = BuildContentDatabase(data, content);
+            content.Database = BuildContentDatabase(data, content, quarryMaw);
             return content;
         }
 
@@ -148,7 +148,7 @@ namespace Pathfinder.Editor.Setup
         }
 
         /// <summary>The ID index, regenerated on every build so it always lists all content.</summary>
-        static ContentDatabase BuildContentDatabase(Data data, EquipmentContent content)
+        static ContentDatabase BuildContentDatabase(Data data, EquipmentContent content, EnemyDefinition quarryMaw)
         {
             const string path = DataDir + "/ContentDatabase.asset";
             var database = AssetDatabase.LoadAssetAtPath<ContentDatabase>(path);
@@ -163,6 +163,8 @@ namespace Pathfinder.Editor.Setup
             Assign(so.FindProperty("<PrimaryWeapons>k__BackingField"), data.Primaries, "PrimaryWeapons");
             Assign(so.FindProperty("<SecondaryWeapons>k__BackingField"), data.Secondaries, "SecondaryWeapons");
             Assign(so.FindProperty("<Equipment>k__BackingField"), content.Items.ToArray(), "Equipment");
+            Assign(so.FindProperty("<MetaUpgrades>k__BackingField"), BuildMetaUpgrades(data), "MetaUpgrades");
+            Assign(so.FindProperty("<Enemies>k__BackingField"), new Object[] { data.Drone, data.Gunner, data.Spinner, data.Lancer, data.Carrier, quarryMaw }, "Enemies");
             so.ApplyModifiedPropertiesWithoutUndo();
             return database;
         }

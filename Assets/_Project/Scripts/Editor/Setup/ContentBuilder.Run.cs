@@ -99,11 +99,10 @@ namespace Pathfinder.Editor.Setup
             {
                 Set(so, ("CacheCarrier", data.Gunner), ("CacheCarrierElite", data.Armored));
                 var boss = so.FindProperty("<Boss>k__BackingField");
-                boss.FindPropertyRelative("Enemy").objectReferenceValue = data.Carrier;
-                boss.FindPropertyRelative("Elite").objectReferenceValue = data.Armored;
-                boss.FindPropertyRelative("HealthMultiplier").floatValue = 3f;
+                // The boss itself is set by UseQuarryMawAsBoss. Escorts stay configurable.
+                boss.FindPropertyRelative("HealthMultiplier").floatValue = 1f;
                 boss.FindPropertyRelative("Escort").objectReferenceValue = data.Gunner;
-                boss.FindPropertyRelative("EscortCount").intValue = 2;
+                boss.FindPropertyRelative("EscortCount").intValue = 0;
             });
 
             SetIfEmpty(config, ("ExitPrefab", runArt.Exit), ("DarkMatterNodePrefab", runArt.DarkMatterNode),

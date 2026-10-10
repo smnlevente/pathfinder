@@ -31,7 +31,8 @@ MonoBehaviour:
   <EquipmentWaves>k__BackingField: 3
   <CacheCarrier>k__BackingField: {fileID: 11400000, guid: 01658effe96b3d84a87736e521d9ffff, type: 2}
   <CacheCarrierElite>k__BackingField: {fileID: 11400000, guid: 699e8ed91a1215a47812d97152f3d47a, type: 2}
-  <CacheScraps>k__BackingField: 25
+  <CacheChoices>k__BackingField: 3
+  <SkipScraps>k__BackingField: 15
   <DarkMatterNodesMin>k__BackingField: 8
   <DarkMatterNodesMax>k__BackingField: 12
   <HarvestTime>k__BackingField: 1
@@ -48,12 +49,17 @@ MonoBehaviour:
   <RepairFraction>k__BackingField: 0.4
   <ReinforceHull>k__BackingField: 15
   <RepairPricePerHull>k__BackingField: 1
+  <ShopCatalogSize>k__BackingField: 4
+  <EquipmentPrices>k__BackingField: 280000004b00000078000000
+  <UpgradePrices>k__BackingField: 230000003c000000
+  <RerollPrice>k__BackingField: 15
+  <RerollPriceIncrease>k__BackingField: 10
   <Boss>k__BackingField:
-    Enemy: {fileID: 11400000, guid: e1e1c80330dbd2b4d85bb88f739cb923, type: 2}
-    Elite: {fileID: 11400000, guid: 699e8ed91a1215a47812d97152f3d47a, type: 2}
-    HealthMultiplier: 3
+    Enemy: {fileID: 11400000, guid: 01bcb54dda66fd549a68fb4cef6a5748, type: 2}
+    Elite: {fileID: 0}
+    HealthMultiplier: 1
     Escort: {fileID: 11400000, guid: 01658effe96b3d84a87736e521d9ffff, type: 2}
-    EscortCount: 2
+    EscortCount: 0
   <SingularityCores>k__BackingField: 010000000200000003000000
   <BossHealFraction>k__BackingField: 0.3
   <ExitPrefab>k__BackingField: {fileID: 1460294685376848309, guid: b74a5534ce7f41c4abed1503ef20fd83, type: 3}

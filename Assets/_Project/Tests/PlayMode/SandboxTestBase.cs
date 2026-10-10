@@ -90,7 +90,7 @@ namespace Pathfinder.Tests.PlayMode
         }
 
         protected EnemyDefinition EnemyDef(string id) =>
-            Director.Config.FindEnemy(id) ?? throw new ArgumentException($"No enemy '{id}' in the wave config.");
+            Director.Config.FindEnemy(id) ?? _loadouts.Content.FindEnemy(id) ?? throw new ArgumentException($"No enemy '{id}'.");
 
         protected EliteModifierDefinition EliteDef(string id) =>
             Director.Config.FindElite(id) ?? throw new ArgumentException($"No elite '{id}' in the wave config.");

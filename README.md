@@ -14,13 +14,22 @@ The design lives in [docs/GDD.md](docs/GDD.md).
 | M2 Combat breadth | ✅ 3 primaries, 2 secondaries, 5 enemy types + elites, wave director, Scraps |
 | M3 Run structure | ✅ galaxy map, 7 level types, 3 galaxies, victory/defeat |
 | M4 Build system | ✅ 20 equipment items, stats, choice cards, Shop catalog, Titan + Stormbringer traits, Hub loadout |
-| M5–M6 | Planned (GDD §17): real boss, Hub meta progression, saves, polish |
+| M5 Boss + meta | ✅ the Quarry Maw (3-phase rock-worm boss), run summary with banked rewards, Pathfinder Lab upgrades, save file |
+| M6 Slice polish | Planned (GDD §17): VFX, juice, audio, balance, external playtest |
 
 ## Playing
 
 **A full run:** open `Assets/_Project/Scenes/Boot.unity` (or `Hub.unity`), press Play, choose **Start Run** and pick a ship and loadout. You can also
 open `Run.unity` directly. Pick a route on the galaxy map, clear levels, fly into the wormhole, and beat three bosses to
-reach New Home.
+reach New Home. The galaxy boss is **the Quarry Maw**: it burrows and erupts under you, sweeps its armoured body across
+the arena, then enrages and spews bullet streams. Shoot the yellow weak points on its body for double damage.
+
+![The enraged Quarry Maw: yellow weak-point bands on its body, a magenta bullet fan aimed at the ship](docs/images/m5-quarry-maw.png)
+
+When a run ends, the Dark Matter and Singularity Cores you earned are banked, plus 10% of the Scraps you collected.
+Spend them in the Hub's **Pathfinder Lab**: Hull Plating, Shield Matrix, Salvage Protocols (starting Scraps), a Second
+Dash Charge, and the Quantum Charger unlock. Progress is saved to `meta.json` in `Application.persistentDataPath`; delete
+it to start a fresh profile.
 
 ![A generated galaxy map: entries at the bottom converge to the Shop and Boss](docs/images/m3-map-graph.png)
 
@@ -41,8 +50,8 @@ reach New Home.
 **Dev hotkeys** (Editor and development builds): **F1** cycle primary weapon, **F2** cycle secondary, **F3** god mode,
 **F4** kill all enemies, **F5** skip to the next wave, **F6** skip the current level (Run scene), **F7** offer 3 random equipment.
 
-Tuning lives in the ScriptableObjects under `Assets/_Project/Data`: ships, weapons, equipment (`Data/Equipment`), enemies, elites, and the wave config
-`Waves/Waves_ShatteredExpanse`. Behaviour tuning (bursts, charge speed, launch rates) is on the brain components in the
+Tuning lives in the ScriptableObjects under `Assets/_Project/Data`: ships, weapons, equipment (`Data/Equipment`), meta upgrades (`Data/Meta`), enemies, elites, and the wave config
+`Waves/Waves_ShatteredExpanse`. Behaviour tuning (bursts, charge speed, launch rates, the Quarry Maw's phases) is on the brain components in the
 enemy prefabs. To replay an exact run, set a seed code on **Combat World** in the Run scene.
 
 ## Project layout

@@ -29,6 +29,25 @@ namespace Pathfinder.Tests.PlayMode
 
         RunState Run => _director.Run;
 
+        // Run endings bank into the meta save. Never touch the real profile from tests.
+        string _savePath;
+
+        [SetUp]
+        public void UseTemporarySave()
+        {
+            _savePath = System.IO.Path.Combine(Application.temporaryCachePath, $"meta-test-{System.Guid.NewGuid():N}.json");
+            Pathfinder.Game.Meta.MetaProgression.SavePath = _savePath;
+        }
+
+        [TearDown]
+        public void DeleteTemporarySave()
+        {
+            Pathfinder.Game.Meta.MetaProgression.SavePath = null;
+            if (System.IO.File.Exists(_savePath))
+                System.IO.File.Delete(_savePath);
+        }
+
+
         IEnumerator LoadRun(ulong seed)
         {
             GameClock.ResumeAll();
@@ -288,7 +307,8 @@ namespace Pathfinder.Tests.PlayMode
             }
 
             Assert.IsNotNull(_level.Boss, "The boss level spawns its boss.");
-            Assert.AreEqual(150f * 3f * 2f, _level.Boss.Vitals.MaxHull, 1f, "Placeholder boss: Carrier ×3, Armored ×2.");
+            Assert.AreEqual("boss.quarry-maw", _level.Boss.Definition.Id, "Galaxy 1's boss is the Quarry Maw (GDD §7.5).");
+            Assert.AreEqual(2000f, _level.Boss.Vitals.MaxHull, 1f);
 
             _player.GodMode = true;
             _level.Boss.ApplyDamage(new DamageInfo(1_000_000f, Team.Player, 0, _level.Boss.Position, Vector2.up));

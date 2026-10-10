@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Version** | 1.5 (M4 implemented: equipment, stats, Shop catalog, ship traits) |
-| **Date** | 2026-10-09 |
+| **Version** | 1.6 (M5 implemented: the Quarry Maw, run end, Hub Lab, meta save) |
+| **Date** | 2026-10-10 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
 | **Sources** | `Project Pathfinder_ New Home.pdf` (concept), `Technical documentation_ Project Pathfinder_ New Home.pdf` (systems). This document supersedes both; see [§16 Changes from the source docs](#16-changes-from-the-source-docs). |
@@ -261,6 +261,14 @@ Each boss has three phases with a separate health bar segment for each. A boss f
 
 **Boss rewards:** Singularity Cores (1 / 2 / 3 per galaxy), Hull restored by 30%, and a **guaranteed Rare-or-better equipment choice**.
 
+**The Quarry Maw, implemented in M5** **[tune]:**
+- **Body:** a head plus **10 segments** that trail it 1.1 u apart. All of them share one **2000 HP** pool. Armoured segments take ×0.5 damage; every 3rd segment is a **weak point** (yellow band) that takes ×2. The head takes normal damage. Every part deals 15 contact damage.
+- **Phase changes** happen at 2/3 and 1/3 health. The boss bar shows these marks. Each phase opens with a 1.5 s **roar**, during which the Maw is invulnerable.
+- **Phase 1, Burrow:** it stays surfaced for 3.5 s, then dives. While underground it is intangible and can't be hurt. A red glow tracks the ship for 1.1 s, then locks in place. After 1.8 s underground it erupts there, dealing 30 damage within 3 u and throwing a ring of 14 rocks (magenta bullets at 6 u/s).
+- **Phase 2, Sweep:** it burrows to an arena edge, winds up for 1 s, then charges across at 13 u/s with a sine weave of 5 u, and pauses for 1.4 s. The trailing segments turn every sweep into a moving wall to dash through or around.
+- **Phase 3, Enrage:** it circles the ship at 9 u and fires a **5-bullet stream** (36° spread, 10 damage, 9 u/s) every 0.55 s. Every 6 s it adds an eruption rock shower.
+- **Death:** the killing blow can land on any segment. The whole body shatters and drops 30 Scraps.
+
 ---
 
 ## 8. Equipment (In-Run Build System)
@@ -350,7 +358,7 @@ These come from the source doc, with clarifications.
 - **Phase Dash** keeps the ship *intangible* for the extra time, so bullets pass through and restore shield.
 - **Offers:** choices roll a rarity per slot from 70/25/5 (galaxy 1), 55/33/12 (galaxy 2) or 40/40/20 (galaxy 3), then pick an item of that rarity. Picks never repeat within an offer, and items already at level III are never offered. Mystery caches and boss rewards guarantee Rare or better.
 - **Traits:** *Reinforced Hull* (Titan) is pure stats: 150 hull, speed 7, ×0.9 damage taken. *Lightning Core* (Stormbringer) is an always-on effect. Ships also have an `ExtraEquipmentChoices` stat for the Arcanum Explorer.
-- **Hub loadout (placeholder):** Start Run lets the player pick a ship, primary and secondary. Everything is unlocked until the M5 meta progression. Choices are stored as content IDs and resolved through a `ContentDatabase`.
+- **Hub loadout:** Start Run lets the player pick a ship, primary and secondary. Choices are stored as content IDs and resolved through a `ContentDatabase`. Since M5, content locked by a meta unlock (the Quantum Charger) is skipped until it is bought ([§11.3](#113-implementation-notes-m5)).
 
 ---
 
@@ -465,7 +473,7 @@ Every level ends by flying into the **exit wormhole**, which opens once the leve
 - **Repair level:** a green station at the arena centre. Press Interact for the choice; it can be used once. The exit is open from the start.
 - **Shop level:** a gold terminal with a **4-item catalog** (Common 40, Rare 75, Epic 120). It sells upgrades for equipped items (35 for I→II, 60 for II→III), hull repairs (1 Scrap per hull), and rerolls (15, then +10 each). Buying into a full category opens the swap screen, and the pilot pays only if the swap is confirmed.
 - **Mystery:** the HUD announces the revealed type, and rewards are ×1.5. An ambush has a ×1.5 budget and ×2 rewards.
-- **Boss level** *(placeholder until M5)*: an **Armored elite Carrier** at ×3 health (900 HP in galaxy 1) with 2 Gunner escorts. It pays Singularity Cores, a 30% heal and a **Rare-or-better equipment choice**.
+- **Boss level:** **the Quarry Maw** ([§7.5](#75-bosses)) with no escorts. In M3–M4 it was a placeholder elite Carrier. It pays Singularity Cores, a 30% heal and a **Rare-or-better equipment choice**. Galaxies 2–3 reuse the Maw at the galaxy health multiplier until their own bosses arrive.
 - **Galaxy scaling:** enemy health ×1.0 / ×1.6 / ×2.4 per galaxy, on top of the director's galaxy budget multiplier. All three galaxies use the Shattered Expanse enemy pool and arena until their themes arrive.
 
 ---
@@ -503,6 +511,23 @@ The Hub is a small menu-driven space for the slice. Later it can become a walkab
 | Epic Research: Epic items appear more often | 3 |
 | *(Post-launch)* **Pathfinder Protocols:** optional difficulty modifiers for bonus rewards, similar to Hades' Heat | — |
 
+### 11.3 Implementation notes (M5)
+- **Banking:** when a run ends (victory or defeat), the Dark Matter and Cores earned are banked, plus **10% of all Scraps collected** in the run, rounded down. Spent Scraps count; starting Scraps from Salvage Protocols don't, so the upgrade can't pay for itself. The run summary lists what was banked. The profile also tracks runs played, runs won and the best galaxy reached.
+- **Slice upgrades** are data assets (`MetaUpgradeDefinition`), each with a currency, a cost per tier and one effect: a stat bonus, starting Scraps, or a content unlock.
+
+  | Upgrade | Currency | Tiers and costs | Effect |
+  |---|---|---|---|
+  | Hull Plating | DM | 30 / 60 / 90 / 120 / 150 | +10 max hull per tier |
+  | Shield Matrix | DM | 50 / 100 / 150 | +10 max shield per tier |
+  | Salvage Protocols | DM | 40 / 80 / 120 | +25 starting Scraps per tier |
+  | Second Dash Charge | Cores | 2 | +1 dash charge |
+  | Quantum Charger | DM | 150 | Unlocks the weapon in the loadout |
+
+  Stat bonuses are applied as run modifiers on the pilot when the run starts, so they stack with ship traits and equipment through the normal stat formula ([§8.6](#86-implementation-notes-m4)).
+- **The Hub Lab** is a page in the Hub menu. It lists each upgrade with its tier, its next cost and what it does, and buys with Confirm.
+- **Save file:** `meta.json` in `Application.persistentDataPath`, with a format version. It is written through a temp file that replaces the old save, after every banking and every purchase. If the file is corrupt, it is copied to `meta.json.corrupt` and a fresh profile starts, so a bad file never blocks play. Upgrades are saved by content ID, so new upgrades don't break old saves.
+- **Co-op note:** the profile belongs to the local player, and run bonuses are applied per pilot. For now the run banks every pilot's Scraps into the one local profile; co-op will bank each player's share into their own profile.
+
 ---
 
 ## 12. UI / UX
@@ -513,7 +538,7 @@ Boot → Main Menu → Hub ──► Ship Select → Loadout Select → Galaxy M
                      ▲                                        │
                      └──── Run Summary ◄── Death / Victory ◄──┘
 ```
-*M3 state:* Boot → Hub (placeholder menu: **Start Run**, **Combat Sandbox**) → Run scene (galaxy map ⇄ levels → galaxy cleared → … → victory or defeat summary). Ship and loadout selection come with the Hub in M5. Until then the run starts with the Stormbringer, Photon Repeater and Seeker Swarm. The **Sandbox** scene keeps the endless combat playground for tuning.
+*M5 state:* Boot → Hub (menu: **Start Run** → loadout page, **Pathfinder Lab**, **Combat Sandbox**) → Run scene (galaxy map ⇄ levels → galaxy cleared → … → victory or defeat summary with banked rewards) → back to the Hub. The **Sandbox** scene keeps the endless combat playground for tuning.
 
 ### 12.2 HUD (in level)
 - **Top left:** Hull bar (with the numeric value) with the Shield bar layered over it.
@@ -691,7 +716,7 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 | **M2** ✅ | Combat breadth | 3 primaries, 2 secondaries, 5 archetypes, the wave director, Scraps drops and pickups. |
 | **M3** ✅ | Run structure | Galaxy map generation with its rules and tests, the map UI, all 7 level types, and RunState. |
 | **M4** ✅ | Build system | Equipment slots, the modifier system, event hooks, choice cards, the Shop, and the 2 ships with their traits. |
-| **M5** | Boss + meta | The Quarry Maw, run end and summary, the Hub, meta upgrades, and save/load. |
+| **M5** ✅ | Boss + meta | The Quarry Maw, run end and summary, the Hub, meta upgrades, and save/load. |
 | **M6** | Slice polish | VFX, juice, audio pass, balance pass, and an external playtest. |
 
 **After the slice:** Galaxies 2–3 and their bosses, the remaining ships, weapons and equipment, The Remnant faction, narrative, final art, **online co-op**, Pathfinder Protocols, and console ports.

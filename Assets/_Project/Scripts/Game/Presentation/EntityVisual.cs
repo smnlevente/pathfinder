@@ -46,9 +46,26 @@ namespace Pathfinder.Game.Presentation
             }
         }
 
+        /// <summary>Boss segments flash when their owner is hit.</summary>
+        CombatEntity FlashSource => entity.DamageOwner != null ? entity.DamageOwner : entity;
+
+        CombatEntity _subscribedFlash;
+
+        void SubscribeFlash()
+        {
+            var source = FlashSource;
+            if (source == _subscribedFlash)
+                return;
+            if (_subscribedFlash != null)
+                _subscribedFlash.Damaged -= OnDamaged;
+            _subscribedFlash = source;
+            if (_subscribedFlash != null)
+                _subscribedFlash.Damaged += OnDamaged;
+        }
+
         void OnEnable()
         {
-            entity.Damaged += OnDamaged;
+            SubscribeFlash();
             entity.Died += OnDied;
             if (entity is PlayerShip ship)
                 ship.SecondaryActivated += OnSecondaryActivated;
@@ -56,7 +73,9 @@ namespace Pathfinder.Game.Presentation
 
         void OnDisable()
         {
-            entity.Damaged -= OnDamaged;
+            if (_subscribedFlash != null)
+                _subscribedFlash.Damaged -= OnDamaged;
+            _subscribedFlash = null;
             entity.Died -= OnDied;
             if (entity is PlayerShip ship)
                 ship.SecondaryActivated -= OnSecondaryActivated;
@@ -90,6 +109,7 @@ namespace Pathfinder.Game.Presentation
 
         void LateUpdate()
         {
+            SubscribeFlash(); // a boss segment gets its owner after spawning
             if (!entity.IsAlive)
                 return;
 
@@ -98,7 +118,10 @@ namespace Pathfinder.Game.Presentation
                 dashTrail.emitting = player != null && player.IsIntangible;
 
             // Blink only during post-hit invulnerability. Dash i-frames have their own trail cue, and god mode has none.
-            bool hidden = player != null && player.Vitals.HasHitInvulnerability && Mathf.Repeat(Time.time * 16f, 1f) < 0.5f;
+            // Intangible enemies (a burrowed boss) are underground, so they are hidden.
+            bool hidden = player != null
+                ? player.Vitals.HasHitInvulnerability && Mathf.Repeat(Time.time * 16f, 1f) < 0.5f
+                : entity.IsIntangible;
             foreach (var renderer in _renderers)
                 renderer.enabled = !hidden;
 

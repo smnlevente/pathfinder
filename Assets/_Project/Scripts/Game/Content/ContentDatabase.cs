@@ -15,6 +15,8 @@ namespace Pathfinder.Game.Content
         [field: SerializeField] public PrimaryWeaponDefinition[] PrimaryWeapons { get; private set; } = new PrimaryWeaponDefinition[0];
         [field: SerializeField] public SecondaryWeaponDefinition[] SecondaryWeapons { get; private set; } = new SecondaryWeaponDefinition[0];
         [field: SerializeField, Tooltip("Items that can drop and be sold. Ship traits are not listed here.")] public EquipmentDefinition[] Equipment { get; private set; } = new EquipmentDefinition[0];
+        [field: SerializeField, Tooltip("Every enemy and boss.")] public EnemyDefinition[] Enemies { get; private set; } = new EnemyDefinition[0];
+        [field: SerializeField, Tooltip("Hub upgrades and unlocks (GDD §11.2).")] public Meta.MetaUpgradeDefinition[] MetaUpgrades { get; private set; } = new Meta.MetaUpgradeDefinition[0];
 
         public T Find<T>(IEnumerable<T> items, string id) where T : ContentDefinition
         {
@@ -32,5 +34,6 @@ namespace Pathfinder.Game.Content
         public PrimaryWeaponDefinition FindPrimary(string id) => Find(PrimaryWeapons, id);
         public SecondaryWeaponDefinition FindSecondary(string id) => Find(SecondaryWeapons, id);
         public EquipmentDefinition FindEquipment(string id) => Find(Equipment, id);
+        public EnemyDefinition FindEnemy(string id) => Find(Enemies, id);
     }
 }

@@ -2,6 +2,7 @@ using Pathfinder.Core.Run;
 using Pathfinder.Game.Boot;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Content;
+using Pathfinder.Game.Meta;
 using Pathfinder.Game.Run;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -9,19 +10,21 @@ using UnityEngine.SceneManagement;
 namespace Pathfinder.Game.Presentation
 {
     /// <summary>
-    /// Placeholder Hub (GDD §11.2, §12.1): start a run after choosing a ship and loadout (GDD §5.4), or open the combat
-    /// sandbox. Everything is unlocked until the meta progression arrives in M5.
+    /// Placeholder Hub (GDD §11.2, §12.1): start a run after choosing a ship and loadout (GDD §5.4), spend Dark Matter and
+    /// Singularity Cores in the Lab, or open the combat sandbox. Locked weapons are skipped in the loadout until bought.
     /// </summary>
     public sealed class HubMenu : MonoBehaviour
     {
         const float ReferenceHeight = 1080f;
 
-        static readonly string[] MainOptions = { "START RUN", "COMBAT SANDBOX", "QUIT" };
+        static readonly string[] MainOptions = { "START RUN", "LAB", "COMBAT SANDBOX", "QUIT" };
+
+        enum Page { Main, Loadout, Lab }
 
         [SerializeField] ContentDatabase content;
 
         MenuInput _input;
-        bool _choosingLoadout;
+        Page _screen;
         int _selected;
         int _ship, _primary, _secondary;
         GUIStyle _title, _subtitle, _button, _label, _detail;
@@ -31,12 +34,31 @@ namespace Pathfinder.Game.Presentation
         void Update()
         {
             var step = _input.ReadStep();
-            if (!_choosingLoadout)
+            if (_screen == Page.Main)
             {
                 if (step.y != 0)
                     _selected = (_selected - step.y + MainOptions.Length) % MainOptions.Length;
                 if (_input.Submitted)
                     ChooseMain(_selected);
+                return;
+            }
+
+            if (_screen == Page.Lab)
+            {
+                int count = content.MetaUpgrades.Length + 1;
+                if (step.y != 0)
+                    _selected = (_selected - step.y + count) % count;
+                if (_input.Submitted)
+                {
+                    if (_selected < content.MetaUpgrades.Length)
+                        MetaProgression.TryPurchase(content.MetaUpgrades[_selected]);
+                    else
+                        _screen = Page.Main;
+                }
+                else if (_input.Cancelled)
+                {
+                    _screen = Page.Main;
+                }
                 return;
             }
 
@@ -48,7 +70,7 @@ namespace Pathfinder.Game.Presentation
             if (_input.Submitted && _selected == 3)
                 StartRun();
             else if (_input.Cancelled)
-                _choosingLoadout = false;
+                _screen = Page.Main;
         }
 
         void ChooseMain(int index)
@@ -56,10 +78,16 @@ namespace Pathfinder.Game.Presentation
             switch (index)
             {
                 case 0:
-                    _choosingLoadout = true;
+                    _screen = Page.Loadout;
                     _selected = 3;
+                    _primary = NextAvailable(content.PrimaryWeapons, _primary, 0);
+                    _secondary = NextAvailable(content.SecondaryWeapons, _secondary, 0);
                     break;
                 case 1:
+                    _screen = Page.Lab;
+                    _selected = 0;
+                    break;
+                case 2:
                     SceneManager.LoadScene(SceneNames.Sandbox);
                     break;
                 default:
@@ -72,10 +100,26 @@ namespace Pathfinder.Game.Presentation
         {
             switch (row)
             {
-                case 0: _ship = Wrap(_ship + step, content.Ships.Length); break;
-                case 1: _primary = Wrap(_primary + step, content.PrimaryWeapons.Length); break;
-                case 2: _secondary = Wrap(_secondary + step, content.SecondaryWeapons.Length); break;
+                case 0: _ship = NextAvailable(content.Ships, _ship, step); break;
+                case 1: _primary = NextAvailable(content.PrimaryWeapons, _primary, step); break;
+                case 2: _secondary = NextAvailable(content.SecondaryWeapons, _secondary, step); break;
             }
+        }
+
+        /// <summary>Steps through the list, skipping content that is still locked (GDD §11.2).</summary>
+        int NextAvailable<T>(T[] items, int current, int step) where T : ContentDefinition
+        {
+            if (items.Length == 0)
+                return 0;
+            int direction = step < 0 ? -1 : 1;
+            int index = step == 0 ? current : Wrap(current + direction, items.Length);
+            for (int i = 0; i < items.Length; i++)
+            {
+                if (MetaProgression.IsAvailable(items[index], content))
+                    return index;
+                index = Wrap(index + direction, items.Length);
+            }
+            return current;
         }
 
         static int Wrap(int value, int count) => count == 0 ? 0 : (value % count + count) % count;
@@ -96,20 +140,67 @@ namespace Pathfinder.Game.Presentation
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
             float width = Screen.width / scale;
 
-            GUI.Label(new Rect(0f, 150f, width, 90f), "PROJECT PATHFINDER", _title);
-            GUI.Label(new Rect(0f, 240f, width, 40f), "NEW HOME", _subtitle);
+            GUI.Label(new Rect(0f, 110f, width, 90f), "PROJECT PATHFINDER", _title);
+            GUI.Label(new Rect(0f, 200f, width, 40f), "NEW HOME", _subtitle);
 
-            if (_choosingLoadout)
-                DrawLoadout(width);
-            else
-                DrawMain(width);
+            var meta = MetaProgression.Current;
+            GUI.Label(new Rect(0f, 260f, width, 30f),
+                $"DARK MATTER {meta.DarkMatter}   ·   SINGULARITY CORES {meta.SingularityCores}   ·   RUNS {meta.RunsWon} WON / {meta.RunsPlayed}", _detail);
+
+            switch (_screen)
+            {
+                case Page.Loadout: DrawLoadout(width); break;
+                case Page.Lab: DrawLab(width); break;
+                default: DrawMain(width); break;
+            }
+        }
+
+        void DrawLab(float width)
+        {
+            var meta = MetaProgression.Current;
+            var upgrades = content.MetaUpgrades;
+            for (int i = 0; i <= upgrades.Length; i++)
+            {
+                var rect = new Rect(width * 0.5f - 420f, 320f + i * 64f, 840f, 54f);
+                string label;
+                bool enabled = true;
+                if (i == upgrades.Length)
+                {
+                    label = "BACK";
+                }
+                else
+                {
+                    var upgrade = upgrades[i];
+                    int tier = upgrade.Effect == MetaUpgradeDefinition.EffectKind.Unlock ? (meta.IsUnlocked(upgrade.Id) ? 1 : 0) : meta.Tier(upgrade.Id);
+                    bool maxed = tier >= upgrade.MaxTiers;
+                    int cost = upgrade.CostOfTier(tier);
+                    string currency = upgrade.Currency == Core.Meta.MetaCurrency.DarkMatter ? "DM" : "Cores";
+                    string state = maxed ? "OWNED" : $"{cost} {currency}";
+                    label = $"{upgrade.DisplayName}  [{tier}/{upgrade.MaxTiers}]   {upgrade.Describe()}   ·   {state}";
+                    enabled = !maxed && meta.Balance(upgrade.Currency) >= cost;
+                }
+
+                GUI.enabled = enabled;
+                GUI.color = _selected == i ? new Color(0.4f, 0.9f, 1f) : Color.white;
+                if (GUI.Button(rect, label, _button))
+                {
+                    if (i == upgrades.Length)
+                        _screen = Page.Main;
+                    else
+                        MetaProgression.TryPurchase(upgrades[i]);
+                }
+                if (rect.Contains(Event.current.mousePosition))
+                    _selected = i;
+            }
+            GUI.enabled = true;
+            GUI.color = Color.white;
         }
 
         void DrawMain(float width)
         {
             for (int i = 0; i < MainOptions.Length; i++)
             {
-                var rect = new Rect(width * 0.5f - 200f, 420f + i * 80f, 400f, 60f);
+                var rect = new Rect(width * 0.5f - 200f, 360f + i * 80f, 400f, 60f);
                 GUI.color = i == _selected ? new Color(0.4f, 0.9f, 1f) : Color.white;
                 if (GUI.Button(rect, MainOptions[i], _button))
                     ChooseMain(i);
@@ -173,7 +264,7 @@ namespace Pathfinder.Game.Presentation
             _title.normal.textColor = new Color(0.5f, 0.9f, 1f);
             _subtitle = new GUIStyle(_title) { fontSize = 30 };
             _subtitle.normal.textColor = new Color(0.8f, 0.9f, 1f);
-            _button = new GUIStyle(GUI.skin.button) { fontSize = 26, fontStyle = FontStyle.Bold };
+            _button = new GUIStyle(GUI.skin.button) { fontSize = 22, fontStyle = FontStyle.Bold };
             _label = new GUIStyle(GUI.skin.label) { fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
             _label.normal.textColor = Color.white;
             _detail = new GUIStyle(GUI.skin.label) { fontSize = 18, alignment = TextAnchor.UpperCenter, wordWrap = true };

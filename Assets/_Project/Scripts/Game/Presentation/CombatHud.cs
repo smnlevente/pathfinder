@@ -98,7 +98,13 @@ namespace Pathfinder.Game.Presentation
                 var boss = level.Boss;
                 var rect = new Rect(width * 0.5f - 400f, 86f, 800f, 18f);
                 Bar(rect, boss.Vitals.Hull / boss.Vitals.MaxHull, BossColor);
-                GUI.Label(new Rect(rect.x, rect.y + 18f, rect.width, 26f), $"{boss.Definition.DisplayName.ToUpperInvariant()} (PLACEHOLDER BOSS)", _small);
+
+                // Phase marks at 2/3 and 1/3 health (GDD §7.5: three health bar segments).
+                GUI.color = Color.black;
+                GUI.DrawTexture(new Rect(rect.x + rect.width / 3f - 1f, rect.y, 3f, rect.height), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(rect.x + rect.width * 2f / 3f - 1f, rect.y, 3f, rect.height), Texture2D.whiteTexture);
+                GUI.color = Color.white;
+                GUI.Label(new Rect(rect.x, rect.y + 18f, rect.width, 26f), boss.Definition.DisplayName.ToUpperInvariant(), _small);
             }
 
             if (!string.IsNullOrEmpty(level.Banner))
@@ -112,7 +118,10 @@ namespace Pathfinder.Game.Presentation
             var run = runDirector != null ? runDirector.Run : null;
             if (run == null)
                 return string.Empty;
-            return $"Galaxy {run.GalaxyIndex + 1}   ·   Levels cleared {run.LevelsCleared}   ·   Dark Matter {run.DarkMatter}   ·   Singularity Cores {run.SingularityCores}\nSeed {RunSeed.ToCode(run.Seed)}";
+            string banked = runDirector.BankedRewards is { } rewards
+                ? $"\nBanked: {rewards.TotalDarkMatter} Dark Matter ({rewards.DarkMatter} harvested + {rewards.ConvertedScraps} from Scraps), {rewards.SingularityCores} Singularity Cores"
+                : string.Empty;
+            return $"Galaxy {run.GalaxyIndex + 1}   ·   Levels cleared {run.LevelsCleared}   ·   Seed {RunSeed.ToCode(run.Seed)}{banked}";
         }
 
         void DrawPlayerPanel(PlayerShip player)

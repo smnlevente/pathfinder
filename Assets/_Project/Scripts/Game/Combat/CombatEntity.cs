@@ -51,11 +51,21 @@ namespace Pathfinder.Game.Combat
 
         public abstract void Simulate(float deltaTime, CombatWorld world);
 
+        /// <summary>
+        /// For parts of a larger body, such as boss segments: hits pass to the owner, scaled by the part's own multiplier
+        /// (e.g. weak points). Null for standalone entities.
+        /// </summary>
+        public virtual CombatEntity DamageOwner => null;
+
         /// <summary>Applies damage. Authority only. On clients this returns an empty result.</summary>
         public DamageResult ApplyDamage(in DamageInfo info)
         {
             if (!Authority.IsAuthority || !IsAlive)
                 return default;
+
+            var owner = DamageOwner;
+            if (owner != null)
+                return owner.ApplyDamage(new DamageInfo(info.Amount * IncomingDamageMultiplier(info), info.SourceTeam, info.SourceId, info.Point, info.Direction, info.Kind));
 
             var result = Vitals.ApplyDamage(info.Amount * IncomingDamageMultiplier(info));
             if (result.Killed && TryPreventDeath(info))

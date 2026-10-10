@@ -49,6 +49,11 @@ namespace Pathfinder.Game.Enemies
         /// <summary>True during the tick after this enemy dealt contact damage.</summary>
         public bool DealtContactDamage { get; private set; }
 
+        /// <summary>Underground or otherwise out of reach, e.g. a burrowed Quarry Maw. Shots pass through and it deals no contact damage.</summary>
+        public bool Burrowed { get; set; }
+
+        public override bool IsIntangible => Burrowed;
+
         Vitals _vitals;
         EnemyBrain _brain;
         CombatWorld _world;
@@ -180,7 +185,7 @@ namespace Pathfinder.Game.Enemies
                 Heading = PlaneMath.HeadingDegrees(Velocity);
 
             _contactCooldown -= deltaTime;
-            if (_contactCooldown <= 0f && definition.ContactDamage > 0f)
+            if (_contactCooldown <= 0f && definition.ContactDamage > 0f && !Burrowed)
                 TryContactDamage();
 
             _vitals.Tick(deltaTime);

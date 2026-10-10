@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Content;
+using Pathfinder.Game.Meta;
 using Pathfinder.Game.Run;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
@@ -38,6 +39,8 @@ namespace Pathfinder.Game.Player
             ResolveLoadout(out var shipToUse, out var primaryToUse, out var secondaryToUse);
             player.Initialize(shipToUse, primaryToUse, secondaryToUse);
             player.Bind(world, index);
+            if (useRunLoadout && content != null)
+                MetaProgression.ApplyRunBonuses(player, content); // Hub upgrades only apply to real runs
             player.IsLocal = true;
             player.CommandSource = player.gameObject.AddComponent<LocalInputCommandSource>();
 

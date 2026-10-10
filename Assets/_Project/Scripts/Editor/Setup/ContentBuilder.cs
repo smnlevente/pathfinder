@@ -77,7 +77,9 @@ namespace Pathfinder.Editor.Setup
             LinkDefinitions(art, actors, data);
             var runArt = BuildRunArt(art);
             var runConfig = BuildRunConfig(data, runArt);
-            var equipment = BuildEquipment(art, data);
+            var quarryMaw = BuildQuarryMaw(art);
+            UseQuarryMawAsBoss(runConfig, quarryMaw, data);
+            var equipment = BuildEquipment(art, data, quarryMaw);
 
             TunePostProcessing();
             PopulateScenes(art, actors, data, runArt, runConfig, equipment);

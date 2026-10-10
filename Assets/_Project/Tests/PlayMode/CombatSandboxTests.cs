@@ -100,5 +100,19 @@ namespace Pathfinder.Tests.PlayMode
             Assert.IsTrue(raised);
             Assert.IsTrue(Object.FindAnyObjectByType<RunFlow>().IsGameOver);
         }
+
+        [UnityTest]
+        public IEnumerator GodMode_TogglesImmediately()
+        {
+            yield return LoadRun();
+            Player.GodMode = true;
+            Assert.IsTrue(Player.Vitals.IsInvulnerable, "No tick needed to turn it on.");
+
+            yield return WaitTicks(2);
+            Player.GodMode = false;
+            Player.ApplyDamage(new DamageInfo(10f, Team.Enemy, 0, Player.Position, Vector2.up));
+
+            Assert.Less(Player.Vitals.Hull + Player.Vitals.Shield, Player.Vitals.MaxHull + Player.Vitals.MaxShield, "Nor to turn it off.");
+        }
     }
 }

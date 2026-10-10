@@ -685,7 +685,7 @@ namespace Pathfinder.Game.Run
             return true;
         }
 
-        // ---------------------------------------------------------------- Boss (GDD §10.7, placeholder until M5)
+        // ---------------------------------------------------------------- Boss (GDD §7.5, §10.7)
 
         void SpawnBoss()
         {

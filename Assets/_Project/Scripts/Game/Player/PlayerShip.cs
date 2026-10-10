@@ -48,8 +48,17 @@ namespace Pathfinder.Game.Player
         /// <summary>Controlled on this machine. Drives the camera and HUD.</summary>
         public bool IsLocal { get; set; }
 
-        /// <summary>Debug invulnerability. Dev builds only, set by the debug hotkeys.</summary>
-        public bool GodMode { get; set; }
+        /// <summary>Debug invulnerability. Dev builds only, set by the debug hotkeys. Takes effect immediately.</summary>
+        public bool GodMode
+        {
+            get => _godMode;
+            set
+            {
+                _godMode = value;
+                if (_vitals != null)
+                    _vitals.ExternalInvulnerability = value || _tickInvulnerable;
+            }
+        }
 
         public CombatWorld World { get; private set; }
         public int PlayerIndex { get; private set; }
@@ -66,6 +75,9 @@ namespace Pathfinder.Game.Player
 
         /// <summary>Run currency carried by this pilot (GDD §11.1).</summary>
         public int Scraps { get; private set; }
+
+        /// <summary>All Scraps gained this run, spent or not. 10% converts to Dark Matter when the run ends.</summary>
+        public int TotalScrapsGained { get; private set; }
 
         /// <summary>The pilot pressed Interact during the latest tick. Interactables read it after the players simulate.</summary>
         public bool InteractPressed { get; private set; }
@@ -91,6 +103,8 @@ namespace Pathfinder.Game.Player
         bool _dashMovementOverridden;
         bool _wasDashing;
         float _intangibleRemaining;
+        bool _godMode;
+        bool _tickInvulnerable; // dash or intangibility, as of the last tick
         float _scrapsRemainder;
         int _shotIndex;
 
@@ -128,10 +142,13 @@ namespace Pathfinder.Game.Player
                 ShieldRegenDelay = ship.ShieldRegenDelay,
                 HitInvulnerability = ship.HitInvulnerability,
                 DamageTakenMultiplier = ship.DamageTakenMultiplier,
+                ExternalInvulnerability = _godMode,
             };
+            _tickInvulnerable = false;
             Dash = new DashState(ship.DashCharges, ship.DashDuration, ship.DashRechargeTime);
             Velocity = Vector2.zero;
             Scraps = 0;
+            TotalScrapsGained = 0;
             _runModifiers.Clear();
             Equipment.Clear();
 
@@ -264,7 +281,17 @@ namespace Pathfinder.Game.Player
                 return;
 
             Scraps += amount;
+            TotalScrapsGained += amount;
             ScrapsCollected?.Invoke(this, amount);
+        }
+
+        /// <summary>Scraps the pilot starts a run with (meta upgrades). They aren't collected, so they don't count when banking.</summary>
+        public void AddStartingScraps(int amount)
+        {
+            if (!Authority.IsAuthority || amount <= 0)
+                return;
+
+            Scraps += amount;
         }
 
         /// <summary>Scraps picked up from drops, boosted by Scraps-gain bonuses such as Salvage Magnet.</summary>
@@ -386,7 +413,8 @@ namespace Pathfinder.Game.Player
 
             // Movement uses the dash state from before this tick's Dash.Tick, so a dash covers its full distance.
             bool dashing = Dash.IsDashing;
-            _vitals.ExternalInvulnerability = dashing || GodMode || _intangibleRemaining > 0f;
+            _tickInvulnerable = dashing || _intangibleRemaining > 0f;
+            _vitals.ExternalInvulnerability = _tickInvulnerable || _godMode;
 
             float moveSpeed = MoveSpeed;
             if (dashing)

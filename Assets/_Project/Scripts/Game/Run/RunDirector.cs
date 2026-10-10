@@ -1,6 +1,8 @@
 using System;
+using Pathfinder.Core.Meta;
 using Pathfinder.Core.Run;
 using Pathfinder.Game.Combat;
+using Pathfinder.Game.Meta;
 using Pathfinder.Game.Player;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
@@ -28,6 +30,9 @@ namespace Pathfinder.Game.Run
 
         public RunState Run { get; private set; }
         public Phase State { get; private set; }
+
+        /// <summary>What the finished run banked into the meta progression. Set when the run ends.</summary>
+        public RunRewards? BankedRewards { get; private set; }
         public LevelController Level => level;
         public string GalaxyName => GalaxyNames[Mathf.Clamp(Run?.GalaxyIndex ?? 0, 0, GalaxyNames.Length - 1)];
 
@@ -115,6 +120,7 @@ namespace Pathfinder.Game.Run
                 Run.CompleteGalaxy();
                 if (Run.IsWon)
                 {
+                    BankRun(won: true);
                     SetPhase(Phase.Victory);
                     return;
                 }
@@ -130,8 +136,23 @@ namespace Pathfinder.Game.Run
         void OnAllPlayersDown()
         {
             Run.MarkLost();
+            BankRun(won: false);
             GameClock.Resume(this);
             SetPhase(Phase.Defeat);
+        }
+
+        /// <summary>Banks Dark Matter, Cores and 10% of Scraps into the persistent profile and saves it (GDD §3.1, §11.1).</summary>
+        void BankRun(bool won)
+        {
+            if (BankedRewards.HasValue)
+                return;
+
+            int scraps = 0;
+            foreach (var player in CombatRegistry.Players)
+                scraps += player.TotalScrapsGained;
+
+            BankedRewards = MetaProgression.Current.BankRun(Run.DarkMatter, Run.SingularityCores, scraps, won, Run.GalaxyIndex + 1);
+            MetaProgression.Save();
         }
 
         void EnterMap()
