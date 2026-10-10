@@ -55,7 +55,7 @@ namespace Pathfinder.Editor.Setup
                 Spinner = Definition<EnemyDefinition>("Enemies/Enemy_Spinner", "enemy.spinner", "Spinner", so => Set(so,
                     ("MaxHealth", 60f), ("MoveSpeed", 2f), ("ContactDamage", 10f), ("BudgetCost", 3), ("ScrapsDrop", 3), ("ScrapsDropChance", 0.85f))),
                 Lancer = Definition<EnemyDefinition>("Enemies/Enemy_Lancer", "enemy.lancer", "Lancer", so => Set(so,
-                    ("MaxHealth", 40f), ("MoveSpeed", 4.5f), ("ContactDamage", 10f), ("BudgetCost", 3), ("ScrapsDrop", 2), ("ScrapsDropChance", 0.8f))),
+                    ("MaxHealth", 60f), ("MoveSpeed", 4.5f), ("ContactDamage", 12f), ("BudgetCost", 3), ("ScrapsDrop", 2), ("ScrapsDropChance", 0.8f))),
                 Carrier = Definition<EnemyDefinition>("Enemies/Enemy_Carrier", "enemy.carrier", "Carrier", so => Set(so,
                     ("MaxHealth", 150f), ("MoveSpeed", 1.8f), ("ContactDamage", 15f), ("BudgetCost", 6), ("ScrapsDrop", 8), ("ScrapsDropChance", 1f))),
 

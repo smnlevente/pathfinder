@@ -56,3 +56,14 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 49de56d2acca9314ba9e2196579c6d4b, type: 2}
   - {fileID: 11400000, guid: 69d7a0d95bf427544acfc286efbbc901, type: 2}
   - {fileID: 11400000, guid: 1c054644e7f31464681e798a5a5650da, type: 2}
+  <Events>k__BackingField:
+  - {fileID: 11400000, guid: 6b869b8b1e304bd46b261eb69fded077, type: 2}
+  - {fileID: 11400000, guid: 47509317c40a40a42a1a7bc895594445, type: 2}
+  - {fileID: 11400000, guid: 94934314c22c19a48956d6b090dc4c90, type: 2}
+  - {fileID: 11400000, guid: df887ce82dbd43b458281198d81810a9, type: 2}
+  - {fileID: 11400000, guid: 7c4643bcdcb814944b7d5961887f87df, type: 2}
+  - {fileID: 11400000, guid: 648934470cda3284faafefa8bf23f8dc, type: 2}
+  - {fileID: 11400000, guid: 28320cbb97e479641bf83e763f76d4aa, type: 2}
+  - {fileID: 11400000, guid: 8460d6fae605eb644a73913342ac61ff, type: 2}
+  - {fileID: 11400000, guid: b2eaaabdad7660447827272945c4f802, type: 2}
+  - {fileID: 11400000, guid: 8b94a4b2293bbc2418ef1913f2320b25, type: 2}

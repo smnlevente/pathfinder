@@ -36,6 +36,8 @@ namespace Pathfinder.Game.Combat
             public int TargetId;
             public DamageKind Kind;
             public bool Phased;
+            public float FadeLeft; // > 0: defused, harmless and fading out
+            public Vector3 VisualScale;
             public GameObject VisualPrefab;
             public GameObject ImpactPrefab;
             public Transform Visual;
@@ -47,7 +49,18 @@ namespace Pathfinder.Game.Combat
         readonly List<TrailRenderer> _trailBuffer = new List<TrailRenderer>();
         readonly Transform _visualRoot;
 
+        const float DefuseTime = 0.5f;
+
+        /// <summary>
+        /// Weak points sit on top of a boss's armoured body, so a shot that clips the shell this close to one counts as
+        /// hitting it instead of deflecting.
+        /// </summary>
+        const float ArmourLeniency = 0.8f;
+
         public int Count => _active.Count;
+
+        /// <summary>Spark shown when a projectile is stopped by armour.</summary>
+        public GameObject DeflectPrefab { get; set; }
 
         public ProjectileSystem(Transform visualRoot) => _visualRoot = visualRoot;
 
@@ -92,6 +105,7 @@ namespace Pathfinder.Game.Combat
                     PlaneMath.ToWorld(projectile.Position, VisualHeight),
                     Quaternion.LookRotation(PlaneMath.ToWorld(projectile.Velocity)));
                 visual.localScale = projectile.VisualPrefab.transform.localScale * spawn.VisualScale;
+                projectile.VisualScale = visual.localScale;
 
                 // A reused visual must not draw a trail from wherever it last flew.
                 visual.GetComponentsInChildren(_trailBuffer);
@@ -128,6 +142,24 @@ namespace Pathfinder.Game.Combat
             return destroyed;
         }
 
+        /// <summary>
+        /// Makes the team's projectiles harmless: they slow, shrink and vanish over half a second. Used when a boss dies,
+        /// so a stray bullet can't kill a pilot who has just won.
+        /// </summary>
+        public void Defuse(Team team)
+        {
+            for (int i = 0; i < _active.Count; i++)
+            {
+                var projectile = _active[i];
+                if (projectile.Team != team || projectile.FadeLeft > 0f)
+                    continue;
+                projectile.FadeLeft = DefuseTime;
+                projectile.Velocity *= 0.3f;
+                projectile.TurnRate = 0f;
+                _active[i] = projectile;
+            }
+        }
+
         internal void CapturePrevious()
         {
             for (int i = 0; i < _active.Count; i++)
@@ -144,6 +176,17 @@ namespace Pathfinder.Game.Combat
             for (int i = _active.Count - 1; i >= 0; i--)
             {
                 var projectile = _active[i];
+                if (projectile.FadeLeft > 0f)
+                {
+                    projectile.FadeLeft -= deltaTime;
+                    projectile.Position += projectile.Velocity * deltaTime;
+                    if (projectile.FadeLeft <= 0f)
+                        RemoveAt(i, projectile);
+                    else
+                        _active[i] = projectile;
+                    continue;
+                }
+
                 if (projectile.TurnRate > 0f)
                     Steer(ref projectile, deltaTime);
 
@@ -157,6 +200,16 @@ namespace Pathfinder.Game.Combat
                 while (TryFindHit(projectile, next, out var target, out float t))
                 {
                     Vector2 hitPoint = Vector2.Lerp(projectile.Position, next, t);
+                    if (target.Armoured)
+                    {
+                        // Armour stops every shot, piercing or not, without damage or on-hit effects.
+                        if (DeflectPrefab != null)
+                            Object.Instantiate(DeflectPrefab, PlaneMath.ToWorld(hitPoint, VisualHeight), Quaternion.identity);
+                        projectile.Position = hitPoint;
+                        consumed = true;
+                        break;
+                    }
+
                     float travelled = projectile.Range - projectile.RangeLeft + (hitPoint - projectile.Position).magnitude;
                     float falloff = Mathf.Lerp(1f, projectile.DamageAtMaxRange, Mathf.Clamp01(travelled / projectile.Range));
 
@@ -202,6 +255,8 @@ namespace Pathfinder.Game.Combat
                     continue;
 
                 projectile.Visual.position = PlaneMath.ToWorld(Vector2.Lerp(projectile.Previous, projectile.Position, alpha), VisualHeight);
+                if (projectile.FadeLeft > 0f)
+                    projectile.Visual.localScale = projectile.VisualScale * (projectile.FadeLeft / DefuseTime);
                 if (projectile.TurnRate > 0f && projectile.Velocity.sqrMagnitude > 1e-6f)
                     projectile.Visual.rotation = Quaternion.LookRotation(PlaneMath.ToWorld(projectile.Velocity));
             }
@@ -236,7 +291,7 @@ namespace Pathfinder.Game.Combat
             foreach (var entity in CombatRegistry.OnTeam(projectile.Team.Opponent()))
             {
                 if (entity.EntityId == projectile.TargetId)
-                    return entity.IsAlive ? entity : null;
+                    return entity.IsAlive && !entity.Armoured && !entity.IsIntangible ? entity : null;
             }
             return null;
         }
@@ -248,7 +303,7 @@ namespace Pathfinder.Game.Combat
             foreach (var entity in CombatRegistry.OnTeam(projectile.Team.Opponent()))
             {
                 float distance = (entity.Position - projectile.Position).sqrMagnitude;
-                if (entity.IsAlive && !entity.IsIntangible && distance < best)
+                if (entity.IsAlive && !entity.IsIntangible && !entity.Armoured && distance < best)
                 {
                     best = distance;
                     nearest = entity;
@@ -279,16 +334,47 @@ namespace Pathfinder.Game.Combat
 
             foreach (var entity in CombatRegistry.OnTeam(projectile.Team.Opponent()))
             {
-                if (!entity.IsAlive || entity.IsIntangible || (projectile.HitIds != null && projectile.HitIds.Contains(entity.EntityId)))
-                    continue;
-
-                if (PlaneMath.SegmentHitsCircle(projectile.Position, next, entity.Position, entity.Radius + projectile.Radius, out float t) && t < hitT)
+                if (CanHit(projectile, entity)
+                    && PlaneMath.SegmentHitsCircle(projectile.Position, next, entity.Position, entity.Radius + projectile.Radius, out float t) && t < hitT)
                 {
                     hitT = t;
                     target = entity;
                 }
             }
+
+            if (target != null && target.Armoured)
+                PreferNearbyWeakPoint(projectile, next, ref target, ref hitT);
             return target != null;
+        }
+
+        /// <summary>Homing shots are guided munitions: they fly over armour to reach what they're homing on.</summary>
+        static bool CanHit(in Projectile projectile, CombatEntity entity) =>
+            entity.IsAlive && !entity.IsIntangible && !(entity.Armoured && projectile.TurnRate > 0f)
+            && (projectile.HitIds == null || !projectile.HitIds.Contains(entity.EntityId));
+
+        /// <summary>The shot hit armour first: if its path reaches an unarmoured part within the leniency, that part takes it.</summary>
+        static void PreferNearbyWeakPoint(in Projectile projectile, Vector2 next, ref CombatEntity target, ref float hitT)
+        {
+            Vector2 path = next - projectile.Position;
+            float length = path.magnitude;
+            if (length < 1e-5f)
+                return;
+
+            Vector2 reachEnd = next + path / length * ArmourLeniency;
+            float reachLength = length + ArmourLeniency;
+            float limit = hitT * length + ArmourLeniency; // distance along the path
+            foreach (var entity in CombatRegistry.OnTeam(projectile.Team.Opponent()))
+            {
+                if (entity.Armoured || !CanHit(projectile, entity))
+                    continue;
+                if (PlaneMath.SegmentHitsCircle(projectile.Position, reachEnd, entity.Position, entity.Radius + projectile.Radius, out float t)
+                    && t * reachLength <= limit)
+                {
+                    limit = t * reachLength;
+                    target = entity;
+                    hitT = t * reachLength / length;
+                }
+            }
         }
 
         void RemoveAt(int index, in Projectile projectile)

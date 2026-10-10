@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 1.6 (M5 implemented: the Quarry Maw, run end, Hub Lab, meta save) |
+| **Version** | 1.7 (playtest 2: readability, weak-point boss, Mystery events, new menus) |
 | **Date** | 2026-10-10 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
@@ -227,7 +227,7 @@ Archetypes are defined by their behavior. Each faction or theme re-skins and sli
 | **Drone** | Chases the player and deals contact damage. Comes in swarms. | 15 | 1 |
 | **Gunner** | Keeps 8–12 u away and fires aimed 3-shot bursts. | 35 | 2 |
 | **Spinner** | Slow; fires radial bullet rings in rotating patterns. | 60 | 3 |
-| **Lancer** | Telegraphs with a red line, then charges in a straight line at high speed. | 40 | 3 |
+| **Lancer** | Shows its path as a lane of chevrons, then jousts twice in straight lines at high speed. | 60 | 3 |
 | **Carrier** | Slow tank that spawns Drones periodically. Weak point at the rear. | 150 | 6 |
 | **Turret** | Static; its sweeping laser or bullet stream is placed by the level template. | 80 | 2 |
 | **Shielder** | Projects a damage-absorbing shield over nearby allies. | 50 | 4 |
@@ -238,7 +238,7 @@ Archetypes are defined by their behavior. Each faction or theme re-skins and sli
 - **Drone:** 5.5 u/s, weaves while closing in. Contact damage 10, then it bounces off with a 0.75 s contact cooldown.
 - **Gunner:** 4 u/s. Contact damage 10. Every 2 s (±0.3 s) it glows for 0.45 s as a warning, then fires a 3-shot burst (0.15 s apart) of 8-damage bullets at 11 u/s, aimed at the target's current position. It moves at 30% speed while attacking.
 - **Spinner:** 2 u/s, holds 6–13 u and drifts sideways. Every 1.8 s its emitters flare for 0.35 s, then it fires a ring of 10 bullets (8 damage, 6 u/s). Each ring is rotated 11° from the last, so the gaps move.
-- **Lancer:** 4.5 u/s. Within 9 u it plants itself and shows a red line along its locked direction for 0.7 s. It then charges 14 u at 22 u/s, hitting for 20 (double contact damage). The charge ends early if it hits the ship or a wall. It recovers for 1 s at 30% speed (its vulnerable window) and then waits 1.5 s before the next wind-up.
+- **Lancer:** 60 HP, 4.5 u/s. Within 9 u it plants itself and shows a **chevron lane** along its locked direction for 0.7 s. The chevrons light up from the Lancer outward as the wind-up completes, then all flash just before launch. It then charges 14 u at 24 u/s, hitting for 30 (2.5× its 12 contact damage). The charge ends early if it hits the ship or a wall. **A miss earns a second joust:** it re-aims at the ship and charges again after a 0.45 s wind-up. It then recovers for 0.9 s at 30% speed (its vulnerable window) and waits 1.2 s before the next attack. *(Playtest 2: the old red line looked like a bullet, and the Lancer felt weak.)*
 - **Carrier:** 1.8 u/s, keeps about 10 u away and turns at only 60°/s, so it can be flanked. Its armoured front takes 60% damage and its yellow rear weak point takes 200%. Every 4 s its flank bays flare and it launches 2 Drones from the rear, with at most 6 alive. Launched Drones drop no Scraps, so Carriers can't be farmed.
 - **Elites:** *Armored* has ×2 HP and ×0.75 speed. *Hasty* has ×1.5 speed and ×1.5 attack rate (cooldowns, wind-ups and bursts). Both are ×1.2 larger, carry a gold ring marker and always drop ×3 Scraps. *Splitting* and *Volatile* come post-slice.
 - **Spawns** are telegraphed for 1 s by a red glow on the floor (staggered by 0.08 s within a wave) and are never within 6 u of a player.
@@ -261,13 +261,14 @@ Each boss has three phases with a separate health bar segment for each. A boss f
 
 **Boss rewards:** Singularity Cores (1 / 2 / 3 per galaxy), Hull restored by 30%, and a **guaranteed Rare-or-better equipment choice**.
 
-**The Quarry Maw, implemented in M5** **[tune]:**
-- **Body:** a head plus **10 segments** that trail it 1.1 u apart. All of them share one **2000 HP** pool. Armoured segments take ×0.5 damage; every 3rd segment is a **weak point** (yellow band) that takes ×2. The head takes normal damage. Every part deals 15 contact damage.
-- **Phase changes** happen at 2/3 and 1/3 health. The boss bar shows these marks. Each phase opens with a 1.5 s **roar**, during which the Maw is invulnerable.
-- **Phase 1, Burrow:** it stays surfaced for 3.5 s, then dives. While underground it is intangible and can't be hurt. A red glow tracks the ship for 1.1 s, then locks in place. After 1.8 s underground it erupts there, dealing 30 damage within 3 u and throwing a ring of 14 rocks (magenta bullets at 6 u/s).
-- **Phase 2, Sweep:** it burrows to an arena edge, winds up for 1 s, then charges across at 13 u/s with a sine weave of 5 u, and pauses for 1.4 s. The trailing segments turn every sweep into a moving wall to dash through or around.
-- **Phase 3, Enrage:** it circles the ship at 9 u and fires a **5-bullet stream** (36° spread, 10 damage, 9 u/s) every 0.55 s. Every 6 s it adds an eruption rock shower.
-- **Death:** the killing blow can land on any segment. The whole body shatters and drops 30 Scraps.
+**The Quarry Maw** **[tune]** *(M5, reworked after playtest 2: the phases were underwhelming and the weak points didn't read as weak points)*:
+- **Body:** a head plus **12 segments** that trail it 1.1 u apart, all sharing one **4000 HP** pool. **Its shell is armour:** shots that hit the head or an armoured segment are stopped with a grey spark and deal no damage. Every 3rd segment carries a **weak point**, a pulsing yellow crystal ringed in yellow. Weak points are the only place shots hurt, at full damage. Their hit circle is 30% larger than a segment, and a shot that clips the shell within 0.8 u of a weak point counts as hitting it. Seekers, Ricochet and Lightning Core skip armour and find the weak points. Every part deals 15 contact damage.
+- **Phase changes** happen at 2/3 and 1/3 health. The boss bar shows these marks. Each phase opens with a 1.5 s **roar**, during which even the weak points are shut.
+- **Phase 1, Burrow:** surfaced for 3 s, it chases the ship and spits a 3-bullet aimed burst every 1.4 s, then dives. Underground it is intangible. A red glow tracks the ship for 1.1 s, then locks. After 1.8 s it erupts there, dealing 30 damage within 3 u and throwing **two rings of 16 rocks** offset by half a step: one at 6 u/s, then a slower one at 3.8 u/s to weave through.
+- **Phase 2, Sweep:** volleys of **3 charges**. Each charge runs from edge to edge **through the ship's current position** at a random angle, shown first by a large chevron lane (1.1 s for the first charge, 0.75 s for the next). It charges at 18 u/s with 1.6× contact damage and **sheds a rock to each side every 0.14 s**, leaving expanding walls of bullets (3.5 u/s) to slip through or dash across. After a volley it rests for 3.2 s, coiling slowly towards the ship with its body trailing and its weak points exposed, and spitting aimed bursts.
+- **Phase 3, Enrage:** **the maw cracks open** (yellow) and the head becomes hittable. It circles the ship at 9 u, firing a 5-bullet stream (36° spread, 10 damage, 9 u/s) every 0.5 s, with a 16-rock shower every 5 s. Every 7 s it stops, flares for 0.6 s, and spins a **3-arm spiral** for 2.4 s (140°/s, a bullet per arm every 0.1 s at 6 u/s).
+- **Death:** the killing blow can land on any weak point. The body shatters and drops 30 Scraps. **Every enemy bullet still in the air turns harmless, slows and fades out over 0.5 s**, so a stray bullet can't kill a pilot who just won. The reward choice opens 1.5 s later, once the death has played out.
+- **Balance check:** a perfect-aim, god-mode bot with the default loadout kills it in about 80 s (a PlayMode test logs the time). Real fights, with dodging and misses, should take 2 to 3 minutes.
 
 ---
 
@@ -443,10 +444,14 @@ Every level ends by flying into the **exit wormhole**, which opens once the leve
 - At most one per galaxy. It may not exist at all (see [§9.2](#92-generation-rules)).
 
 ### 10.5 Mystery Level ?
-- Shown as "?" on the map. **On entering, it is revealed as Scraps, Equipment, Dark Matter or Repair.** It never becomes a Shop or Boss.
-- **Rewards are ×1.5** compared to a normal level of the same type. A Mystery Equipment level gives a guaranteed Rare-or-better choice.
+- Shown as "?" on the map. **About 70% of Mystery nodes are events** (below). The rest are revealed as Scraps, Equipment, Dark Matter or Repair. A Mystery is never a Shop or Boss.
+- **Events** *(added after playtest 2)*: a short scene with two or three choices, each trading something for something else, in the spirit of Slay the Spire's events. Each choice spells out its effects before you pick: gains in green, costs in red, and a gamble's odds. After the choice, the result is shown and the run moves on to the map; an event that ends in a fight opens the exit when the fight is won.
+  - Possible effects: gain or lose Scraps, repair or lose hull, raise or lower max hull, Dark Matter, an equipment choice (sometimes Rare or better), upgrade a random item, lose a random item, a run-long stat change, or an ambush fight with double rewards.
+  - Rules: event costs never kill (hull stops at 1); unaffordable choices are shown but disabled, with the reason; an event isn't repeated within a run until all have been seen.
+  - The slice has 10 events: Derelict Freighter, Distress Beacon, Unstable Singularity, Wandering Engineer, Spore Bloom, Remnant Toll Gate, Sealed Weapons Cache, Echo of Earth, Scrap Trader, Gravity Well.
+- **Revealed levels' rewards are ×1.5** compared to a normal level of the same type. A Mystery Equipment level gives a guaranteed Rare-or-better choice.
 - A Mystery level can turn into a Repair level only if it is in row 3 or later and the galaxy doesn't already have one.
-- A Mystery level has a 10% chance to be an **Ambush**: a harder combat variant with an elite wave and double rewards.
+- A revealed combat level has a 10% chance to be an **Ambush**: a harder combat variant with an elite wave and double rewards.
 
 ### 10.6 Shop Level $
 - **Always the node directly before the Boss.** There are no enemies.
@@ -472,7 +477,7 @@ Every level ends by flying into the **exit wormhole**, which opens once the leve
 - **Dark Matter level:** 8–12 indigo crystals, at least 5 u apart and away from the entry and exit. Standing within 1.6 u fills a harvest ring (1 s; it drains at half speed when left). Light pressure means a wave every 12 s at ×0.5 budget. After the 90 s timer it escalates to a wave every 5 s at ×1.5 budget. The exit is open from the start.
 - **Repair level:** a green station at the arena centre. Press Interact for the choice; it can be used once. The exit is open from the start.
 - **Shop level:** a gold terminal with a **4-item catalog** (Common 40, Rare 75, Epic 120). It sells upgrades for equipped items (35 for I→II, 60 for II→III), hull repairs (1 Scrap per hull), and rerolls (15, then +10 each). Buying into a full category opens the swap screen, and the pilot pays only if the swap is confirmed.
-- **Mystery:** the HUD announces the revealed type, and rewards are ×1.5. An ambush has a ×1.5 budget and ×2 rewards.
+- **Mystery:** the HUD announces the revealed type, and rewards are ×1.5. An ambush has a ×1.5 budget and ×2 rewards. An event is a choice dialog in the empty arena; an event ambush is 3 waves at the ambush budget, and beating it pays the Scraps completion bonus at ×2.
 - **Boss level:** **the Quarry Maw** ([§7.5](#75-bosses)) with no escorts. In M3–M4 it was a placeholder elite Carrier. It pays Singularity Cores, a 30% heal and a **Rare-or-better equipment choice**. Galaxies 2–3 reuse the Maw at the galaxy health multiplier until their own bosses arrive.
 - **Galaxy scaling:** enemy health ×1.0 / ×1.6 / ×2.4 per galaxy, on top of the director's galaxy budget multiplier. All three galaxies use the Shattered Expanse enemy pool and arena until their themes arrive.
 
@@ -540,6 +545,8 @@ Boot → Main Menu → Hub ──► Ship Select → Loadout Select → Galaxy M
 ```
 *M5 state:* Boot → Hub (menu: **Start Run** → loadout page, **Pathfinder Lab**, **Combat Sandbox**) → Run scene (galaxy map ⇄ levels → galaxy cleared → … → victory or defeat summary with banked rewards) → back to the Hub. The **Sandbox** scene keeps the endless combat playground for tuning.
 
+*UI tech (playtest 2):* the galaxy map, station and event dialogs, and equipment cards are **uGUI built from code** on a 1920×1080 reference canvas that scales to fit. Layout groups size rows and cards to their text, so descriptions wrap instead of being cut off, and long lists (a full Shop) scroll. Dialog rows show a label, a right-aligned price or state, and a detail line; the Shop groups them under Catalog, Upgrades and Services. The HUD and Hub are still placeholder IMGUI and hide while a menu is open; they move to uGUI in M6.
+
 ### 12.2 HUD (in level)
 - **Top left:** Hull bar (with the numeric value) with the Shield bar layered over it.
 - **Bottom center:** Ammo / reload ring around the crosshair (for the Quantum Charger, the charge level), secondary cooldown, and dash charge pips.
@@ -554,13 +561,16 @@ Boot → Main Menu → Hub ──► Ship Select → Loadout Select → Galaxy M
 
 ### 12.4 Readability rules
 Every colour and shape has a single meaning, so the player can read a crowded screen at a glance. These rules were
-tightened after the M1 playtest, where glowing enemy cores were mistaken for bullets.
+tightened after the M1 playtest, where glowing enemy cores were mistaken for bullets, and again after playtest 2, where
+dense bullet patterns blew out into glare and the Lancer's charge line looked like a bullet. Bloom is kept moderate
+(intensity 1.3, threshold 1.0) so a busy screen stays readable.
 
 | Element | Look | Exclusive |
 |---|---|---|
-| **Enemy bullets** | White-hot core inside a pulsing **magenta** halo. Round. | Magenta and round glowing orbs are used for nothing else. |
+| **Enemy bullets** | A solid white core inside a crisp **magenta** rim, edged with a **dark outline**, and only a faint glow. Round. The outline keeps every bullet separate in dense patterns; the glow is alpha-blended, so overlapping bullets don't add up into a haze *(playtest 2)*. | Magenta and round orbs are used for nothing else. |
 | **Enemies** | Solid, lit **crimson** bodies with small red-orange accent strips, on a faint **red floor glow**. Never a glowing orb. | The red floor glow marks units only. |
-| **Enemy attack warnings** | Accent strips flare toward white-orange, and red lines show charge paths. Spawns are a soft red glow on the floor. | |
+| **Enemy attack warnings** | Accent strips flare toward white-orange. Charge paths are **lanes of red-orange chevrons** on the floor that fill in as the wind-up completes: flat, segmented and pointed, never round. Spawns and eruptions are a soft red glow on the floor. | Chevrons mean "a charge is coming this way". |
+| **Armour & weak points** | Hits on armour throw a dull **grey spark** and do nothing. Weak points are **yellow**: crystals, rings, a cracked maw. | Yellow on an enemy always means "shoot here". |
 | **Player & allies** | **Cyan / blue** hull lights and projectiles. Player projectiles are elongated bolts, not orbs. | Cyan is never used by enemies. |
 | **Pickups** | **Gold** for Scraps; Dark Matter gets its own colour later. They spin and bob. | |
 | **Environment** | Teal/blue grid and walls, kept dim. Hazards use orange-yellow warning stripes. | |

@@ -186,5 +186,19 @@ namespace Pathfinder.Tests.Equipment
             Assert.That(EpicShare(0), Is.InRange(0.03f, 0.08f), "About 5% Epic in galaxy 1.");
             Assert.Greater(EpicShare(2), EpicShare(0) * 2f, "Galaxy 3 rolls Epics far more often.");
         }
+
+        [Test]
+        public void Remove_FreesTheSlot()
+        {
+            var slots = new EquipmentSlots<object>();
+            object a = new object(), b = new object();
+            slots.TryAdd(a, EquipmentCategory.Hull);
+            slots.TryAdd(b, EquipmentCategory.Hull);
+
+            Assert.IsTrue(slots.Remove(a));
+            Assert.IsNull(slots.Find(a));
+            Assert.AreEqual(1, slots.In(EquipmentCategory.Hull).Count);
+            Assert.IsFalse(slots.Remove(a), "Already gone.");
+        }
     }
 }

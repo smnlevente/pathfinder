@@ -5,23 +5,28 @@ using UnityEngine;
 namespace Pathfinder.Game.Enemies
 {
     /// <summary>
-    /// Lancer: closes in, locks a direction and shows a red line, then charges along it at high speed and hits
-    /// hard. It is vulnerable while it recovers (GDD §7.3).
+    /// Lancer: closes in, locks a direction and shows a chevron lane, then charges along it at high speed and hits
+    /// hard. Each attack is a double joust: after the first charge it re-aims at the ship and charges again after a
+    /// shorter wind-up. It is vulnerable while it recovers (GDD §7.3).
     /// </summary>
-    public sealed class LancerBrain : EnemyBrain
+    public sealed class LancerBrain : EnemyBrain, IChargeTelegraph
     {
         public enum State { Approach, WindUp, Charge, Recover }
 
         [SerializeField, Min(0f), Tooltip("Starts winding up within this distance of the target.")] float engageDistance = 9f;
         [SerializeField, Min(0f)] float windUpTime = 0.7f;
-        [SerializeField, Min(0.1f)] float chargeSpeed = 22f;
+        [SerializeField, Min(1)] int chargesPerAttack = 2;
+        [SerializeField, Min(0f), Tooltip("Wind-up before each follow-up charge.")] float followUpWindUpTime = 0.45f;
+        [SerializeField, Min(0.1f)] float chargeSpeed = 24f;
         [SerializeField, Min(0.1f)] float chargeDistance = 14f;
-        [SerializeField, Min(1f)] float chargeContactMultiplier = 2f;
-        [SerializeField, Min(0f)] float recoverTime = 1f;
+        [SerializeField, Min(1f)] float chargeContactMultiplier = 2.5f;
+        [SerializeField, Min(0f)] float recoverTime = 0.9f;
         [SerializeField, Range(0f, 1f)] float recoverSpeedFactor = 0.3f;
-        [SerializeField, Min(0f), Tooltip("Pause after recovering before the next wind-up.")] float cooldown = 1.5f;
+        [SerializeField, Min(0f), Tooltip("Pause after recovering before the next wind-up.")] float cooldown = 1.2f;
 
         float _timer;
+        float _windUpDuration;
+        int _chargesLeft;
         float _cooldownLeft;
         float _charged;
         Vector2 _lastPosition;
@@ -32,6 +37,14 @@ namespace Pathfinder.Game.Enemies
         public Vector2 ChargeDirection { get; private set; } = Vector2.up;
 
         public float ChargeDistance => chargeDistance;
+
+        /// <summary>How far through the current wind-up it is, 0 to 1.</summary>
+        public float WindUpProgress => Current == State.WindUp && _windUpDuration > 0f ? Mathf.Clamp01(1f - _timer / _windUpDuration) : 0f;
+
+        bool IChargeTelegraph.ShowsCharge => Current == State.WindUp;
+        Vector2 IChargeTelegraph.ChargeStart => Pathfinder.Game.Simulation.PlaneMath.ToPlane(transform.position);
+        float IChargeTelegraph.ChargeLength => chargeDistance;
+        float IChargeTelegraph.ChargeProgress => WindUpProgress;
 
         public override void ResetState(Enemy self)
         {
@@ -56,8 +69,8 @@ namespace Pathfinder.Game.Enemies
                     _cooldownLeft -= attackDelta;
                     if (_cooldownLeft <= 0f && toTarget.magnitude <= engageDistance)
                     {
-                        ChargeDirection = toTarget.normalized;
-                        Enter(self, State.WindUp, windUpTime);
+                        _chargesLeft = chargesPerAttack;
+                        WindUp(self, toTarget, windUpTime);
                         return Vector2.zero;
                     }
                     return toTarget.normalized * self.MoveSpeed;
@@ -89,7 +102,12 @@ namespace Pathfinder.Game.Enemies
                     bool pinned = _charged > 0.5f && moved < chargeSpeed * deltaTime * 0.25f;
                     if (Advance(deltaTime) || _charged >= chargeDistance || self.DealtContactDamage || pinned)
                     {
-                        Enter(self, State.Recover, recoverTime);
+                        // A hit ends the attack; a miss lets it re-aim and joust again.
+                        _chargesLeft--;
+                        if (_chargesLeft > 0 && !self.DealtContactDamage && target != null)
+                            WindUp(self, target.Position - self.Position, followUpWindUpTime);
+                        else
+                            Enter(self, State.Recover, recoverTime);
                         return Vector2.zero;
                     }
                     return ChargeDirection * chargeSpeed;
@@ -104,6 +122,13 @@ namespace Pathfinder.Game.Enemies
                     }
                     return target != null ? (target.Position - self.Position).normalized * self.MoveSpeed : Vector2.zero;
             }
+        }
+
+        void WindUp(Enemy self, Vector2 toTarget, float duration)
+        {
+            ChargeDirection = toTarget.sqrMagnitude > 1e-6f ? toTarget.normalized : ChargeDirection;
+            _windUpDuration = duration;
+            Enter(self, State.WindUp, duration);
         }
 
         void Enter(Enemy self, State state, float duration)

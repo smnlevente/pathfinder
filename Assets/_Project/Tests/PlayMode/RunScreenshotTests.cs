@@ -9,6 +9,7 @@ using Pathfinder.Core.Run;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Enemies;
 using Pathfinder.Game.Player;
+using Pathfinder.Game.Presentation;
 using Pathfinder.Game.Run;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
@@ -101,15 +102,78 @@ namespace Pathfinder.Tests.PlayMode
             yield return null;
             Screenshots.CaptureCamera(Path.Combine(directory, "boss_surfaced.png"));
 
-            // Enraged: circling the ship and spewing bullet streams.
+            // Sweep: the chevron lane of an incoming charge.
+            var weakPoint = brain.Segments.First(segment => segment.IsWeakPoint);
             yield return WaitTicks(() => !brain.IsBurrowed && !brain.IsRoaring, 600);
-            float damage = boss.Vitals.Hull - boss.Vitals.MaxHull * 0.3f;
-            boss.ApplyDamage(new DamageInfo(damage, Team.Player, _player.EntityId, boss.Position, Vector2.up));
+            weakPoint.ApplyDamage(new DamageInfo(boss.Vitals.Hull - boss.Vitals.MaxHull * 0.63f, Team.Player, _player.EntityId, weakPoint.Position, Vector2.up));
+            var telegraph = (IChargeTelegraph)brain;
+            yield return WaitTicks(() => telegraph.ShowsCharge, 600);
+            for (int i = 0; i < 40; i++)
+                yield return new WaitForFixedUpdate();
+            yield return null;
+            Screenshots.CaptureCamera(Path.Combine(directory, "boss_sweep.png"));
+
+            // Enraged: the cracked maw, circling the ship and spewing bullet streams.
+            yield return WaitTicks(() => !brain.IsBurrowed && !brain.IsRoaring, 600);
+            weakPoint.ApplyDamage(new DamageInfo(boss.Vitals.Hull - boss.Vitals.MaxHull * 0.3f, Team.Player, _player.EntityId, weakPoint.Position, Vector2.up));
             yield return WaitTicks(() => brain.CurrentPhase == QuarryMawBrain.Phase.Enrage && !brain.IsRoaring, 600);
-            for (int i = 0; i < 80; i++)
+            Assert.AreEqual(QuarryMawBrain.Phase.Enrage, brain.CurrentPhase);
+            // It may start at the arena edge: wait until it has closed in to its orbit, in view, and is firing.
+            yield return WaitTicks(() => Vector2.Distance(boss.Position, _player.Position) < 9.5f, 600);
+            for (int i = 0; i < 40; i++)
                 yield return new WaitForFixedUpdate();
             yield return null;
             Screenshots.CaptureCamera(Path.Combine(directory, "boss_enraged.png"));
+        }
+
+        /// <summary>The galaxy map at the start and mid-run, the Shop dialog and the equipment choice cards (GDD §12).</summary>
+        [UnityTest, Category("Screenshot")]
+        public IEnumerator CaptureMenus()
+        {
+            string directory = Screenshots.Directory();
+            yield return LoadRun(23);
+            yield return null;
+            yield return null;
+            var map = Object.FindAnyObjectByType<GalaxyMapScreen>();
+            Assert.IsTrue(map.IsOpen);
+            Assert.Greater(map.EdgeCount, 10, "Every jump lane is drawn.");
+            Screenshots.CaptureWithUi(Path.Combine(directory, "ui_map.png"));
+
+            for (int i = 0; i < 3; i++)
+            {
+                Assert.IsTrue(_director.ChooseNode(_director.Run.AvailableNodes[0]));
+                _director.Level.DebugTakeExit();
+                float deadline = Time.realtimeSinceStartup + 3f;
+                while (_director.State != RunDirector.Phase.Map && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+            }
+            yield return null;
+            Screenshots.CaptureWithUi(Path.Combine(directory, "ui_map_progress.png"));
+
+            _director.StartTestLevel(MapNodeType.Shop, row: 4);
+            yield return null;
+            _player.AddScraps(150);
+            _player.PlaceForLevel(new Vector2(0f, -1.5f));
+            _player.CommandSource = new Interacting();
+            for (int i = 0; i < 3; i++)
+                yield return new WaitForFixedUpdate();
+            _player.CommandSource = null;
+            var dialog = Object.FindAnyObjectByType<ChoiceDialog>();
+            Assert.IsTrue(dialog.IsOpen, "Interacting at the terminal opens the Shop.");
+            yield return null;
+            Screenshots.CaptureWithUi(Path.Combine(directory, "ui_shop.png"));
+            dialog.Close();
+
+            var choice = Object.FindAnyObjectByType<EquipmentChoiceScreen>();
+            choice.Show("EQUIPMENT CACHE", _director.Level.RollEquipment(3, Pathfinder.Core.Equipment.Rarity.Rare, _player, new Pcg32(5, 5)), _player, 15, null);
+            yield return null;
+            Screenshots.CaptureWithUi(Path.Combine(directory, "ui_choice.png"));
+            choice.Skip();
+        }
+
+        sealed class Interacting : IShipCommandSource
+        {
+            public ShipCommand ReadCommand(PlayerShip ship) => new ShipCommand { Interact = true };
         }
 
         static IEnumerator WaitTicks(Func<bool> condition, int maxTicks)

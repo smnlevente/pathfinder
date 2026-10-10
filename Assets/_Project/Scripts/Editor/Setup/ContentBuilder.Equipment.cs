@@ -164,6 +164,7 @@ namespace Pathfinder.Editor.Setup
             Assign(so.FindProperty("<SecondaryWeapons>k__BackingField"), data.Secondaries, "SecondaryWeapons");
             Assign(so.FindProperty("<Equipment>k__BackingField"), content.Items.ToArray(), "Equipment");
             Assign(so.FindProperty("<MetaUpgrades>k__BackingField"), BuildMetaUpgrades(data), "MetaUpgrades");
+            Assign(so.FindProperty("<Events>k__BackingField"), BuildMysteryEvents(), "Events");
             Assign(so.FindProperty("<Enemies>k__BackingField"), new Object[] { data.Drone, data.Gunner, data.Spinner, data.Lancer, data.Carrier, quarryMaw }, "Enemies");
             so.ApplyModifiedPropertiesWithoutUndo();
             return database;

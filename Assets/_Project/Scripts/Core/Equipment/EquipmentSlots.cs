@@ -141,6 +141,23 @@ namespace Pathfinder.Core.Equipment
             list[index] = new Entry { Item = item, Level = 1, Category = category };
         }
 
+        /// <summary>Removes one item from its slot, e.g. traded away in a Mystery event. Returns false if it isn't equipped.</summary>
+        public bool Remove(T item)
+        {
+            foreach (var list in _slots.Values)
+            {
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (ReferenceEquals(list[i].Item, item))
+                    {
+                        list.RemoveAt(i);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         /// <summary>Removes every item, e.g. at the start of a new run.</summary>
         public void Clear()
         {

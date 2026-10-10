@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: boss.quarry-maw
   displayName: The Quarry Maw
-  <MaxHealth>k__BackingField: 2000
+  <MaxHealth>k__BackingField: 4000
   <MoveSpeed>k__BackingField: 6
   <ContactDamage>k__BackingField: 15
   <BudgetCost>k__BackingField: 20

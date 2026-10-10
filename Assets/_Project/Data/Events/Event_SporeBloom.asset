@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ac6c1d6f78a20446b929b7835d302b0, type: 3}
+  m_Name: Event_SporeBloom
+  m_EditorClassIdentifier: 
+  id: event.spore-bloom
+  displayName: Spore Bloom
+  <Body>k__BackingField: Glowing spores drift through the nebula and settle on the
+    hull. Wherever they land, damaged plating knits itself back together.
+  <Choices>k__BackingField:
+  - Label: Let them grow
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes:
+    - Kind: 2
+      Amount: 35
+      Rarity: 0
+      Stat: 0
+    - Kind: 9
+      Amount: -8
+      Rarity: 0
+      Stat: 3
+    FailOutcomes: []
+    ResultText: The hull is whole again, if a little heavier. The growth isn't coming
+      off.
+    FailText: 
+  - Label: Burn them off
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes:
+    - Kind: 0
+      Amount: 20
+      Rarity: 0
+      Stat: 0
+    FailOutcomes: []
+    ResultText: The spores crisp into a fine, glittering ash. Traders pay well for
+      it.
+    FailText: 

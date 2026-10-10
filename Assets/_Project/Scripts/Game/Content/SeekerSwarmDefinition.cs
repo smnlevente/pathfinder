@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Pathfinder.Core.Combat;
 using Pathfinder.Core.Random;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Enemies;
@@ -22,15 +23,16 @@ namespace Pathfinder.Game.Content
         [field: SerializeField] public GameObject ProjectilePrefab { get; private set; }
         [field: SerializeField] public GameObject ImpactPrefab { get; private set; }
 
-        static readonly List<Enemy> s_targets = new List<Enemy>();
+        static readonly List<CombatEntity> s_targets = new List<CombatEntity>();
 
         public override void Activate(PlayerShip ship, CombatWorld world, IRandom random)
         {
-            // Spread missiles over the nearest enemies instead of overkilling one.
+            // Spread missiles over the nearest enemies instead of overkilling one. Armour is skipped, so boss weak
+            // points are found.
             s_targets.Clear();
-            foreach (var enemy in CombatRegistry.Enemies)
+            foreach (var enemy in CombatRegistry.OnTeam(ship.Team.Opponent()))
             {
-                if (enemy.IsAlive)
+                if (enemy.IsAlive && !enemy.IsIntangible && !enemy.Armoured)
                     s_targets.Add(enemy);
             }
             s_targets.Sort((a, b) => (a.Position - ship.Position).sqrMagnitude.CompareTo((b.Position - ship.Position).sqrMagnitude));

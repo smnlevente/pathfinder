@@ -27,6 +27,9 @@ namespace Pathfinder.Game.Combat
         [SerializeField, Tooltip("Visual for a Scraps pickup.")]
         GameObject scrapPickupPrefab;
 
+        [SerializeField, Tooltip("Spark when a projectile is stopped by armour.")]
+        GameObject deflectEffectPrefab;
+
         /// <summary>Seed for the next world that starts. Consumed on use. Used by tests and seeded runs.</summary>
         public static Seed? NextSeedOverride { get; set; }
 
@@ -72,7 +75,7 @@ namespace Pathfinder.Game.Combat
             _levelSeed = Seed;
             var projectileRoot = new GameObject("Projectiles").transform;
             projectileRoot.SetParent(transform, false);
-            Projectiles = new ProjectileSystem(projectileRoot);
+            Projectiles = new ProjectileSystem(projectileRoot) { DeflectPrefab = deflectEffectPrefab };
 
             var pickupRoot = new GameObject("Pickups").transform;
             pickupRoot.SetParent(transform, false);

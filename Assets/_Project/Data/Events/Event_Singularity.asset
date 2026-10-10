@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ac6c1d6f78a20446b929b7835d302b0, type: 3}
+  m_Name: Event_Singularity
+  m_EditorClassIdentifier: 
+  id: event.singularity
+  displayName: Unstable Singularity
+  <Body>k__BackingField: A pocket of collapsed space hums ahead. Its pull could tear
+    the hull apart, or fold Dark Matter straight out of the void.
+  <Choices>k__BackingField:
+  - Label: Skim the event horizon
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes:
+    - Kind: 4
+      Amount: 30
+      Rarity: 0
+      Stat: 0
+    - Kind: 3
+      Amount: -10
+      Rarity: 0
+      Stat: 0
+    FailOutcomes: []
+    ResultText: The hull groans and buckles, but the collectors come back full.
+    FailText: 
+  - Label: Steer clear
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes: []
+    FailOutcomes: []
+    ResultText: Some risks aren't worth taking.
+    FailText: 

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ac6c1d6f78a20446b929b7835d302b0, type: 3}
+  m_Name: Event_EarthEcho
+  m_EditorClassIdentifier: 
+  id: event.earth-echo
+  displayName: Echo of Earth
+  <Body>k__BackingField: 'A fragment of an old Earth broadcast loops in the static:
+    music, laughter, a weather report for a city that no longer exists. The cockpit
+    goes quiet.'
+  <Choices>k__BackingField:
+  - Label: Just listen
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes:
+    - Kind: 1
+      Amount: 25
+      Rarity: 0
+      Stat: 0
+    FailOutcomes: []
+    ResultText: For a few minutes, you remember what you're fighting for.
+    FailText: 
+  - Label: Record it for the archive
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes:
+    - Kind: 4
+      Amount: 15
+      Rarity: 0
+      Stat: 0
+    FailOutcomes: []
+    ResultText: The Lab will want this. Every scrap of home matters.
+    FailText: 

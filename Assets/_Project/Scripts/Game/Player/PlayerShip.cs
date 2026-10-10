@@ -209,6 +209,15 @@ namespace Pathfinder.Game.Player
             return true;
         }
 
+        /// <summary>Removes an equipped item, e.g. traded away in a Mystery event. Authority only.</summary>
+        public bool RemoveEquipment(EquipmentDefinition item)
+        {
+            if (!Authority.IsAuthority || !Equipment.Remove(item))
+                return false;
+            Rebuild();
+            return true;
+        }
+
         /// <summary>A permanent stat change for the rest of the run, e.g. Reinforce at a repair station.</summary>
         public void AddRunModifier(StatId stat, float flat, float percent)
         {
@@ -303,6 +312,16 @@ namespace Pathfinder.Game.Player
             AddScraps(whole);
         }
 
+        /// <summary>Takes up to <paramref name="amount"/> Scraps, as many as the pilot has. Returns how many were lost. Authority only.</summary>
+        public int LoseScraps(int amount)
+        {
+            if (!Authority.IsAuthority || amount <= 0)
+                return 0;
+            int lost = Mathf.Min(amount, Scraps);
+            Scraps -= lost;
+            return lost;
+        }
+
         /// <summary>Spends Scraps if the pilot has enough. Authority only.</summary>
         public bool TrySpendScraps(int amount)
         {
@@ -315,6 +334,9 @@ namespace Pathfinder.Game.Player
 
         /// <summary>Restores hull and returns the amount healed. Authority only.</summary>
         public float Heal(float amount) => Authority.IsAuthority ? _vitals.Heal(amount) : 0f;
+
+        /// <summary>Takes hull past the shield, never below 1 (a Mystery event's cost). Returns the hull lost. Authority only.</summary>
+        public float DrainHull(float amount) => Authority.IsAuthority ? _vitals.DrainHull(amount) : 0f;
 
         /// <summary>Raises max hull for the rest of the run (the Reinforce repair option, GDD §10.4). Authority only.</summary>
         public void Reinforce(float amount)

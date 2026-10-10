@@ -20,7 +20,7 @@ namespace Pathfinder.Game.Equipment
         [field: SerializeField, Min(0.1f)] public float Radius { get; private set; } = 2f;
         [field: SerializeField] public GameObject StrikeEffect { get; private set; }
 
-        static readonly List<Enemy> s_hits = new List<Enemy>();
+        static readonly List<CombatEntity> s_hits = new List<CombatEntity>();
 
         public override EquipmentEffect CreateEffect() => new Effect(this);
 
@@ -40,10 +40,10 @@ namespace Pathfinder.Game.Equipment
 
                 Vector2 point = info.Point;
                 s_hits.Clear();
-                foreach (var enemy in CombatRegistry.Enemies)
+                foreach (var enemy in CombatRegistry.OnTeam(Ship.Team.Opponent()))
                 {
                     float reach = _definition.Radius + enemy.Radius;
-                    if (enemy.IsAlive && (enemy.Position - point).sqrMagnitude <= reach * reach)
+                    if (enemy.IsAlive && !enemy.IsIntangible && !enemy.Armoured && (enemy.Position - point).sqrMagnitude <= reach * reach)
                         s_hits.Add(enemy);
                 }
                 foreach (var enemy in s_hits)

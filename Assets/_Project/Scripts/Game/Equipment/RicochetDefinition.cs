@@ -26,10 +26,10 @@ namespace Pathfinder.Game.Equipment
             {
                 CombatEntity next = null;
                 float best = _definition.SearchRadius * _definition.SearchRadius;
-                foreach (var enemy in CombatRegistry.Enemies)
+                foreach (var enemy in CombatRegistry.OnTeam(Ship.Team.Opponent()))
                 {
                     float distance = (enemy.Position - target.Position).sqrMagnitude;
-                    if (enemy != target && enemy.IsAlive && distance < best)
+                    if (enemy != target && enemy.IsAlive && !enemy.IsIntangible && !enemy.Armoured && distance < best)
                     {
                         best = distance;
                         next = enemy;

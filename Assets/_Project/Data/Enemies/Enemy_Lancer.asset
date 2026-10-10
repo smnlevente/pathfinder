@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: enemy.lancer
   displayName: Lancer
-  <MaxHealth>k__BackingField: 40
+  <MaxHealth>k__BackingField: 60
   <MoveSpeed>k__BackingField: 4.5
-  <ContactDamage>k__BackingField: 10
+  <ContactDamage>k__BackingField: 12
   <BudgetCost>k__BackingField: 3
   <ScrapsDrop>k__BackingField: 2
   <ScrapsDropChance>k__BackingField: 0.8

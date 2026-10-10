@@ -41,6 +41,10 @@ namespace Pathfinder.Game.Presentation
 
         void OnGUI()
         {
+            // Full-screen menus are uGUI, which IMGUI would draw over: step aside while one is open.
+            if (Ui.ModalScreens.AnyOpen)
+                return;
+
             // Menus (map, dialogs) draw on top of the HUD.
             GUI.depth = 10;
             EnsureStyles();

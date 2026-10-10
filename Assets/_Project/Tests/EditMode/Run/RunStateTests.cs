@@ -106,13 +106,34 @@ namespace Pathfinder.Tests.Run
             {
                 var random = new Pcg32(seed, 3);
                 var outcome = MysteryRoll.Resolve(random, repairAllowed: false);
-                CollectionAssert.Contains(new[] { MapNodeType.Scraps, MapNodeType.Equipment, MapNodeType.DarkMatter }, outcome.Type);
+                CollectionAssert.Contains(new[] { MapNodeType.Mystery, MapNodeType.Scraps, MapNodeType.Equipment, MapNodeType.DarkMatter }, outcome.Type);
                 if (outcome.Ambush)
                     CollectionAssert.Contains(new[] { MapNodeType.Scraps, MapNodeType.Equipment }, outcome.Type, "Ambushes are combat levels.");
             }
 
             bool sawRepair = Enumerable.Range(0, 300).Any(i => MysteryRoll.Resolve(new Pcg32((ulong)i, 4), repairAllowed: true).Type == MapNodeType.Repair);
             Assert.IsTrue(sawRepair);
+        }
+
+        [Test]
+        public void Mystery_IsUsuallyAnEvent()
+        {
+            int events = Enumerable.Range(0, 1000).Count(i => MysteryRoll.Resolve(new Pcg32((ulong)i, 5), repairAllowed: true).IsEvent);
+            Assert.That(events, Is.InRange(640, 760), "About 70% of Mystery nodes are events (GDD §10.5).");
+            Assert.IsFalse(Enumerable.Range(0, 300).Any(i =>
+            {
+                var outcome = MysteryRoll.Resolve(new Pcg32((ulong)i, 6), repairAllowed: true);
+                return outcome.IsEvent && outcome.Ambush;
+            }), "Events are never ambushes by themselves.");
+        }
+
+        [Test]
+        public void SeenEvents_AreRemembered()
+        {
+            var run = new RunState(new Seed(9));
+            Assert.IsFalse(run.HasSeenEvent("event.beacon"));
+            run.MarkEventSeen("event.beacon");
+            Assert.IsTrue(run.HasSeenEvent("event.beacon"));
         }
 
         [Test]

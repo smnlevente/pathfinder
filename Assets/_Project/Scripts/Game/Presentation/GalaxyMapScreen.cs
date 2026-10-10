@@ -1,22 +1,24 @@
 using System.Collections.Generic;
 using Pathfinder.Core.Run;
+using Pathfinder.Game.Presentation.Ui;
 using Pathfinder.Game.Run;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Pathfinder.Game.Presentation
 {
     /// <summary>
-    /// Placeholder IMGUI galaxy map (GDD §12.3): a vertical node graph with type icons and the path walked so far. The
-    /// selectable next nodes pulse. Choose with the mouse, or with left/right and Submit. The real UI comes with the
-    /// UI pass.
+    /// Galaxy map (GDD §12.3): the node graph from the entries at the bottom to the boss at the top. Every jump lane is
+    /// drawn: the path walked so far is bright cyan, the lanes open from the current node are white, and the rest are
+    /// faint. The selectable next nodes pulse. Choose with the mouse, or with left/right and Submit.
     /// </summary>
     public sealed class GalaxyMapScreen : MonoBehaviour
     {
-        const float ReferenceHeight = 1080f;
+        static readonly Vector2 AreaSize = new Vector2(860f, 780f);
 
         [SerializeField] RunDirector director;
 
-        static readonly Dictionary<MapNodeType, Color> TypeColors = new Dictionary<MapNodeType, Color>
+        public static readonly Dictionary<MapNodeType, Color> TypeColors = new Dictionary<MapNodeType, Color>
         {
             { MapNodeType.Scraps, new Color(1f, 0.78f, 0.25f) },
             { MapNodeType.Equipment, new Color(0.35f, 0.85f, 1f) },
@@ -33,22 +35,46 @@ namespace Pathfinder.Game.Presentation
             { MapNodeType.Mystery, "?" }, { MapNodeType.Shop, "$" }, { MapNodeType.Boss, "!" },
         };
 
+        sealed class NodeView
+        {
+            public MapNode Node;
+            public RectTransform Rect;
+            public Image Fill, Halo;
+            public float Size;
+        }
+
         MenuInput _input;
         int _selected;
-        GUIStyle _title, _glyph, _info, _small;
-        Texture2D _circle;
+        bool _wasOpen;
+        Canvas _canvas;
+        RectTransform _area, _edges, _nodes;
+        Text _title, _infoTitle, _infoBody, _footer;
+        readonly List<NodeView> _views = new List<NodeView>();
 
         public bool IsOpen => director != null && director.State == RunDirector.Phase.Map;
+
+        /// <summary>Number of jump lanes drawn. For tests.</summary>
+        public int EdgeCount => _edges != null ? _edges.childCount : 0;
 
         void Awake()
         {
             _input = new MenuInput();
-            _circle = MakeCircle(64);
+            Build();
+            _canvas.gameObject.SetActive(false);
         }
 
         void Update()
         {
-            if (!IsOpen)
+            bool open = IsOpen;
+            if (open != _wasOpen)
+            {
+                _wasOpen = open;
+                _canvas.gameObject.SetActive(open);
+                ModalScreens.SetOpen(this, open);
+                if (open)
+                    Rebuild();
+            }
+            if (!open)
                 return;
 
             var available = director.Run.AvailableNodes;
@@ -61,34 +87,75 @@ namespace Pathfinder.Game.Presentation
             _selected = Mathf.Clamp(_selected, 0, available.Count - 1);
 
             if (_input.Submitted)
+            {
                 director.ChooseNode(available[_selected]);
+                return;
+            }
+
+            Animate(available);
         }
 
-        void OnGUI()
-        {
-            if (!IsOpen)
-                return;
+        // ---------------------------------------------------------------- view
 
-            GUI.depth = 0;
-            EnsureStyles();
-            float scale = Screen.height / ReferenceHeight;
-            GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
-            float width = Screen.width / scale;
+        void Build()
+        {
+            _canvas = UiKit.Canvas("Galaxy Map", transform, sortingOrder: 10);
+            var backdrop = UiKit.Backdrop(_canvas.transform);
+            backdrop.color = new Color(0.01f, 0.015f, 0.04f, 0.97f);
+            var root = _canvas.transform;
+
+            _title = UiKit.Text(root, "Title", string.Empty, 40, UiKit.TextBright, TextAnchor.MiddleCenter, FontStyle.Bold);
+            UiKit.Place(_title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -28f), new Vector2(1600f, 56f));
+            var hint = UiKit.Text(root, "Hint", "Choose your next jump.   Left / Right + Enter, or click a pulsing node.", 19, UiKit.TextDim, TextAnchor.MiddleCenter);
+            UiKit.Place(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -84f), new Vector2(1600f, 30f));
+
+            _area = UiKit.Node("Map", root);
+            UiKit.Place(_area, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), AreaSize);
+            _edges = UiKit.Stretch(UiKit.Node("Lanes", _area));
+            _nodes = UiKit.Stretch(UiKit.Node("Nodes", _area));
+
+            // Focused node details, right of the map.
+            var info = UiKit.Image(root, "Info", UiKit.Panel);
+            UiKit.Place(info.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 0.5f), new Vector2(AreaSize.x * 0.5f + 70f, 0f), new Vector2(430f, 0f));
+            UiKit.Vertical(info, 12f, new RectOffset(28, 28, 24, 26), TextAnchor.UpperLeft);
+            UiKit.FitContent(info);
+            _infoTitle = UiKit.Text(info.transform, "Title", string.Empty, 32, UiKit.TextBright, TextAnchor.UpperLeft, FontStyle.Bold);
+            _infoBody = UiKit.Text(info.transform, "Body", string.Empty, 21, UiKit.TextBody);
+
+            // Legend, left of the map.
+            var legend = UiKit.Image(root, "Legend", UiKit.Panel);
+            UiKit.Place(legend.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-AreaSize.x * 0.5f - 70f, 0f), new Vector2(300f, 0f));
+            UiKit.Vertical(legend, 10f, new RectOffset(24, 24, 20, 20), TextAnchor.UpperLeft);
+            UiKit.FitContent(legend);
+            foreach (var pair in TypeColors)
+            {
+                var entry = UiKit.Node(pair.Key.ToString(), legend.transform);
+                UiKit.Horizontal(entry, 14f, null, TextAnchor.MiddleLeft);
+                var dot = UiKit.Image(entry, "Dot", pair.Value, UiKit.Circle);
+                UiKit.Layout(dot, preferredWidth: 24f, preferredHeight: 24f);
+                UiKit.Text(entry, "Name", LevelNames.Title(pair.Key), 20, UiKit.TextBody, TextAnchor.MiddleLeft);
+            }
+
+            _footer = UiKit.Text(root, "Footer", string.Empty, 20, UiKit.TextDim, TextAnchor.MiddleCenter);
+            UiKit.Place(_footer.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(1600f, 30f));
+        }
+
+        void Rebuild()
+        {
             var run = director.Run;
             var map = run.Map;
+            _selected = 0;
+            _title.text = $"GALAXY {run.GalaxyIndex + 1} / {RunState.GalaxyCount}:  {director.GalaxyName.ToUpperInvariant()}";
+            _footer.text = $"Levels cleared {run.LevelsCleared}     ·     Dark Matter {run.DarkMatter}     ·     Singularity Cores {run.SingularityCores}";
 
-            GUI.color = new Color(0.01f, 0.02f, 0.05f, 0.94f);
-            GUI.DrawTexture(new Rect(0f, 0f, width, ReferenceHeight), Texture2D.whiteTexture);
-            GUI.color = Color.white;
-
-            GUI.Label(new Rect(0f, 24f, width, 50f), $"GALAXY {run.GalaxyIndex + 1} / {RunState.GalaxyCount}:  {director.GalaxyName.ToUpperInvariant()}", _title);
-            GUI.Label(new Rect(0f, 72f, width, 30f), "Choose your next jump.   Left / right + Submit, or click a pulsing node.", _small);
-
-            // Layout: rows from bottom (entries) to top (boss), lanes spread evenly.
-            var area = new Rect(width * 0.5f - 420f, 130f, 840f, 820f);
-            Vector2 Position(MapNode node) => new Vector2(area.x + node.X * area.width, area.yMax - node.Row / (float)(map.RowCount - 1) * area.height);
-
+            Clear(_edges);
+            Clear(_nodes);
+            _views.Clear();
             var available = run.AvailableNodes;
+
+            Vector2 Position(MapNode node) => new Vector2(
+                (node.X - 0.5f) * AreaSize.x,
+                (node.Row / (float)Mathf.Max(1, map.RowCount - 1) - 0.5f) * AreaSize.y);
 
             foreach (var node in map.Nodes)
             {
@@ -96,72 +163,81 @@ namespace Pathfinder.Game.Presentation
                 {
                     bool walked = run.HasVisited(node) && run.HasVisited(next);
                     bool option = run.CurrentNode == node && Contains(available, next);
-                    var color = walked ? new Color(0.4f, 0.9f, 1f, 0.9f) : option ? new Color(1f, 1f, 1f, 0.7f) : new Color(1f, 1f, 1f, 0.15f);
-                    DrawLine(Position(node), Position(next), walked || option ? 4f : 2f, color);
+                    var color = walked ? new Color(0.35f, 0.9f, 1f, 1f) : option ? new Color(1f, 1f, 1f, 0.85f) : new Color(0.6f, 0.7f, 0.85f, 0.28f);
+                    DrawLane(Position(node), Position(next), walked ? 6f : option ? 5f : 3f, color);
                 }
             }
 
-            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f);
-            for (int i = 0; i < map.Nodes.Count; i++)
+            foreach (var node in map.Nodes)
             {
-                var node = map.Nodes[i];
                 bool isAvailable = Contains(available, node);
-                bool isSelected = isAvailable && available[_selected] == node;
                 bool isVisited = run.HasVisited(node);
-                float size = node.Type == MapNodeType.Boss ? 74f : node.Type == MapNodeType.Shop ? 62f : 52f;
-                if (isSelected)
-                    size += 10f * pulse;
+                bool isCurrent = run.CurrentNode == node;
+                float size = node.Type == MapNodeType.Boss ? 80f : node.Type == MapNodeType.Shop ? 66f : 56f;
 
-                var center = Position(node);
-                var rect = new Rect(center.x - size * 0.5f, center.y - size * 0.5f, size, size);
+                var rect = UiKit.Node(node.Type.ToString(), _nodes);
+                UiKit.Place(rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Position(node), new Vector2(size, size));
+
+                var halo = UiKit.Image(rect, "Halo", isCurrent ? UiKit.Accent : Color.white, UiKit.Ring);
+                UiKit.Place(halo.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size + 30f, size + 30f));
+                halo.enabled = isCurrent || isAvailable;
+
                 var color = TypeColors[node.Type];
-                float alpha = isAvailable ? 1f : isVisited ? 0.75f : 0.35f;
+                float alpha = isAvailable ? 1f : isVisited ? 0.8f : 0.4f;
+                var fill = UiKit.Image(rect, "Fill", new Color(color.r, color.g, color.b, alpha), UiKit.Circle, raycast: isAvailable);
+                UiKit.Stretch(fill.rectTransform);
+                var glyph = UiKit.Text(rect, "Glyph", TypeGlyphs[node.Type], node.Type == MapNodeType.DarkMatter ? 20 : 26,
+                    new Color(0.02f, 0.03f, 0.06f, alpha), TextAnchor.MiddleCenter, FontStyle.Bold);
+                UiKit.Stretch(glyph.rectTransform);
 
-                if (isSelected)
+                if (isAvailable)
                 {
-                    GUI.color = new Color(1f, 1f, 1f, 0.6f + 0.4f * pulse);
-                    GUI.DrawTexture(new Rect(rect.x - 8f, rect.y - 8f, rect.width + 16f, rect.height + 16f), _circle);
+                    var pointer = fill.gameObject.AddComponent<UiPointer>();
+                    var captured = node;
+                    pointer.Entered += () => _selected = IndexOf(director.Run.AvailableNodes, captured);
+                    pointer.Clicked += () => director.ChooseNode(captured);
                 }
 
-                GUI.color = new Color(color.r, color.g, color.b, alpha);
-                GUI.DrawTexture(rect, _circle);
-                GUI.color = new Color(0f, 0f, 0f, alpha);
-                GUI.Label(rect, TypeGlyphs[node.Type], _glyph);
-                GUI.color = Color.white;
-
-                if (isAvailable && GUI.Button(rect, GUIContent.none, GUIStyle.none))
-                {
-                    director.ChooseNode(node);
-                    return;
-                }
-                if (isAvailable && rect.Contains(Event.current.mousePosition))
-                    _selected = IndexOf(available, node);
+                _views.Add(new NodeView { Node = node, Rect = rect, Fill = fill, Halo = halo, Size = size });
             }
-
-            if (available.Count > 0)
-            {
-                var focus = available[Mathf.Clamp(_selected, 0, available.Count - 1)];
-                string type = LevelNames.Title(focus.Type);
-                GUI.Label(new Rect(width * 0.5f + 460f, 420f, Mathf.Max(200f, width * 0.5f - 500f), 240f),
-                    $"{type}\n\n{LevelNames.Description(focus.Type)}", _info);
-            }
-
-            GUI.Label(new Rect(40f, ReferenceHeight - 80f, width - 80f, 30f),
-                $"Levels cleared {run.LevelsCleared}   ·   Dark Matter {run.DarkMatter}   ·   Singularity Cores {run.SingularityCores}", _small);
-            DrawLegend(width);
         }
 
-        void DrawLegend(float width)
+        void DrawLane(Vector2 from, Vector2 to, float width, Color color)
         {
-            float x = width * 0.5f - 460f - 260f, y = 420f;
-            foreach (var pair in TypeColors)
+            var lane = UiKit.Image(_edges, "Lane", color);
+            var rect = lane.rectTransform;
+            Vector2 delta = to - from;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0f, 0.5f);
+            rect.anchoredPosition = from;
+            rect.sizeDelta = new Vector2(delta.magnitude, width);
+            rect.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg);
+        }
+
+        void Animate(IReadOnlyList<MapNode> available)
+        {
+            var focus = available[_selected];
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f);
+            foreach (var view in _views)
             {
-                GUI.color = pair.Value;
-                GUI.DrawTexture(new Rect(x, y, 22f, 22f), _circle);
-                GUI.color = Color.white;
-                GUI.Label(new Rect(x + 32f, y - 4f, 200f, 30f), LevelNames.Title(pair.Key), _small);
-                y += 34f;
+                bool isAvailable = Contains(available, view.Node);
+                bool isSelected = view.Node == focus;
+                float scale = isSelected ? 1.1f + 0.1f * pulse : isAvailable ? 1f + 0.04f * pulse : 1f;
+                view.Rect.localScale = new Vector3(scale, scale, 1f);
+                if (isAvailable)
+                    view.Halo.color = new Color(1f, 1f, 1f, isSelected ? 0.6f + 0.4f * pulse : 0.25f);
             }
+
+            _infoTitle.text = LevelNames.Title(focus.Type);
+            _infoTitle.color = TypeColors[focus.Type];
+            _infoBody.text = LevelNames.Description(focus.Type);
+        }
+
+        static void Clear(RectTransform parent)
+        {
+            for (int i = parent.childCount - 1; i >= 0; i--)
+                Destroy(parent.GetChild(i).gameObject);
+            parent.DetachChildren();
         }
 
         static bool Contains(IReadOnlyList<MapNode> nodes, MapNode node) => IndexOf(nodes, node) >= 0;
@@ -176,53 +252,6 @@ namespace Pathfinder.Game.Presentation
             return -1;
         }
 
-        static void DrawLine(Vector2 a, Vector2 b, float width, Color color)
-        {
-            var matrix = GUI.matrix;
-            Vector2 delta = b - a;
-            float angle = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg;
-            GUIUtility.RotateAroundPivot(angle, a);
-            GUI.color = color;
-            GUI.DrawTexture(new Rect(a.x, a.y - width * 0.5f, delta.magnitude, width), Texture2D.whiteTexture);
-            GUI.color = Color.white;
-            GUI.matrix = matrix;
-        }
-
-        static Texture2D MakeCircle(int size)
-        {
-            var texture = new Texture2D(size, size, TextureFormat.RGBA32, mipChain: false) { hideFlags = HideFlags.HideAndDontSave };
-            float radius = size * 0.5f;
-            for (int y = 0; y < size; y++)
-            {
-                for (int x = 0; x < size; x++)
-                {
-                    float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(radius, radius));
-                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Clamp01(radius - d)));
-                }
-            }
-            texture.Apply();
-            return texture;
-        }
-
-        void EnsureStyles()
-        {
-            if (_title != null)
-                return;
-
-            _title = new GUIStyle(GUI.skin.label) { fontSize = 38, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-            _title.normal.textColor = Color.white;
-            _glyph = new GUIStyle(GUI.skin.label) { fontSize = 22, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-            _glyph.normal.textColor = Color.white;
-            _info = new GUIStyle(GUI.skin.label) { fontSize = 22, wordWrap = true, alignment = TextAnchor.UpperLeft };
-            _info.normal.textColor = new Color(0.85f, 0.92f, 1f);
-            _small = new GUIStyle(GUI.skin.label) { fontSize = 18, alignment = TextAnchor.MiddleCenter };
-            _small.normal.textColor = new Color(0.75f, 0.85f, 1f);
-        }
-
-        void OnDestroy()
-        {
-            if (_circle != null)
-                Destroy(_circle);
-        }
+        void OnDisable() => ModalScreens.SetOpen(this, false);
     }
 }

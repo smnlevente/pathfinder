@@ -95,12 +95,82 @@ namespace Pathfinder.Tests.PlayMode
             return directory;
         }
 
-        /// <summary>Renders the main camera, including post-processing but not IMGUI. Works in batch mode with a GPU.</summary>
+        /// <summary>Renders the main camera, including post-processing but not IMGUI or overlay UI. Works in batch mode with a GPU.</summary>
         public static void CaptureCamera(string path)
         {
-            var camera = Camera.main;
-            var target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            var image = Render(Camera.main, TextureFormat.RGB24);
+            File.WriteAllBytes(path, image.EncodeToPNG());
+            Object.Destroy(image);
+        }
 
+        /// <summary>
+        /// Renders the main camera, then the screen-space overlay canvases on top, as the player sees them. Overlay UI
+        /// isn't drawn by cameras, so the canvases are briefly moved onto a transparent UI camera without post-processing
+        /// and composited over the scene.
+        /// </summary>
+        public static void CaptureWithUi(string path)
+        {
+            var world = Render(Camera.main, TextureFormat.RGB24);
+
+            var canvases = new System.Collections.Generic.List<Canvas>();
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+            {
+                if (canvas.isRootCanvas && canvas.isActiveAndEnabled && canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                    canvases.Add(canvas);
+            }
+
+            var uiCamera = new GameObject("UI Capture Camera").AddComponent<Camera>();
+            uiCamera.clearFlags = CameraClearFlags.SolidColor;
+            uiCamera.backgroundColor = new Color(0f, 0f, 0f, 0f);
+            uiCamera.cullingMask = 1 << 5;
+            uiCamera.orthographic = true;
+            uiCamera.allowHDR = false;
+            uiCamera.allowMSAA = false;
+            uiCamera.depth = -100;
+            // Canvases size themselves to their camera's target, so give it one the size of the capture.
+            var uiTarget = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            uiCamera.targetTexture = uiTarget;
+
+            foreach (var canvas in canvases)
+            {
+                canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                canvas.worldCamera = uiCamera;
+                canvas.planeDistance = 1f;
+            }
+            Canvas.ForceUpdateCanvases();
+            var ui = Render(uiCamera, TextureFormat.RGBA32);
+            foreach (var canvas in canvases)
+            {
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.worldCamera = null;
+            }
+            uiCamera.targetTexture = null;
+            Object.Destroy(uiCamera.gameObject);
+            uiTarget.Release();
+            Object.Destroy(uiTarget);
+
+            var worldPixels = world.GetPixels32();
+            var uiPixels = ui.GetPixels32();
+            for (int i = 0; i < worldPixels.Length; i++)
+            {
+                // The UI was blended onto transparent black, so its colour is already weighted by its coverage.
+                var u = uiPixels[i];
+                float keep = 1f - u.a / 255f;
+                worldPixels[i] = new Color32(
+                    (byte)Mathf.Min(255, u.r + worldPixels[i].r * keep),
+                    (byte)Mathf.Min(255, u.g + worldPixels[i].g * keep),
+                    (byte)Mathf.Min(255, u.b + worldPixels[i].b * keep), 255);
+            }
+            world.SetPixels32(worldPixels);
+            world.Apply();
+            File.WriteAllBytes(path, world.EncodeToPNG());
+            Object.Destroy(world);
+            Object.Destroy(ui);
+        }
+
+        static Texture2D Render(Camera camera, TextureFormat format)
+        {
+            var target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
             var request = new RenderPipeline.StandardRequest { destination = target };
             if (RenderPipeline.SupportsRenderRequest(camera, request))
             {
@@ -115,15 +185,13 @@ namespace Pathfinder.Tests.PlayMode
 
             var previous = RenderTexture.active;
             RenderTexture.active = target;
-            var image = new Texture2D(Width, Height, TextureFormat.RGB24, mipChain: false);
+            var image = new Texture2D(Width, Height, format, mipChain: false);
             image.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);
             image.Apply();
             RenderTexture.active = previous;
-
-            File.WriteAllBytes(path, image.EncodeToPNG());
-            Object.Destroy(image);
             target.Release();
             Object.Destroy(target);
+            return image;
         }
     }
 }

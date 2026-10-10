@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ac6c1d6f78a20446b929b7835d302b0, type: 3}
+  m_Name: Event_DerelictFreighter
+  m_EditorClassIdentifier: 
+  id: event.derelict-freighter
+  displayName: Derelict Freighter
+  <Body>k__BackingField: A gutted freighter drifts in silence, its cargo bay half
+    open. Your scanners pick up sealed crates inside, and a faint hum from its security
+    grid.
+  <Choices>k__BackingField:
+  - Label: Strip the cargo bay
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes:
+    - Kind: 0
+      Amount: 45
+      Rarity: 0
+      Stat: 0
+    - Kind: 1
+      Amount: -15
+      Rarity: 0
+      Stat: 0
+    FailOutcomes: []
+    ResultText: The turrets wake up as you cut the last crate loose. You get out
+      with the salvage, and a few new scorch marks.
+    FailText: 
+  - Label: Scan it from a safe distance
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes:
+    - Kind: 0
+      Amount: 15
+      Rarity: 0
+      Stat: 0
+    FailOutcomes: []
+    ResultText: You tag a few loose containers and tow them clear.
+    FailText: 
+  - Label: Leave it
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes: []
+    FailOutcomes: []
+    ResultText: Whatever it was guarding, it can keep.
+    FailText: 

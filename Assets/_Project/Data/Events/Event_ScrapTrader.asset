@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ac6c1d6f78a20446b929b7835d302b0, type: 3}
+  m_Name: Event_ScrapTrader
+  m_EditorClassIdentifier: 
+  id: event.scrap-trader
+  displayName: Scrap Trader
+  <Body>k__BackingField: A trader's barge, bristling with salvage, pulls alongside.
+    "I deal in tech. One of yours for one of mine. Or I'll just buy yours."
+  <Choices>k__BackingField:
+  - Label: Trade an item
+    Requirement: 2
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes:
+    - Kind: 7
+      Amount: 0
+      Rarity: 0
+      Stat: 0
+    - Kind: 5
+      Amount: 0
+      Rarity: 1
+      Stat: 0
+    FailOutcomes: []
+    ResultText: The trader picks something from your racks and hands over a crate
+      in return.
+    FailText: 
+  - Label: Sell an item
+    Requirement: 2
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes:
+    - Kind: 7
+      Amount: 0
+      Rarity: 0
+      Stat: 0
+    - Kind: 0
+      Amount: 60
+      Rarity: 0
+      Stat: 0
+    FailOutcomes: []
+    ResultText: '"Pleasure doing business."'
+    FailText: 
+  - Label: Move on
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes: []
+    FailOutcomes: []
+    ResultText: The barge drifts back into the dark.
+    FailText: 

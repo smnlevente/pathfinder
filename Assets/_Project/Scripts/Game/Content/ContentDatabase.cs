@@ -17,6 +17,7 @@ namespace Pathfinder.Game.Content
         [field: SerializeField, Tooltip("Items that can drop and be sold. Ship traits are not listed here.")] public EquipmentDefinition[] Equipment { get; private set; } = new EquipmentDefinition[0];
         [field: SerializeField, Tooltip("Every enemy and boss.")] public EnemyDefinition[] Enemies { get; private set; } = new EnemyDefinition[0];
         [field: SerializeField, Tooltip("Hub upgrades and unlocks (GDD §11.2).")] public Meta.MetaUpgradeDefinition[] MetaUpgrades { get; private set; } = new Meta.MetaUpgradeDefinition[0];
+        [field: SerializeField, Tooltip("Mystery events (GDD §10.5).")] public MysteryEventDefinition[] Events { get; private set; } = new MysteryEventDefinition[0];
 
         public T Find<T>(IEnumerable<T> items, string id) where T : ContentDefinition
         {

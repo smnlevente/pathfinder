@@ -187,5 +187,56 @@ namespace Pathfinder.Tests.PlayMode
             yield return null;
             Screenshots.CaptureCamera(Path.Combine(directory, "weapon_nova.png"));
         }
+
+        /// <summary>A Lancer's chevron lane, half-way through its wind-up (GDD §12.4).</summary>
+        [UnityTest, Category("Screenshot")]
+        public IEnumerator CaptureLancerTelegraph()
+        {
+            string directory = Screenshots.Directory();
+            yield return LoadRun();
+            Player.GodMode = true;
+            var lancer = Spawn("enemy.lancer", new Vector2(5f, 6f));
+            var brain = lancer.GetComponent<LancerBrain>();
+            yield return WaitUntilTicks(() => brain.Current == LancerBrain.State.WindUp, 400);
+            yield return WaitTicks(22);
+            yield return null;
+            Screenshots.CaptureCamera(Path.Combine(directory, "lancer_telegraph.png"));
+        }
+
+        /// <summary>
+        /// The worst case for glow build-up: dense enemy bullet rings, live shooters and the ship firing its primary.
+        /// Bullets must stay individually readable (GDD §12.4).
+        /// </summary>
+        [UnityTest, Category("Screenshot")]
+        public IEnumerator CaptureBulletStorm()
+        {
+            string directory = Screenshots.Directory();
+            yield return LoadRun();
+            Player.GodMode = true;
+            Spawn("enemy.spinner", new Vector2(-7f, 6f));
+            Spawn("enemy.spinner", new Vector2(7f, 7f));
+            Spawn("enemy.gunner", new Vector2(-3f, 9f));
+            Spawn("enemy.gunner", new Vector2(4f, 10f));
+            Spawn("enemy.carrier", new Vector2(0f, 12f));
+
+            var bullet = EnemyDef("enemy.gunner").Prefab.GetComponent<GunnerBrain>().BulletPrefab;
+            Script(_ => new ShipCommand { Aim = new Vector2(0.15f, 1f), FirePrimary = true });
+            for (int ring = 0; ring < 3; ring++)
+            {
+                Vector2 center = Player.Position + new Vector2(-4f + ring * 4f, 5f);
+                for (int i = 0; i < 20; i++)
+                {
+                    Vector2 direction = PlaneMath.FromHeading(i * 18f + ring * 6f);
+                    SpawnEnemyBullet(center + direction * (0.8f + ring * 0.6f), direction, speed: 1.5f, damage: 0f, visual: bullet);
+                }
+            }
+            // A tight stream, the densest overlap the boss produces.
+            for (int i = 0; i < 12; i++)
+                SpawnEnemyBullet(Player.Position + new Vector2(6f - i * 0.35f, 2f + i * 0.2f), new Vector2(-1f, -0.4f).normalized, speed: 1f, damage: 0f, visual: bullet);
+
+            yield return WaitTicks(40);
+            yield return null;
+            Screenshots.CaptureCamera(Path.Combine(directory, "bullet_storm.png"));
+        }
     }
 }

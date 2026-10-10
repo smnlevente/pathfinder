@@ -27,6 +27,9 @@ namespace Pathfinder.Game.Run
         public bool FromMystery { get; }
         public bool Ambush { get; }
 
+        /// <summary>A Mystery event: a narrative choice instead of a regular level (GDD §10.5).</summary>
+        public bool IsEvent => Type == MapNodeType.Mystery;
+
         public LevelContext(MapNodeType type, Seed seed, int galaxyIndex, int row, bool fromMystery, bool ambush)
         {
             Type = type;
@@ -49,6 +52,7 @@ namespace Pathfinder.Game.Run
         const float StationRadius = 2.2f;
         const float CachePickupRadius = 1.4f;
         const float BannerTime = 3f;
+        const float BossRewardDelay = 1.5f;
 
         [SerializeField] CombatWorld world;
         [SerializeField] WaveDirector director;
@@ -91,6 +95,9 @@ namespace Pathfinder.Game.Run
         bool _escalated;
         bool _exited;
         float _bannerTimer;
+        float _bossRewardDelay;
+        IRandom _eventRandom;
+        bool _eventFinished;
 
         public bool IsActive { get; private set; }
         public LevelContext Context { get; private set; }
@@ -100,6 +107,12 @@ namespace Pathfinder.Game.Run
 
         /// <summary>The level boss, while one is alive.</summary>
         public Enemy Boss { get; private set; }
+
+        /// <summary>The Mystery event being played, if this level is one.</summary>
+        public MysteryEventDefinition Event { get; private set; }
+
+        /// <summary>What the last event choice did. For tests and the HUD.</summary>
+        public EventResult LastEventResult { get; private set; }
 
         public int DarkMatterNodes => _nodes.Count;
         public int DarkMatterHarvested { get; private set; }
@@ -141,13 +154,15 @@ namespace Pathfinder.Game.Run
             Context = context;
             IsActive = true;
             _exited = false;
+            _bossRewardDelay = 0f;
             _random = context.Seed.CreateRandom(SeedLabels.Layout);
             _lootRandom = context.Seed.CreateRandom(SeedLabels.Loot);
             _shopRandom = context.Seed.CreateRandom("shop");
             _rerolls = 0;
 
             RewardMultiplier = context.Ambush ? config.AmbushRewardMultiplier : context.FromMystery ? config.MysteryRewardMultiplier : 1f;
-            float scrapsDrop = RewardMultiplier * (context.Type == MapNodeType.Scraps ? config.ScrapsDropMultiplier : 1f);
+            float scrapsDrop = context.IsEvent ? config.AmbushRewardMultiplier // drops only matter if the event turns into a fight
+                : RewardMultiplier * (context.Type == MapNodeType.Scraps ? config.ScrapsDropMultiplier : 1f);
             world.BeginLevel(context.Seed, RunConfig.ForGalaxy(config.GalaxyEnemyHealth, context.GalaxyIndex), scrapsDrop);
 
             foreach (var player in CombatRegistry.Players)
@@ -191,11 +206,15 @@ namespace Pathfinder.Game.Run
                     SpawnBoss();
                     break;
 
+                case MapNodeType.Mystery:
+                    BeginEvent();
+                    break;
+
                 default:
                     throw new ArgumentOutOfRangeException(nameof(context), $"Unsupported level type {context.Type}.");
             }
 
-            ShowBanner(context.Ambush ? "AMBUSH!" : context.FromMystery ? $"MYSTERY: {LevelNames.Title(context.Type)}" : LevelNames.Title(context.Type));
+            ShowBanner(context.Ambush ? "AMBUSH!" : context.IsEvent ? "MYSTERY" : context.FromMystery ? $"MYSTERY: {LevelNames.Title(context.Type)}" : LevelNames.Title(context.Type));
             UpdateTexts();
         }
 
@@ -205,6 +224,7 @@ namespace Pathfinder.Game.Run
             director.Completed -= OnScrapsWavesCleared;
             director.WaveStarted -= OnEquipmentWaveStarted;
             director.Completed -= OnEquipmentWavesCleared;
+            director.Completed -= OnEventAmbushCleared;
             director.Stop();
 
             if (_cacheCarrier != null)
@@ -230,6 +250,8 @@ namespace Pathfinder.Game.Run
             _cacheView = null;
             _cacheCollected = false;
             Boss = null;
+            Event = null;
+            _eventFinished = false;
             DarkMatterHarvested = 0;
             ExitOpen = false;
             IsActive = false;
@@ -252,6 +274,8 @@ namespace Pathfinder.Game.Run
         /// <summary>Flies every pilot into the exit. For tests and debug tools.</summary>
         public void DebugTakeExit()
         {
+            if (dialog.IsOpen)
+                dialog.Close(); // an event waiting for a choice
             if (!ExitOpen)
                 DebugCompleteObjective();
             foreach (var player in CombatRegistry.Players)
@@ -263,6 +287,15 @@ namespace Pathfinder.Game.Run
             if (!IsActive || GameClock.Paused || !Authority.IsAuthority)
                 return;
 
+            // An event that is over leaves for the map once its menus have closed.
+            if (_eventFinished && !dialog.IsOpen && !equipmentChoice.IsOpen)
+            {
+                _eventFinished = false;
+                _exited = true;
+                Exited?.Invoke(this);
+                return;
+            }
+
             float deltaTime = Time.fixedDeltaTime;
             switch (Context.Type)
             {
@@ -272,7 +305,15 @@ namespace Pathfinder.Game.Run
                 case MapNodeType.Shop: TickStation(); break;
             }
 
-            if (ExitOpen && !_exited && AnyPilotWithin(config.ExitPosition, config.ExitRadius))
+            // The boss reward waits a moment so its death plays out first; the exit waits for the reward.
+            if (_bossRewardDelay > 0f)
+            {
+                _bossRewardDelay -= deltaTime;
+                if (_bossRewardDelay <= 0f)
+                    OfferBossReward();
+            }
+
+            if (ExitOpen && !_exited && _bossRewardDelay <= 0f && AnyPilotWithin(config.ExitPosition, config.ExitRadius))
             {
                 _exited = true;
                 Exited?.Invoke(this);
@@ -503,8 +544,18 @@ namespace Pathfinder.Game.Run
                 float repair = pilot.Vitals.MaxHull * config.RepairFraction;
                 return new[]
                 {
-                    new ChoiceDialog.Option { Label = $"Repair: restore {repair:0} hull", OnChoose = () => { ApplyRepair(pilot, RepairChoice.Repair); return false; } },
-                    new ChoiceDialog.Option { Label = $"Reinforce: +{config.ReinforceHull:0} max hull", OnChoose = () => { ApplyRepair(pilot, RepairChoice.Reinforce); return false; } },
+                    new ChoiceDialog.Option
+                    {
+                        Label = "Repair", Note = $"+{repair:0} HULL", NoteColor = new Color(0.45f, 1f, 0.6f),
+                        Detail = $"Restore {config.RepairFraction:P0} of your max hull.",
+                        OnChoose = () => { ApplyRepair(pilot, RepairChoice.Repair); return false; },
+                    },
+                    new ChoiceDialog.Option
+                    {
+                        Label = "Reinforce", Note = $"+{config.ReinforceHull:0} MAX HULL", NoteColor = new Color(0.45f, 1f, 0.6f),
+                        Detail = "Raise your max hull for the rest of the run. Current damage stays.",
+                        OnChoose = () => { ApplyRepair(pilot, RepairChoice.Reinforce); return false; },
+                    },
                     new ChoiceDialog.Option { Label = "Leave", OnChoose = () => false },
                 };
             });
@@ -541,11 +592,18 @@ namespace Pathfinder.Game.Run
                     var entry = _catalog[i];
                     int price = PriceOf(entry.Item);
                     var outcome = pilot.PreviewEquip(entry.Item);
-                    string state = entry.Sold ? "SOLD" : outcome == EquipOutcome.AlreadyMaxed ? "MAXED" : $"{price} Scraps";
-                    string action = outcome == EquipOutcome.LeveledUp ? "level up" : outcome == EquipOutcome.NeedsSwap ? "swap" : "new";
+                    string state = entry.Sold ? "SOLD" : outcome == EquipOutcome.AlreadyMaxed ? "MAXED" : $"{price} SCRAPS";
+                    var owned = pilot.Equipment.Find(entry.Item);
+                    int level = owned != null ? owned.Level + 1 : 1;
+                    string action = outcome == EquipOutcome.LeveledUp ? $"level {EquipmentChoiceScreen.Roman(owned.Level)} → {EquipmentChoiceScreen.Roman(level)}"
+                        : outcome == EquipOutcome.NeedsSwap ? "slots full: swap" : "new";
                     options.Add(new ChoiceDialog.Option
                     {
-                        Label = $"{entry.Item.DisplayName} ({entry.Item.Rarity}, {action}): {entry.Item.Describe(1)}   [{state}]",
+                        Section = i == 0 ? "Catalog" : null,
+                        Label = $"{entry.Item.DisplayName}",
+                        Detail = $"{entry.Item.Rarity} {EquipmentChoiceScreen.CategoryName(entry.Item.Category)}, {action}.  {entry.Item.Describe(level)}",
+                        Note = state,
+                        Accent = EquipmentChoiceScreen.RarityColor(entry.Item.Rarity),
                         Enabled = !entry.Sold && outcome != EquipOutcome.AlreadyMaxed && pilot.Scraps >= price,
                         OnChoose = () =>
                         {
@@ -555,6 +613,7 @@ namespace Pathfinder.Game.Run
                     });
                 }
 
+                bool firstUpgrade = true;
                 foreach (var equipped in pilot.Equipment.All)
                 {
                     if (equipped.Level >= EquipmentRules.MaxLevel)
@@ -563,17 +622,26 @@ namespace Pathfinder.Game.Run
                     int price = UpgradePrice(equipped.Level);
                     options.Add(new ChoiceDialog.Option
                     {
-                        Label = $"Upgrade {item.DisplayName} to {EquipmentChoiceScreen.Roman(equipped.Level + 1)}: {price} Scraps",
+                        Section = firstUpgrade ? "Upgrades" : null,
+                        Label = $"Upgrade {item.DisplayName} to {EquipmentChoiceScreen.Roman(equipped.Level + 1)}",
+                        Detail = item.Describe(equipped.Level + 1),
+                        Note = $"{price} SCRAPS",
+                        Accent = EquipmentChoiceScreen.RarityColor(item.Rarity),
                         Enabled = pilot.Scraps >= price,
                         OnChoose = () => { UpgradeEquipment(pilot, item); return true; },
                     });
+                    firstUpgrade = false;
                 }
 
-                options.Add(RepairOffer(pilot, 25, "Repair 25 hull"));
+                var repair = RepairOffer(pilot, 25, "Repair 25 hull");
+                repair.Section = "Services";
+                options.Add(repair);
                 options.Add(RepairOffer(pilot, Mathf.CeilToInt(pilot.Vitals.MaxHull - pilot.Vitals.Hull), "Repair to full"));
                 options.Add(new ChoiceDialog.Option
                 {
-                    Label = $"Reroll catalog: {RerollPrice} Scraps",
+                    Label = "Reroll catalog",
+                    Detail = "Replace the unsold items. Each reroll costs 10 more.",
+                    Note = $"{RerollPrice} SCRAPS",
                     Enabled = pilot.Scraps >= RerollPrice,
                     OnChoose = () => { RerollCatalog(pilot); return true; },
                 });
@@ -661,7 +729,8 @@ namespace Pathfinder.Game.Run
             int price = Mathf.CeilToInt(amount * config.RepairPricePerHull);
             return new ChoiceDialog.Option
             {
-                Label = amount > 0 ? $"{label}: {price} Scraps" : $"{label}: hull is full",
+                Label = label,
+                Note = amount > 0 ? $"{price} SCRAPS" : "HULL FULL",
                 Enabled = amount > 0 && pilot.Scraps >= price,
                 OnChoose = () =>
                 {
@@ -703,6 +772,9 @@ namespace Pathfinder.Game.Run
         void OnBossDied(Pathfinder.Game.Combat.CombatEntity entity, DamageInfo info)
         {
             Boss = null;
+
+            // The fight is won: every enemy bullet still in the air turns harmless and fades out (playtest 2).
+            world.Projectiles.Defuse(Pathfinder.Core.Combat.Team.Enemy);
             int cores = RunConfig.ForGalaxy(config.SingularityCores, Context.GalaxyIndex);
             _run?.AddSingularityCores(cores);
             foreach (var player in CombatRegistry.Players)
@@ -712,8 +784,12 @@ namespace Pathfinder.Game.Run
             }
             ShowBanner($"BOSS DEFEATED   +{cores} SINGULARITY CORE{(cores == 1 ? "" : "S")}");
             OpenExit();
+            _bossRewardDelay = BossRewardDelay;
+        }
 
-            // Boss rewards include a guaranteed Rare-or-better equipment choice (GDD §7.5).
+        /// <summary>Boss rewards include a guaranteed Rare-or-better equipment choice (GDD §7.5).</summary>
+        void OfferBossReward()
+        {
             var pilot = FirstLivingPilot();
             if (pilot != null)
                 OfferEquipment("BOSS REWARD", pilot, Rarity.Rare, null);
@@ -727,6 +803,117 @@ namespace Pathfinder.Game.Run
                     return player;
             }
             return null;
+        }
+
+        // ---------------------------------------------------------------- Mystery event (GDD §10.5)
+
+        bool _ambushRunning;
+
+        void BeginEvent()
+        {
+            _ambushRunning = false;
+            _eventRandom = Context.Seed.CreateRandom("event");
+            Event = MysteryEvents.Pick(content != null ? content.Events : null, _run, _eventRandom);
+            var pilot = FirstLivingPilot();
+            if (Event == null || pilot == null)
+            {
+                OpenExit();
+                return;
+            }
+
+            _run?.MarkEventSeen(Event.Id);
+            ShowEvent(pilot);
+        }
+
+        /// <summary>Plays a specific event in the current event level. For tests and debug tools.</summary>
+        public void DebugShowEvent(MysteryEventDefinition definition)
+        {
+            var pilot = FirstLivingPilot();
+            if (!IsActive || !Context.IsEvent || definition == null || pilot == null)
+                return;
+            if (dialog.IsOpen)
+                dialog.Close();
+            Event = definition;
+            ShowEvent(pilot);
+        }
+
+        void ShowEvent(PlayerShip pilot)
+        {
+            dialog.Show(Event.DisplayName.ToUpperInvariant(), () => Event.Body, () =>
+            {
+                var options = new List<ChoiceDialog.Option>();
+                foreach (var choice in Event.Choices)
+                {
+                    var captured = choice;
+                    bool available = MysteryEvents.IsAvailable(choice, pilot);
+                    options.Add(new ChoiceDialog.Option
+                    {
+                        Label = choice.Label,
+                        Detail = MysteryEvents.Describe(choice),
+                        Note = available ? null : MysteryEvents.RequirementText(choice),
+                        NoteColor = Presentation.Ui.UiKit.Bad,
+                        Enabled = available,
+                        OnChoose = () =>
+                        {
+                            ResolveEvent(captured, pilot);
+                            return true; // the dialog now shows the result
+                        },
+                    });
+                }
+                return options;
+            });
+        }
+
+        void ResolveEvent(EventChoice choice, PlayerShip pilot)
+        {
+            var result = MysteryEvents.Apply(choice, pilot, _run, _eventRandom);
+            LastEventResult = result;
+            string lines = string.Join("\n", result.Lines);
+            string body = string.IsNullOrEmpty(result.Text) ? lines : lines.Length > 0 ? $"{result.Text}\n\n{lines}" : result.Text;
+            dialog.Show(Event.DisplayName.ToUpperInvariant(), () => body, () => new[]
+            {
+                new ChoiceDialog.Option
+                {
+                    Label = result.Ambush ? "Fight" : "Continue",
+                    OnChoose = () =>
+                    {
+                        if (result.EquipmentOffer.HasValue)
+                            OfferEquipment("FOUND EQUIPMENT", pilot, result.EquipmentOffer.Value, _ => FinishEvent(result));
+                        else
+                            FinishEvent(result);
+                        return false;
+                    },
+                },
+            });
+        }
+
+        void FinishEvent(EventResult result)
+        {
+            if (!result.Ambush)
+            {
+                _eventFinished = true;
+                return;
+            }
+
+            _ambushRunning = true;
+            RewardMultiplier = config.AmbushRewardMultiplier;
+            director.Begin(Context.Seed, Context.GalaxyIndex, Context.Row + 1, config.EquipmentWaves, config.AmbushBudgetMultiplier);
+            director.Completed += OnEventAmbushCleared;
+            ShowBanner("AMBUSH!");
+        }
+
+        void OnEventAmbushCleared(WaveDirector source)
+        {
+            director.Completed -= OnEventAmbushCleared;
+            _ambushRunning = false;
+            int bonus = Mathf.RoundToInt(RunConfig.ForGalaxy(config.ScrapsCompletionBonus, Context.GalaxyIndex) * RewardMultiplier);
+            foreach (var player in CombatRegistry.Players)
+            {
+                if (player.IsAlive)
+                    player.AddScraps(bonus);
+            }
+            ShowBanner($"AMBUSH SURVIVED   +{bonus} SCRAPS");
+            OpenExit();
         }
 
         // ---------------------------------------------------------------- helpers
@@ -806,6 +993,10 @@ namespace Pathfinder.Game.Run
                 case MapNodeType.Boss:
                     Objective = ExitOpen ? "Boss defeated: fly into the wormhole" : "Defeat the boss";
                     break;
+                case MapNodeType.Mystery:
+                    Objective = ExitOpen ? "Ambush survived: fly into the wormhole"
+                        : _ambushRunning ? $"Survive the ambush   {director.Wave} / {director.WaveCount}" : "Mystery";
+                    break;
             }
         }
     }
@@ -831,7 +1022,7 @@ namespace Pathfinder.Game.Run
             MapNodeType.Equipment => "Three waves. Destroy the elite Cache Carrier and grab its cache: a choice of 3 equipment.",
             MapNodeType.DarkMatter => "Harvest Dark Matter before the wormhole destabilises. Leave whenever you like.",
             MapNodeType.Repair => "No enemies. Restore 40% hull, or reinforce for +15 max hull.",
-            MapNodeType.Mystery => "Could be anything except the Shop, with bigger rewards. Sometimes an ambush.",
+            MapNodeType.Mystery => "Usually an event: a choice with upsides and downsides. Sometimes a level with bigger rewards, or an ambush.",
             MapNodeType.Shop => "Buy and upgrade equipment and repair your hull before the boss.",
             MapNodeType.Boss => "The galaxy guardian. Defeat it to jump to the next galaxy.",
             _ => string.Empty,

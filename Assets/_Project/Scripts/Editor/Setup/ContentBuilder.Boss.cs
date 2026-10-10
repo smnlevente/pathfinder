@@ -17,7 +17,7 @@ namespace Pathfinder.Editor.Setup
         static EnemyDefinition BuildQuarryMaw(Art art)
         {
             var definition = Definition<EnemyDefinition>("Enemies/Enemy_QuarryMaw", "boss.quarry-maw", "The Quarry Maw", so => Set(so,
-                ("MaxHealth", 2000f), ("MoveSpeed", 6f), ("ContactDamage", 15f), ("BudgetCost", 20), ("ScrapsDrop", 30), ("ScrapsDropChance", 1f)));
+                ("MaxHealth", 4000f), ("MoveSpeed", 6f), ("ContactDamage", 15f), ("BudgetCost", 20), ("ScrapsDrop", 30), ("ScrapsDropChance", 1f)));
 
             var telegraph = new GameObject("FX_EruptTelegraph");
             var glow = FlatQuad("Glow", telegraph.transform, art.FxRed, 0.03f, 6.6f);
@@ -26,17 +26,22 @@ namespace Pathfinder.Editor.Setup
             SetFields(core.AddComponent<SimpleMotion>(), ("pulseAmount", 0.5f), ("pulseFrequency", 4f));
             var telegraphPrefab = SavePrefab(telegraph, "FX");
 
-            // Segment: a craggy crimson rock chunk. Weak points carry a glowing yellow band (GDD §12.4: weak points are yellow).
+            // Segment: a craggy crimson rock chunk. Weak points carry a pulsing yellow crystal ringed in yellow, the only
+            // place shots hurt (GDD §12.4: weak points are yellow).
             var segmentRoot = new GameObject("QuarryMawSegment");
             var segmentHalo = FlatQuad("Halo", segmentRoot.transform, art.EnemyHalo, 0.03f, 0.9f * 3.2f).GetComponent<Renderer>();
             var segmentModel = Model(segmentRoot.transform);
             Primitive(PrimitiveType.Sphere, "Rock", segmentModel, art.EnemyHull, Vector3.zero, new Vector3(1.7f, 1.1f, 1.6f));
             Primitive(PrimitiveType.Cube, "SpikeA", segmentModel, art.EnemyHull, new Vector3(0.3f, 0.45f, 0f), new Vector3(0.35f, 0.5f, 0.35f), Quaternion.Euler(20f, 45f, 15f));
             Primitive(PrimitiveType.Cube, "SpikeB", segmentModel, art.EnemyHull, new Vector3(-0.35f, 0.4f, 0.2f), new Vector3(0.3f, 0.45f, 0.3f), Quaternion.Euler(-15f, 30f, -20f));
-            var band = Primitive(PrimitiveType.Cylinder, "WeakPoint", segmentModel, art.WeakPoint, new Vector3(0f, 0.05f, 0f), new Vector3(1.78f, 0.12f, 1.68f));
-            band.SetActive(false);
+            var weakPoint = new GameObject("WeakPoint");
+            weakPoint.transform.SetParent(segmentModel, false);
+            var crystal = Primitive(PrimitiveType.Sphere, "Crystal", weakPoint.transform, art.WeakPoint, new Vector3(0f, 0.55f, 0f), new Vector3(0.95f, 0.7f, 0.95f));
+            SetFields(crystal.AddComponent<SimpleMotion>(), ("pulseAmount", 0.12f), ("pulseFrequency", 3f));
+            FlatQuad("Ring", weakPoint.transform, art.WeakPointRing, 0.62f, 2.3f);
+            weakPoint.SetActive(false);
             var segment = segmentRoot.AddComponent<BossSegment>();
-            SetFields(segment, ("radius", 0.85f), ("shatterEffect", art.EnemyExplosion), ("weakPointMarker", band));
+            SetFields(segment, ("radius", 0.85f), ("shatterEffect", art.EnemyExplosion), ("weakPointMarker", weakPoint));
             var segmentVisual = AddVisual(segmentRoot, segment, null);
             SetFields(segmentVisual, ("flashExclusions", new Object[] { segmentHalo }));
             var segmentPrefab = SavePrefab(segmentRoot, "Enemies").GetComponent<BossSegment>();
@@ -57,8 +62,20 @@ namespace Pathfinder.Editor.Setup
                 teeth[i] = Glow(Primitive(PrimitiveType.Cube, "Tooth" + i, headModel, art.EnemyGlow, new Vector3(offset.x, offset.y, 1.3f), new Vector3(0.18f, 0.18f, 0.3f), Quaternion.Euler(0f, 0f, angle)));
             }
 
-            SetFields(head.AddComponent<QuarryMawBrain>(), ("segmentPrefab", segmentPrefab), ("eruptTelegraphPrefab", telegraphPrefab),
+            // Enraged, the skull cracks open: a large yellow crystal on top, ringed like the weak points, so it reads from
+            // the top-down camera (GDD §12.4: yellow means shoot here).
+            var exposedMaw = new GameObject("ExposedMaw");
+            exposedMaw.transform.SetParent(headModel, false);
+            var mawCrystal = Primitive(PrimitiveType.Sphere, "Crystal", exposedMaw.transform, art.WeakPoint, new Vector3(0f, 0.7f, 0.35f), new Vector3(1.25f, 0.8f, 1.25f));
+            SetFields(mawCrystal.AddComponent<SimpleMotion>(), ("pulseAmount", 0.15f), ("pulseFrequency", 4f));
+            FlatQuad("Ring", exposedMaw.transform, art.WeakPointRing, 0.75f, 3.2f).transform.localPosition = new Vector3(0f, 0.75f, 0.35f);
+            exposedMaw.SetActive(false);
+
+            var brain = head.AddComponent<QuarryMawBrain>();
+            SetFields(brain, ("segmentPrefab", segmentPrefab), ("eruptTelegraphPrefab", telegraphPrefab), ("exposedMawMarker", exposedMaw),
                 ("eruptEffect", art.EnemyExplosion), ("bulletPrefab", art.EnemyBulletVisual), ("bulletImpactPrefab", art.BulletImpact));
+            var lane = ChargeLane("SweepLane", art, head.transform, size: 1.7f, spacing: 1.9f);
+            SetFields(head.AddComponent<TelegraphLine>(), ("source", brain), ("lane", lane.GetComponent<ChevronLane>()));
             var glowParts = new Renderer[teeth.Length + 1];
             glowParts[0] = maw;
             teeth.CopyTo(glowParts, 1);

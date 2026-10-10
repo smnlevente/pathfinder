@@ -36,7 +36,8 @@ namespace Pathfinder.Game.Presentation
         void Awake()
         {
             _block = new MaterialPropertyBlock();
-            _renderers = GetComponentsInChildren<MeshRenderer>(includeInactive: true);
+            // Renderers that start disabled (telegraph templates) belong to other components, so leave them alone.
+            _renderers = System.Array.FindAll(GetComponentsInChildren<MeshRenderer>(includeInactive: true), r => r.enabled);
             _flashRenderers = System.Array.FindAll(_renderers, r => System.Array.IndexOf(flashExclusions, r) < 0);
             _glowBaseColors = new Color[glowRenderers.Length];
             for (int i = 0; i < glowRenderers.Length; i++)

@@ -3,20 +3,29 @@ using System.Collections.Generic;
 using Pathfinder.Core.Equipment;
 using Pathfinder.Game.Equipment;
 using Pathfinder.Game.Player;
+using Pathfinder.Game.Presentation.Ui;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Pathfinder.Game.Presentation
 {
     /// <summary>
-    /// Placeholder IMGUI equipment choice (GDD §8.1, §12.2): a row of cards, plus a swap step when the category is full.
-    /// Gameplay is paused while it is open. Skipping grants Scraps instead.
+    /// Equipment choice (GDD §8.1, §12.2): a row of cards, plus a swap step when the item's category is full. Gameplay is
+    /// paused while it is open. Skipping grants Scraps instead.
     /// </summary>
     public sealed class EquipmentChoiceScreen : MonoBehaviour
     {
-        const float ReferenceHeight = 1080f;
+        const float CardWidth = 390f;
 
         enum Step { Pick, Swap }
+
+        sealed class Card
+        {
+            public Image Background;
+            public Outline Frame;
+            public Image Take;
+        }
 
         IReadOnlyList<EquipmentDefinition> _options = Array.Empty<EquipmentDefinition>();
         PlayerShip _ship;
@@ -28,13 +37,24 @@ namespace Pathfinder.Game.Presentation
         EquipmentDefinition _pending;
         int _selected;
         MenuInput _input;
-        GUIStyle _title28, _name, _body, _small, _button;
+
+        Canvas _canvas;
+        RectTransform _pickRoot, _cards, _swapRoot, _swapList;
+        Text _pickTitle, _swapTitle, _swapSubtitle;
+        UiRow _skipRow;
+        readonly List<Card> _cardViews = new List<Card>();
+        readonly List<UiRow> _swapRows = new List<UiRow>();
 
         public bool IsOpen { get; private set; }
         public IReadOnlyList<EquipmentDefinition> Options => _options;
         public bool IsSwapping => IsOpen && _step == Step.Swap;
 
-        void Awake() => _input = new MenuInput();
+        void Awake()
+        {
+            _input = new MenuInput();
+            Build();
+            _canvas.gameObject.SetActive(false);
+        }
 
         /// <summary>Offers a choice of items. <paramref name="onClosed"/> receives true if an item was taken.</summary>
         public void Show(string title, IReadOnlyList<EquipmentDefinition> options, PlayerShip ship, int skipScraps, Action<bool> onClosed)
@@ -45,9 +65,8 @@ namespace Pathfinder.Game.Presentation
             _skipScraps = skipScraps;
             _allowSkip = true;
             _onClosed = onClosed;
-            _step = Step.Pick;
-            _selected = 0;
             Open();
+            EnterPick();
         }
 
         /// <summary>Goes straight to the swap step for one item, e.g. a Shop purchase into a full category.</summary>
@@ -58,10 +77,8 @@ namespace Pathfinder.Game.Presentation
             _ship = ship;
             _allowSkip = false;
             _onClosed = onClosed;
-            _pending = item;
-            _step = Step.Swap;
-            _selected = 0;
             Open();
+            EnterSwap(item);
         }
 
         /// <summary>Takes option <paramref name="index"/>. If its category is full, this moves to the swap step.</summary>
@@ -73,9 +90,7 @@ namespace Pathfinder.Game.Presentation
             var item = _options[index];
             if (_ship.PreviewEquip(item) == EquipOutcome.NeedsSwap)
             {
-                _pending = item;
-                _step = Step.Swap;
-                _selected = 0;
+                EnterSwap(item);
                 return;
             }
 
@@ -103,8 +118,7 @@ namespace Pathfinder.Game.Presentation
                 Close(false);
                 return;
             }
-            _step = Step.Pick;
-            _selected = 0;
+            EnterPick();
         }
 
         public void Skip()
@@ -119,12 +133,16 @@ namespace Pathfinder.Game.Presentation
         {
             IsOpen = true;
             GameClock.Pause(this);
+            ModalScreens.SetOpen(this, true);
+            _canvas.gameObject.SetActive(true);
         }
 
         void Close(bool took)
         {
             IsOpen = false;
             GameClock.Resume(this);
+            ModalScreens.SetOpen(this, false);
+            _canvas.gameObject.SetActive(false);
             var callback = _onClosed;
             _onClosed = null;
             callback?.Invoke(took);
@@ -141,6 +159,11 @@ namespace Pathfinder.Game.Presentation
                 int count = _options.Count + (_allowSkip ? 1 : 0);
                 if (step.x != 0)
                     _selected = (_selected + step.x + count) % count;
+                else if (step.y < 0 && _allowSkip)
+                    _selected = _options.Count;
+                else if (step.y > 0 && _selected == _options.Count)
+                    _selected = 0;
+
                 if (_input.Submitted)
                 {
                     if (_selected < _options.Count)
@@ -151,7 +174,7 @@ namespace Pathfinder.Game.Presentation
             }
             else
             {
-                int count = _ship.Equipment.In(_pending.Category).Count + 1;
+                int count = _swapRows.Count;
                 if (step.y != 0)
                     _selected = (_selected - step.y + count) % count;
                 if (_input.Submitted)
@@ -166,107 +189,171 @@ namespace Pathfinder.Game.Presentation
                     Back();
                 }
             }
+
+            if (IsOpen)
+                RefreshSelection();
         }
 
-        void OnGUI()
+        // ---------------------------------------------------------------- view
+
+        void Build()
         {
-            if (!IsOpen)
-                return;
+            _canvas = UiKit.Canvas("Equipment Choice", transform, sortingOrder: 30);
+            UiKit.Backdrop(_canvas.transform);
 
-            GUI.depth = -10;
-            EnsureStyles();
-            float scale = Screen.height / ReferenceHeight;
-            GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
-            float width = Screen.width / scale;
+            // Pick: a title, a row of cards and a skip button.
+            _pickRoot = UiKit.Stretch(UiKit.Node("Pick", _canvas.transform));
+            _pickTitle = UiKit.Text(_pickRoot, "Title", string.Empty, 44, UiKit.TextBright, TextAnchor.MiddleCenter, FontStyle.Bold);
+            UiKit.Place(_pickTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -130f), new Vector2(1600f, 60f));
 
-            GUI.color = new Color(0f, 0f, 0f, 0.8f);
-            GUI.DrawTexture(new Rect(0f, 0f, width, ReferenceHeight), Texture2D.whiteTexture);
-            GUI.color = Color.white;
+            _cards = UiKit.Node("Cards", _pickRoot);
+            UiKit.Place(_cards, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(1800f, 0f));
+            var cardLayout = UiKit.Horizontal(_cards, 32f, null, TextAnchor.UpperCenter);
+            cardLayout.childForceExpandHeight = true;
+            UiKit.FitContent(_cards);
 
-            if (_step == Step.Pick)
-                DrawCards(width);
-            else
-                DrawSwap(width);
+            var skipHolder = UiKit.Node("Skip", _pickRoot);
+            UiKit.Place(skipHolder, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 150f), new Vector2(520f, 0f));
+            UiKit.Vertical(skipHolder, 0f);
+            UiKit.FitContent(skipHolder);
+            _skipRow = new UiRow(skipHolder, "SKIP", string.Empty, null, null, UiKit.Gold);
+            _skipRow.Pointer.Entered += () => _selected = _options.Count;
+            _skipRow.Pointer.Clicked += Skip;
+
+            // Swap: a centred panel listing the equipped items in the category.
+            var swapPanel = UiKit.Image(_canvas.transform, "Swap", UiKit.Panel);
+            _swapRoot = UiKit.Place(swapPanel.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1000f, 0f));
+            UiKit.Vertical(swapPanel, 14f, new RectOffset(44, 44, 34, 30));
+            UiKit.FitContent(swapPanel);
+            _swapTitle = UiKit.Text(_swapRoot, "Title", string.Empty, 38, UiKit.TextBright, TextAnchor.MiddleCenter, FontStyle.Bold);
+            _swapSubtitle = UiKit.Text(_swapRoot, "Subtitle", string.Empty, 21, UiKit.TextBody, TextAnchor.UpperCenter);
+            _swapList = UiKit.Node("List", _swapRoot);
+            UiKit.Vertical(_swapList, 8f);
+            UiKit.Text(_swapRoot, "Hint", "Up / Down: choose     Enter: confirm     Esc: back", 17, UiKit.TextDim, TextAnchor.MiddleCenter);
         }
 
-        void DrawCards(float width)
+        void EnterPick()
         {
-            GUI.Label(new Rect(0f, 150f, width, 50f), _title, _title28);
+            _step = Step.Pick;
+            _selected = 0;
+            _pickRoot.gameObject.SetActive(true);
+            _swapRoot.gameObject.SetActive(false);
+            _pickTitle.text = _title;
 
-            const float cardWidth = 340f, cardHeight = 420f, gap = 30f;
-            float total = _options.Count * cardWidth + (_options.Count - 1) * gap;
-            float x = (width - total) * 0.5f;
-
+            for (int i = _cards.childCount - 1; i >= 0; i--)
+                Destroy(_cards.GetChild(i).gameObject);
+            _cards.DetachChildren();
+            _cardViews.Clear();
             for (int i = 0; i < _options.Count; i++)
-            {
-                var item = _options[i];
-                var rect = new Rect(x + i * (cardWidth + gap), 240f, cardWidth, cardHeight);
-                bool selected = _selected == i;
+                _cardViews.Add(BuildCard(_options[i], i));
 
-                GUI.color = selected ? new Color(0.25f, 0.35f, 0.45f, 0.95f) : new Color(0.1f, 0.12f, 0.16f, 0.95f);
-                GUI.DrawTexture(rect, Texture2D.whiteTexture);
-                GUI.color = RarityColor(item.Rarity);
-                GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width, 8f), Texture2D.whiteTexture);
-                GUI.color = Color.white;
-
-                var outcome = _ship.PreviewEquip(item);
-                var existing = _ship.Equipment.Find(item);
-                int level = existing != null ? existing.Level + 1 : 1;
-                string status = outcome == EquipOutcome.LeveledUp ? $"LEVEL {Roman(existing.Level)} → {Roman(level)}"
-                    : outcome == EquipOutcome.NeedsSwap ? $"NEW · {item.Category.ToString().ToUpperInvariant()} SLOTS FULL: SWAP"
-                    : "NEW";
-
-                GUI.Label(new Rect(rect.x + 20f, rect.y + 24f, rect.width - 40f, 40f), item.DisplayName, _name);
-                GUI.Label(new Rect(rect.x + 20f, rect.y + 66f, rect.width - 40f, 26f), $"{item.Rarity.ToString().ToUpperInvariant()} {CategoryName(item.Category)}", _small);
-                GUI.Label(new Rect(rect.x + 20f, rect.y + 96f, rect.width - 40f, 26f), status, _small);
-                GUI.Label(new Rect(rect.x + 20f, rect.y + 140f, rect.width - 40f, 220f), item.Describe(level), _body);
-
-                if (GUI.Button(new Rect(rect.x + 30f, rect.yMax - 70f, rect.width - 60f, 50f), "TAKE", _button))
-                {
-                    _selected = i;
-                    Choose(i);
-                    return;
-                }
-                if (rect.Contains(Event.current.mousePosition))
-                    _selected = i;
-            }
-
+            _skipRow.Rect.parent.gameObject.SetActive(_allowSkip);
             if (_allowSkip)
-            {
-                var skipRect = new Rect(width * 0.5f - 200f, 700f, 400f, 54f);
-                GUI.color = _selected == _options.Count ? new Color(0.4f, 0.9f, 1f) : Color.white;
-                if (GUI.Button(skipRect, $"SKIP (+{_skipScraps} SCRAPS)", _button))
-                    Skip();
-                GUI.color = Color.white;
-            }
+                _skipRow.SetLabel($"SKIP   (+{_skipScraps} SCRAPS)");
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_cards);
+            RefreshSelection();
         }
 
-        void DrawSwap(float width)
+        Card BuildCard(EquipmentDefinition item, int index)
         {
-            GUI.Label(new Rect(0f, 200f, width, 50f), $"REPLACE WHICH {CategoryName(_pending.Category).ToUpperInvariant()}?", _title28);
-            GUI.Label(new Rect(0f, 250f, width, 30f), $"{_pending.DisplayName}: {_pending.Describe(1)}   ·   The replaced item is lost.", _small);
+            var background = UiKit.Image(_cards, "Card", UiKit.Row, raycast: true);
+            UiKit.Layout(background, preferredWidth: CardWidth, minHeight: 470f);
+            UiKit.Vertical(background, 10f, new RectOffset(28, 28, 30, 24), TextAnchor.UpperLeft);
+            var frame = background.gameObject.AddComponent<Outline>();
+            frame.effectColor = UiKit.Frame;
+            frame.effectDistance = new Vector2(3f, -3f);
 
-            var equipped = _ship.Equipment.In(_pending.Category);
+            var stripe = UiKit.Image(background.transform, "Rarity", RarityColor(item.Rarity));
+            UiKit.Layout(stripe).ignoreLayout = true;
+            var stripeRect = stripe.rectTransform;
+            stripeRect.anchorMin = new Vector2(0f, 1f);
+            stripeRect.anchorMax = Vector2.one;
+            stripeRect.pivot = new Vector2(0.5f, 1f);
+            stripeRect.sizeDelta = new Vector2(0f, 9f);
+            stripeRect.anchoredPosition = Vector2.zero;
+
+            var outcome = _ship.PreviewEquip(item);
+            var existing = _ship.Equipment.Find(item);
+            int level = existing != null ? existing.Level + 1 : 1;
+            string status = outcome == EquipOutcome.LeveledUp ? $"LEVEL {Roman(existing.Level)}  →  {Roman(level)}"
+                : outcome == EquipOutcome.NeedsSwap ? $"NEW  ·  {CategoryName(item.Category).ToUpperInvariant()} SLOTS FULL: SWAP"
+                : "NEW";
+
+            UiKit.Text(background.transform, "Name", item.DisplayName, 30, UiKit.TextBright, TextAnchor.UpperLeft, FontStyle.Bold);
+            UiKit.Text(background.transform, "Kind", $"{item.Rarity.ToString().ToUpperInvariant()}  {CategoryName(item.Category).ToUpperInvariant()}",
+                18, RarityColor(item.Rarity), TextAnchor.UpperLeft, FontStyle.Bold);
+            UiKit.Text(background.transform, "Status", status, 18, outcome == EquipOutcome.NeedsSwap ? UiKit.Gold : UiKit.Accent, TextAnchor.UpperLeft);
+            var description = UiKit.Text(background.transform, "Description", item.Describe(level), 22, UiKit.TextBody);
+            UiKit.Layout(description, flexibleWidth: 1f).flexibleHeight = 1f;
+
+            var take = UiKit.Image(background.transform, "Take", UiKit.RowSelected);
+            UiKit.Layout(take, preferredHeight: 56f);
+            var takeLabel = UiKit.Text(take.transform, "Label", "TAKE", 24, UiKit.TextBright, TextAnchor.MiddleCenter, FontStyle.Bold);
+            UiKit.Stretch(takeLabel.rectTransform);
+
+            var pointer = background.gameObject.AddComponent<UiPointer>();
+            pointer.Entered += () => _selected = index;
+            pointer.Clicked += () => Choose(index);
+            return new Card { Background = background, Frame = frame, Take = take };
+        }
+
+        void EnterSwap(EquipmentDefinition item)
+        {
+            _step = Step.Swap;
+            _pending = item;
+            _selected = 0;
+            _pickRoot.gameObject.SetActive(false);
+            _swapRoot.gameObject.SetActive(true);
+            _swapTitle.text = $"REPLACE WHICH {CategoryName(item.Category).ToUpperInvariant()}?";
+            _swapSubtitle.text = $"{UiKit.Colored(item.DisplayName, RarityColor(item.Rarity))}: {item.Describe(1)}\n" +
+                UiKit.Colored("The replaced item is lost.", UiKit.TextDim);
+
+            for (int i = _swapList.childCount - 1; i >= 0; i--)
+                Destroy(_swapList.GetChild(i).gameObject);
+            _swapList.DetachChildren();
+            _swapRows.Clear();
+
+            var equipped = _ship.Equipment.In(item.Category);
             for (int i = 0; i <= equipped.Count; i++)
             {
-                var rect = new Rect(width * 0.5f - 320f, 320f + i * 70f, 640f, 56f);
                 bool back = i == equipped.Count;
-                string label = back ? (_allowSkip ? "BACK" : "CANCEL")
-                    : $"{equipped[i].Item.DisplayName} {Roman(equipped[i].Level)}:  {equipped[i].Item.Describe(equipped[i].Level)}";
-                GUI.color = _selected == i ? new Color(0.4f, 0.9f, 1f) : Color.white;
-                if (GUI.Button(rect, label, _button))
+                var row = back
+                    ? new UiRow(_swapList, _allowSkip ? "BACK" : "CANCEL")
+                    : new UiRow(_swapList, $"{equipped[i].Item.DisplayName} {Roman(equipped[i].Level)}", null,
+                        equipped[i].Item.Describe(equipped[i].Level), RarityColor(equipped[i].Item.Rarity));
+                int index = i;
+                row.Pointer.Entered += () => _selected = index;
+                row.Pointer.Clicked += () =>
                 {
                     if (back)
                         Back();
                     else
-                        Swap(i);
-                    GUI.color = Color.white;
-                    return;
-                }
-                if (rect.Contains(Event.current.mousePosition))
-                    _selected = i;
+                        Swap(index);
+                };
+                _swapRows.Add(row);
             }
-            GUI.color = Color.white;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_swapRoot);
+            RefreshSelection();
+        }
+
+        void RefreshSelection()
+        {
+            if (_step == Step.Pick)
+            {
+                for (int i = 0; i < _cardViews.Count; i++)
+                {
+                    bool selected = i == _selected;
+                    _cardViews[i].Background.color = selected ? new Color(0.09f, 0.15f, 0.21f, 1f) : UiKit.Row;
+                    _cardViews[i].Frame.enabled = selected;
+                    _cardViews[i].Take.color = selected ? new Color(0.16f, 0.45f, 0.58f, 1f) : new Color(0.1f, 0.16f, 0.22f, 1f);
+                }
+                _skipRow.SetState(_selected == _options.Count, true);
+            }
+            else
+            {
+                for (int i = 0; i < _swapRows.Count; i++)
+                    _swapRows[i].SetState(i == _selected, true);
+            }
         }
 
         public static string Roman(int level) => level switch { 1 => "I", 2 => "II", 3 => "III", _ => level.ToString() };
@@ -286,28 +373,13 @@ namespace Pathfinder.Game.Presentation
             _ => new Color(0.8f, 0.82f, 0.86f),
         };
 
-        void EnsureStyles()
-        {
-            if (_title28 != null)
-                return;
-
-            _title28 = new GUIStyle(GUI.skin.label) { fontSize = 36, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-            _title28.normal.textColor = Color.white;
-            _name = new GUIStyle(GUI.skin.label) { fontSize = 28, fontStyle = FontStyle.Bold, wordWrap = true };
-            _name.normal.textColor = Color.white;
-            _body = new GUIStyle(GUI.skin.label) { fontSize = 20, wordWrap = true };
-            _body.normal.textColor = new Color(0.85f, 0.92f, 1f);
-            _small = new GUIStyle(GUI.skin.label) { fontSize = 16, wordWrap = true };
-            _small.normal.textColor = new Color(0.7f, 0.8f, 0.9f);
-            _button = new GUIStyle(GUI.skin.button) { fontSize = 20, fontStyle = FontStyle.Bold, wordWrap = true };
-        }
-
         void OnDisable()
         {
             if (IsOpen)
             {
                 IsOpen = false;
                 GameClock.Resume(this);
+                ModalScreens.SetOpen(this, false);
             }
         }
     }

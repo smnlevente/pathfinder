@@ -124,6 +124,19 @@ namespace Pathfinder.Editor.Setup
             BaseShaderGUI.SetMaterialKeywords(m);
         });
 
+        /// <summary>
+        /// Alpha-blended, soft-edged material. Unlike additive glows, overlapping copies don't add up, so dense groups
+        /// (bullet patterns) stay readable instead of blowing out into a haze.
+        /// </summary>
+        static Material Blended(string name, Color hdrColor, Texture2D texture) => Material(name, ParticleShader, m =>
+        {
+            m.SetTexture("_BaseMap", texture);
+            m.SetColor("_BaseColor", hdrColor);
+            m.SetFloat("_Surface", (float)BaseShaderGUI.SurfaceType.Transparent);
+            m.SetFloat("_Blend", (float)BaseShaderGUI.BlendMode.Alpha);
+            BaseShaderGUI.SetMaterialKeywords(m);
+        });
+
         /// <summary>Creates the material or updates the existing one in place, which keeps its GUID and references.</summary>
         static Material Material(string name, string shaderName, Action<Material> configure)
         {

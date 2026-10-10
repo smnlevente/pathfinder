@@ -308,15 +308,30 @@ namespace Pathfinder.Tests.PlayMode
 
             Assert.IsNotNull(_level.Boss, "The boss level spawns its boss.");
             Assert.AreEqual("boss.quarry-maw", _level.Boss.Definition.Id, "Galaxy 1's boss is the Quarry Maw (GDD §7.5).");
-            Assert.AreEqual(2000f, _level.Boss.Vitals.MaxHull, 1f);
+            Assert.AreEqual(4000f, _level.Boss.Vitals.MaxHull, 1f);
+            yield return WaitTicks(3); // the body emerges on the boss's first tick
+
+            // Bullets already in the air when it dies must not hurt the pilot (playtest 2).
+            var brain = _level.Boss.GetComponent<Pathfinder.Game.Enemies.QuarryMawBrain>();
+            var world = Object.FindAnyObjectByType<CombatWorld>();
+            for (int i = 0; i < 5; i++)
+                world.Projectiles.Spawn(new ProjectileSpawn(_player.Position + new Vector2(-1f + i * 0.5f, 2.5f), Vector2.down, 6f, 10f, 0.28f, 10f, Team.Enemy, 0, null));
+            float hull = _player.Vitals.Hull + _player.Vitals.Shield;
+
+            var weakPoint = brain.Segments.First(s => s.IsWeakPoint);
+            weakPoint.Armoured = false; // it may be mid-roar; this test is about the rewards
+            weakPoint.ApplyDamage(new DamageInfo(1_000_000f, Team.Player, 0, weakPoint.Position, Vector2.up));
+            yield return WaitTicks(40);
+            Assert.AreEqual(0, world.Projectiles.CountForTeam(Team.Enemy), "Enemy bullets fade out when the boss dies.");
+            Assert.AreEqual(hull, _player.Vitals.Hull + _player.Vitals.Shield, 0.01f, "Defused bullets are harmless.");
 
             _player.GodMode = true;
-            _level.Boss.ApplyDamage(new DamageInfo(1_000_000f, Team.Player, 0, _level.Boss.Position, Vector2.up));
-            yield return null;
             Assert.AreEqual(1, Run.SingularityCores);
             Assert.IsTrue(_level.ExitOpen);
 
+            // The reward follows a moment later, once the death has played out.
             var reward = Object.FindAnyObjectByType<EquipmentChoiceScreen>();
+            yield return WaitTicks(60);
             Assert.IsTrue(reward.IsOpen, "Bosses offer an equipment reward.");
             Assert.That(reward.Options.All(o => o.Rarity >= Pathfinder.Core.Equipment.Rarity.Rare), "Boss rewards are Rare or better (GDD §7.5).");
             int scraps = _player.Scraps;

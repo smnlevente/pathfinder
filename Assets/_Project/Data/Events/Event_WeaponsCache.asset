@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ac6c1d6f78a20446b929b7835d302b0, type: 3}
+  m_Name: Event_WeaponsCache
+  m_EditorClassIdentifier: 
+  id: event.weapons-cache
+  displayName: Sealed Weapons Cache
+  <Body>k__BackingField: A military cache, still locked with an old access code.
+    You could try to crack it, but the failsafe is explosive.
+  <Choices>k__BackingField:
+  - Label: Crack the lock
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 0.6
+    Outcomes:
+    - Kind: 5
+      Amount: 0
+      Rarity: 0
+      Stat: 0
+    FailOutcomes:
+    - Kind: 1
+      Amount: -25
+      Rarity: 0
+      Stat: 0
+    ResultText: The lock clicks open. Whoever stashed this had good taste.
+    FailText: The failsafe goes off in your face.
+  - Label: Cut it open carefully
+    Requirement: 0
+    RequiredScraps: 20
+    Chance: 1
+    Outcomes:
+    - Kind: 0
+      Amount: -20
+      Rarity: 0
+      Stat: 0
+    - Kind: 5
+      Amount: 0
+      Rarity: 0
+      Stat: 0
+    FailOutcomes: []
+    ResultText: Slow and steady. The cache opens without a spark.
+    FailText: 
+  - Label: Leave it
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes: []
+    FailOutcomes: []
+    ResultText: You leave the cache to the next brave fool.
+    FailText: 

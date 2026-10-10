@@ -29,9 +29,11 @@ namespace Pathfinder.Editor.Setup
             if (profile == null || !profile.TryGet<UnityEngine.Rendering.Universal.Bloom>(out var bloom))
                 throw new InvalidOperationException("PP_Default with Bloom is missing. Run the M0 project setup first.");
 
-            bloom.intensity.Override(2.5f);
-            bloom.threshold.Override(0.8f);
-            bloom.scatter.Override(0.75f);
+            // Moderate bloom: enough for the neon look, but dense bullet patterns and many enemies mustn't blow out
+            // the screen (playtest 2).
+            bloom.intensity.Override(1.3f);
+            bloom.threshold.Override(1f);
+            bloom.scatter.Override(0.65f);
             EditorUtility.SetDirty(profile);
         }
 
@@ -60,7 +62,7 @@ namespace Pathfinder.Editor.Setup
             // handles from the build steps above. Capture paths first and reload afterwards.
             var assets = new ScenePaths
             {
-                Player = AssetPathOf(actors.Player), Telegraph = AssetPathOf(art.SpawnTelegraph), Scrap = AssetPathOf(art.ScrapVisual),
+                Player = AssetPathOf(actors.Player), Telegraph = AssetPathOf(art.SpawnTelegraph), Scrap = AssetPathOf(art.ScrapVisual), Deflect = AssetPathOf(art.Deflect),
                 Floor = AssetPathOf(art.Floor), Wall = AssetPathOf(art.Wall), Ship = AssetPathOf(data.Ship), Waves = AssetPathOf(data.Waves),
                 RunConfig = AssetPathOf(runConfig), Database = AssetPathOf(equipment.Database),
                 Primaries = Array.ConvertAll(data.Primaries, p => AssetPathOf(p)),
@@ -74,7 +76,7 @@ namespace Pathfinder.Editor.Setup
 
         sealed class ScenePaths
         {
-            public string Player, Telegraph, Scrap, Floor, Wall, Ship, Waves, RunConfig, Database;
+            public string Player, Telegraph, Scrap, Deflect, Floor, Wall, Ship, Waves, RunConfig, Database;
             public string[] Primaries, Secondaries;
         }
 
@@ -85,7 +87,7 @@ namespace Pathfinder.Editor.Setup
             var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
 
             var world = FindOrCreate<CombatWorld>("Combat World");
-            SetFields(world, ("arenaSize", ArenaSize), ("scrapPickupPrefab", Load<GameObject>(assets.Scrap)));
+            SetFields(world, ("arenaSize", ArenaSize), ("scrapPickupPrefab", Load<GameObject>(assets.Scrap)), ("deflectEffectPrefab", Load<GameObject>(assets.Deflect)));
 
             var floor = GameObject.Find("ArenaFloor");
             if (floor != null)

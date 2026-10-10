@@ -31,6 +31,12 @@ namespace Pathfinder.Game.Combat
         /// <summary>Projectiles and contact damage pass straight through, e.g. while dashing.</summary>
         public virtual bool IsIntangible => false;
 
+        /// <summary>
+        /// Armour plating, e.g. a boss's shell: projectiles are stopped with a deflect spark and deal no damage, and
+        /// homing shots and chaining procs look for something else. Set by the owner's brain.
+        /// </summary>
+        public bool Armoured { get; set; }
+
         /// <summary>Raised for every hit, including blocked ones (check <see cref="DamageResult.Blocked"/>).</summary>
         public event Action<CombatEntity, DamageInfo, DamageResult> Damaged;
         public event Action<CombatEntity, DamageInfo> Died;
@@ -60,13 +66,21 @@ namespace Pathfinder.Game.Combat
         /// <summary>Applies damage. Authority only. On clients this returns an empty result.</summary>
         public DamageResult ApplyDamage(in DamageInfo info)
         {
-            if (!Authority.IsAuthority || !IsAlive)
+            if (!Authority.IsAuthority || !IsAlive || Armoured)
                 return default;
 
             var owner = DamageOwner;
             if (owner != null)
-                return owner.ApplyDamage(new DamageInfo(info.Amount * IncomingDamageMultiplier(info), info.SourceTeam, info.SourceId, info.Point, info.Direction, info.Kind));
+                return owner.ApplyDamageFromPart(new DamageInfo(info.Amount * IncomingDamageMultiplier(info), info.SourceTeam, info.SourceId, info.Point, info.Direction, info.Kind));
 
+            return ApplyToVitals(info);
+        }
+
+        /// <summary>Damage passed on by one of this entity's parts (a boss weak point). The owner's own armour doesn't apply.</summary>
+        DamageResult ApplyDamageFromPart(in DamageInfo info) => Authority.IsAuthority && IsAlive ? ApplyToVitals(info) : default;
+
+        DamageResult ApplyToVitals(in DamageInfo info)
+        {
             var result = Vitals.ApplyDamage(info.Amount * IncomingDamageMultiplier(info));
             if (result.Killed && TryPreventDeath(info))
             {

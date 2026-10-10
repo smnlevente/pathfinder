@@ -15,14 +15,18 @@ The design lives in [docs/GDD.md](docs/GDD.md).
 | M3 Run structure | ✅ galaxy map, 7 level types, 3 galaxies, victory/defeat |
 | M4 Build system | ✅ 20 equipment items, stats, choice cards, Shop catalog, Titan + Stormbringer traits, Hub loadout |
 | M5 Boss + meta | ✅ the Quarry Maw (3-phase rock-worm boss), run summary with banked rewards, Pathfinder Lab upgrades, save file |
-| M6 Slice polish | Planned (GDD §17): VFX, juice, audio, balance, external playtest |
+| Playtest 2 fixes | ✅ readable bullets, chevron charge telegraphs, tougher Lancer, weak-point-only Quarry Maw with harder phases, Mystery events, uGUI map/shop/cards |
+| M6 Slice polish | In progress (GDD §17): VFX, juice, audio, balance, external playtest |
 
 ## Playing
 
 **A full run:** open `Assets/_Project/Scenes/Boot.unity` (or `Hub.unity`), press Play, choose **Start Run** and pick a ship and loadout. You can also
 open `Run.unity` directly. Pick a route on the galaxy map, clear levels, fly into the wormhole, and beat three bosses to
-reach New Home. The galaxy boss is **the Quarry Maw**: it burrows and erupts under you, sweeps its armoured body across
-the arena, then enrages and spews bullet streams. Shoot the yellow weak points on its body for double damage.
+reach New Home. The galaxy boss is **the Quarry Maw**: it burrows and erupts under you, charges across the arena in
+telegraphed volleys that shed walls of rocks, then enrages and spews bullet streams and spirals. Its shell deflects
+everything: shoot the yellow weak-point crystals on its body, and its cracked maw once it enrages.
+
+Mystery (?) nodes are usually **events**: a short scene and a choice with upsides and downsides.
 
 ![The enraged Quarry Maw: yellow weak-point bands on its body, a magenta bullet fan aimed at the ship](docs/images/m5-quarry-maw.png)
 

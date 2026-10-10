@@ -3,6 +3,7 @@ using NUnit.Framework;
 using Pathfinder.Core.Combat;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Enemies;
+using Pathfinder.Game.Player;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -48,7 +49,8 @@ namespace Pathfinder.Tests.PlayMode
             while (World.Tick < deadline && DamageTaken <= 0f)
             {
                 woundUp |= brain.Current == LancerBrain.State.WindUp;
-                if (brain.Current == LancerBrain.State.WindUp && ++windUpTicks > 10)
+                windUpTicks = brain.Current == LancerBrain.State.WindUp ? windUpTicks + 1 : 0;
+                if (windUpTicks > 10)
                     lateWindUpSpeed = Mathf.Max(lateWindUpSpeed, lancer.Velocity.magnitude);
                 charged |= woundUp && brain.Current == LancerBrain.State.Charge;
                 maxSpeed = Mathf.Max(maxSpeed, lancer.Velocity.magnitude);
@@ -59,7 +61,27 @@ namespace Pathfinder.Tests.PlayMode
             Assert.Less(lateWindUpSpeed, 0.5f, "The Lancer holds still while winding up, so its line stays honest.");
             Assert.IsTrue(charged);
             Assert.Greater(maxSpeed, 15f, "Charges are far faster than normal movement.");
-            Assert.That(DamageTaken, Is.GreaterThanOrEqualTo(19f), "A charge hits for double contact damage (20).");
+            Assert.That(DamageTaken, Is.GreaterThanOrEqualTo(29f), "A charge hits for 2.5× contact damage (30).");
+        }
+
+        [UnityTest]
+        public IEnumerator Lancer_JoustsAgainAfterAMiss()
+        {
+            yield return LoadRun();
+            Player.GodMode = true;
+            var lancer = Spawn("enemy.lancer", new Vector2(0f, 8f));
+            var brain = lancer.GetComponent<LancerBrain>();
+
+            // Sidestep as soon as the first charge launches, so it misses.
+            yield return WaitUntilTicks(() => brain.Current == LancerBrain.State.Charge, 400);
+            Script(_ => new ShipCommand { Move = Vector2.right });
+            yield return WaitUntilTicks(() => brain.Current != LancerBrain.State.Charge, 120);
+
+            Assert.AreEqual(LancerBrain.State.WindUp, brain.Current, "After a miss it re-aims for a second joust.");
+            yield return WaitUntilTicks(() => brain.Current != LancerBrain.State.WindUp, 120);
+            Assert.AreEqual(LancerBrain.State.Charge, brain.Current);
+            yield return WaitUntilTicks(() => brain.Current != LancerBrain.State.Charge, 120);
+            Assert.AreEqual(LancerBrain.State.Recover, brain.Current, "Two jousts per attack, then it recovers.");
         }
 
         [UnityTest]

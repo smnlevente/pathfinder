@@ -15,6 +15,7 @@ namespace Pathfinder.Core.Run
 
         readonly MapRules _rules;
         readonly HashSet<int> _visited = new HashSet<int>();
+        readonly HashSet<string> _seenEvents = new HashSet<string>();
         bool _repairUsedThisGalaxy;
 
         public Seed Seed { get; }
@@ -89,6 +90,11 @@ namespace Pathfinder.Core.Run
 
         public void CompleteLevel() => LevelsCleared++;
 
+        /// <summary>Mystery events already met this run, by content ID. An event isn't repeated while others remain.</summary>
+        public bool HasSeenEvent(string eventId) => _seenEvents.Contains(eventId);
+
+        public void MarkEventSeen(string eventId) => _seenEvents.Add(eventId);
+
         public void AddDarkMatter(int amount) => DarkMatter += Math.Max(0, amount);
 
         public void AddSingularityCores(int amount) => SingularityCores += Math.Max(0, amount);
@@ -142,10 +148,14 @@ namespace Pathfinder.Core.Run
 
     public readonly struct MysteryOutcome
     {
+        /// <summary>The level type it turned into. <see cref="MapNodeType.Mystery"/> for an event.</summary>
         public MapNodeType Type { get; }
 
         /// <summary>A harder combat variant with an elite wave and double rewards (GDD §10.5).</summary>
         public bool Ambush { get; }
+
+        /// <summary>A narrative event: a choice with upsides and downsides instead of a level (GDD §10.5).</summary>
+        public bool IsEvent => Type == MapNodeType.Mystery;
 
         public MysteryOutcome(MapNodeType type, bool ambush)
         {
@@ -154,13 +164,20 @@ namespace Pathfinder.Core.Run
         }
     }
 
-    /// <summary>Mystery resolution (GDD §10.5). Never a Shop or Boss, and Repair only where it's allowed.</summary>
+    /// <summary>
+    /// Mystery resolution (GDD §10.5). Usually a narrative event; otherwise a level, never a Shop or Boss, and Repair only
+    /// where it's allowed.
+    /// </summary>
     public static class MysteryRoll
     {
+        public const float EventChance = 0.7f;
         public const float AmbushChance = 0.1f;
 
         public static MysteryOutcome Resolve(IRandom random, bool repairAllowed)
         {
+            if (random.Chance(EventChance))
+                return new MysteryOutcome(MapNodeType.Mystery, ambush: false);
+
             MapNodeType[] types = { MapNodeType.Scraps, MapNodeType.Equipment, MapNodeType.DarkMatter, MapNodeType.Repair };
             float[] weights = { 30f, 35f, 20f, repairAllowed ? 15f : 0f };
             var type = types[random.WeightedIndex(weights)];

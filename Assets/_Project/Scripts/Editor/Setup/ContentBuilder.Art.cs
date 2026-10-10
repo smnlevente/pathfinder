@@ -12,11 +12,11 @@ namespace Pathfinder.Editor.Setup
             // Visual language (GDD §12.4): player cyan; enemies solid crimson with red-orange accents and a red floor
             // glow; enemy bullets the only magenta; pickups gold; weak points yellow.
             public Material Floor, Wall, ShipHull, ShipGlow, EnemyHull, EnemyGlow, EnemyHalo, WeakPoint;
-            public Material PlayerBolt, ChargeBolt, PlayerMissile, EnemyBulletCore, EnemyBulletHalo, Scrap;
-            public Material Telegraph, LancerLine, EliteRing, NovaRing, FxOrange, FxCyan, FxMagenta, FxRed;
+            public Material PlayerBolt, ChargeBolt, PlayerMissile, EnemyBulletCore, EnemyBulletBody, EnemyBulletHalo, Scrap;
+            public Material Telegraph, LancerLine, EliteRing, NovaRing, WeakPointRing, FxOrange, FxCyan, FxMagenta, FxRed, FxGrey;
 
-            public GameObject BoltImpact, BulletImpact, MissileImpact, EnemyExplosion, PlayerExplosion;
-            public GameObject SpawnTelegraph, NovaPulse, EliteMarker;
+            public GameObject BoltImpact, BulletImpact, MissileImpact, EnemyExplosion, PlayerExplosion, Deflect;
+            public GameObject SpawnTelegraph, NovaPulse, EliteMarker, ChargeLane;
             public GameObject PlayerBoltVisual, PelletVisual, ChargeBoltVisual, MissileVisual, EnemyBulletVisual, ScrapVisual;
         }
 
@@ -29,6 +29,28 @@ namespace Pathfinder.Editor.Setup
             }, TextureWrapMode.Repeat, alphaIsTransparency: false);
             var dot = RadialTexture("T_SoftDot", 64, d => (1f - d) * (1f - d) * (d < 1f ? 1f : 0f));
             var ring = RadialTexture("T_Ring", 128, d => Mathf.Exp(-Mathf.Pow((d - 0.88f) / 0.06f, 2f)));
+
+            // Enemy bullet body (GDD §12.4): a tinted rim inside a dark outline. The outline separates neighbouring
+            // bullets in dense patterns and against glowing backgrounds; it stays black whatever the tint.
+            var bulletBody = CreateTexture("T_BulletBody", 64, (x, y) =>
+            {
+                float dx = (x + 0.5f) / 32f - 1f, dy = (y + 0.5f) / 32f - 1f;
+                float d = Mathf.Sqrt(dx * dx + dy * dy);
+                if (d < 0.74f)
+                    return Color.white;
+                if (d < 0.94f)
+                    return new Color(0f, 0f, 0f, 0.9f);
+                return new Color(0f, 0f, 0f, Mathf.Clamp01((1f - d) / 0.06f) * 0.9f);
+            }, TextureWrapMode.Clamp, alphaIsTransparency: true);
+
+            // Charge telegraph chevron, pointing up the texture (+Z once laid flat).
+            var chevron = CreateTexture("T_Chevron", 64, (x, y) =>
+            {
+                float u = (x + 0.5f) / 32f - 1f, v = (y + 0.5f) / 32f - 1f;
+                float arm = Mathf.Abs(v - (0.45f - Mathf.Abs(u) * 0.95f));
+                float alpha = Mathf.Abs(u) < 0.85f ? Mathf.Clamp01((0.2f - arm) / 0.05f) : 0f;
+                return new Color(1f, 1f, 1f, alpha);
+            }, TextureWrapMode.Clamp, alphaIsTransparency: true);
 
             var art = new Art
             {
@@ -55,21 +77,25 @@ namespace Pathfinder.Editor.Setup
                 EnemyGlow = Unlit("M_EnemyGlow", new Color(3.4f, 0.6f, 0.12f)),
                 EnemyHalo = Additive("M_FX_EnemyHalo", new Color(1.1f, 0.08f, 0.05f), dot),
                 WeakPoint = Unlit("M_WeakPoint", new Color(3.2f, 2.4f, 0.4f)),
-                EnemyBulletCore = Unlit("M_EnemyBulletCore", new Color(6f, 4f, 6f)),
-                EnemyBulletHalo = Additive("M_FX_EnemyBulletHalo", new Color(6f, 0.4f, 4.5f), dot),
+                EnemyBulletCore = Unlit("M_EnemyBulletCore", new Color(2.4f, 1.8f, 2.4f)),
+                EnemyBulletBody = Blended("M_FX_EnemyBulletBody", new Color(2.2f, 0.22f, 1.65f), bulletBody),
+                EnemyBulletHalo = Blended("M_FX_EnemyBulletHalo", new Color(1.2f, 0.08f, 0.9f, 0.45f), dot),
 
                 Scrap = Unlit("M_Scrap", new Color(2.8f, 1.9f, 0.35f)),
                 Telegraph = Unlit("M_SpawnTelegraph", new Color(2.6f, 0.25f, 0.2f)),
-                LancerLine = Additive("M_FX_LancerLine", new Color(4f, 0.3f, 0.2f), dot),
+                LancerLine = Blended("M_FX_LancerLine", Color.white, chevron), // tinted per chevron by ChevronLane
                 EliteRing = Additive("M_FX_EliteRing", new Color(3.5f, 2.4f, 0.4f), ring),
                 NovaRing = Additive("M_FX_NovaRing", new Color(0.35f, 1.5f, 2.8f), ring),
+                WeakPointRing = Additive("M_FX_WeakPointRing", new Color(2.6f, 2f, 0.3f), ring),
                 FxOrange = Additive("M_FX_Orange", new Color(4f, 1.4f, 0.3f), dot),
                 FxCyan = Additive("M_FX_Cyan", new Color(0.6f, 2.4f, 4f), dot),
-                FxMagenta = Additive("M_FX_Magenta", new Color(4f, 0.6f, 3f), dot),
+                FxMagenta = Additive("M_FX_Magenta", new Color(2.2f, 0.35f, 1.7f), dot),
                 FxRed = Additive("M_FX_Red", new Color(3f, 0.25f, 0.15f), dot),
+                FxGrey = Additive("M_FX_Grey", new Color(1.1f, 1.15f, 1.25f), dot),
             };
 
             BuildEffects(art);
+            art.ChargeLane = SavePrefab(ChargeLane("FX_ChargeLane", art), "FX");
             BuildProjectileVisuals(art);
             return art;
         }
@@ -78,6 +104,8 @@ namespace Pathfinder.Editor.Setup
         {
             art.BoltImpact = SavePrefab(Burst("FX_BoltImpact", art.FxCyan, count: 6, speed: 4f, size: 0.18f, lifetime: 0.15f), "FX");
             art.BulletImpact = SavePrefab(Burst("FX_BulletImpact", art.FxMagenta, count: 10, speed: 5f, size: 0.25f, lifetime: 0.2f), "FX");
+            // Armour: a dull grey spark, so a deflected shot reads as "no damage" (GDD §12.4).
+            art.Deflect = SavePrefab(Burst("FX_Deflect", art.FxGrey, count: 5, speed: 6f, size: 0.14f, lifetime: 0.12f), "FX");
             art.MissileImpact = SavePrefab(Burst("FX_MissileImpact", art.FxCyan, count: 14, speed: 6f, size: 0.3f, lifetime: 0.25f), "FX");
             art.EnemyExplosion = SavePrefab(Burst("FX_EnemyExplosion", art.FxOrange, count: 28, speed: 7f, size: 0.4f, lifetime: 0.45f), "FX");
             art.PlayerExplosion = SavePrefab(Burst("FX_PlayerExplosion", art.FxCyan, count: 70, speed: 9f, size: 0.55f, lifetime: 0.9f), "FX");
@@ -139,6 +167,19 @@ namespace Pathfinder.Editor.Setup
             return go;
         }
 
+        /// <summary>A chevron lane telegraph (GDD §12.4). The template chevron stays disabled; the lane clones it.</summary>
+        static GameObject ChargeLane(string name, Art art, Transform parent = null, float size = 0.9f, float spacing = 1.1f)
+        {
+            var root = new GameObject(name);
+            if (parent != null)
+                root.transform.SetParent(parent, false);
+            var template = FlatQuad("Chevron", root.transform, art.LancerLine, 0.05f, 1f);
+            var renderer = template.GetComponent<Renderer>();
+            renderer.enabled = false;
+            SetFields(root.AddComponent<ChevronLane>(), ("chevronTemplate", renderer), ("size", size), ("spacing", spacing));
+            return root;
+        }
+
         static void BuildProjectileVisuals(Art art)
         {
             // Player shots are elongated cyan bolts. Enemy shots are round magenta orbs (GDD §12.4).
@@ -168,10 +209,12 @@ namespace Pathfinder.Editor.Setup
             trail.shadowCastingMode = ShadowCastingMode.Off;
             art.MissileVisual = SavePrefab(missile, "Projectiles");
 
+            // Layers, bottom to top: a faint soft glow, the rim-and-outline body, and a solid white core.
             var bullet = new GameObject("PV_EnemyBullet");
-            Primitive(PrimitiveType.Sphere, "Core", bullet.transform, art.EnemyBulletCore, Vector3.zero, Vector3.one * 0.32f);
-            var halo = FlatQuad("Halo", bullet.transform, art.EnemyBulletHalo, 0f, 1.3f);
-            SetFields(halo.AddComponent<SimpleMotion>(), ("pulseAmount", 0.18f), ("pulseFrequency", 7f));
+            var halo = FlatQuad("Halo", bullet.transform, art.EnemyBulletHalo, -0.02f, 1.05f);
+            SetFields(halo.AddComponent<SimpleMotion>(), ("pulseAmount", 0.15f), ("pulseFrequency", 7f));
+            FlatQuad("Body", bullet.transform, art.EnemyBulletBody, 0f, 0.62f);
+            Primitive(PrimitiveType.Sphere, "Core", bullet.transform, art.EnemyBulletCore, new Vector3(0f, 0.04f, 0f), Vector3.one * 0.26f);
             art.EnemyBulletVisual = SavePrefab(bullet, "Projectiles");
 
             // Scraps: small spinning gold chunks.

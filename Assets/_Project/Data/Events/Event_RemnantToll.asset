@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ac6c1d6f78a20446b929b7835d302b0, type: 3}
+  m_Name: Event_RemnantToll
+  m_EditorClassIdentifier: 
+  id: event.remnant-toll
+  displayName: Remnant Toll Gate
+  <Body>k__BackingField: A Remnant checkpoint blocks the jump lane. "This sector
+    is ours, Pathfinder. Pay the toll, or turn around."
+  <Choices>k__BackingField:
+  - Label: Pay the toll
+    Requirement: 0
+    RequiredScraps: 35
+    Chance: 1
+    Outcomes:
+    - Kind: 0
+      Amount: -35
+      Rarity: 0
+      Stat: 0
+    FailOutcomes: []
+    ResultText: They take the Scraps and wave you through. For now.
+    FailText: 
+  - Label: Run the blockade
+    Requirement: 0
+    RequiredScraps: 0
+    Chance: 1
+    Outcomes:
+    - Kind: 8
+      Amount: 0
+      Rarity: 0
+      Stat: 0
+    FailOutcomes: []
+    ResultText: You punch the engines. The gate's guns light up behind you.
+    FailText: 

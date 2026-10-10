@@ -107,6 +107,18 @@ namespace Pathfinder.Core.Combat
         /// <summary>Brings a ship back from a lethal hit, e.g. Last Stand (GDD §8.5).</summary>
         public void Revive(float hull) => Hull = Math.Max(1f, Math.Min(MaxHull, hull));
 
+        /// <summary>
+        /// Takes hull directly, past the shield and any invulnerability, but never below <paramref name="floor"/>: for
+        /// costs such as a Mystery event's, which must never end a run outright. Returns the hull lost.
+        /// </summary>
+        public float DrainHull(float amount, float floor = 1f)
+        {
+            float target = Math.Max(Math.Min(Hull, floor), Hull - Math.Max(0f, amount));
+            float lost = Hull - target;
+            Hull = target;
+            return lost;
+        }
+
         /// <summary>Raises max hull, e.g. Repair's "Reinforce" option (GDD §10.4). Optionally heals by the same amount.</summary>
         public void IncreaseMaxHull(float amount, bool heal)
         {

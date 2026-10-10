@@ -145,5 +145,18 @@ namespace Pathfinder.Tests.Combat
             Assert.AreEqual(10f, vitals.Heal(50f));
             Assert.AreEqual(100f, vitals.Hull);
         }
+
+        [Test]
+        public void DrainHull_SkipsShieldButNeverKills()
+        {
+            var vitals = new Vitals(100f, 30f) { ExternalInvulnerability = true };
+            Assert.AreEqual(25f, vitals.DrainHull(25f));
+            Assert.AreEqual(75f, vitals.Hull, "Straight from the hull, even while invulnerable.");
+            Assert.AreEqual(30f, vitals.Shield);
+
+            Assert.AreEqual(74f, vitals.DrainHull(500f));
+            Assert.AreEqual(1f, vitals.Hull, "It stops at 1 hull.");
+            Assert.IsFalse(vitals.IsDead);
+        }
     }
 }

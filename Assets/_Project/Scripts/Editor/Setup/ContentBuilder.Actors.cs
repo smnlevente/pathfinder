@@ -85,7 +85,7 @@ namespace Pathfinder.Editor.Setup
 
         static Enemy BuildLancer(Art art, Data data)
         {
-            // An arrowhead with a glowing spine. A red line shows its charge path during the wind-up.
+            // An arrowhead with a glowing spine. A chevron lane shows its charge path during the wind-up.
             var root = EnemyRoot("Lancer", art, radius: 0.5f, out var halo, out var model);
             Primitive(PrimitiveType.Cube, "Body", model, art.EnemyHull, Vector3.zero, new Vector3(0.5f, 0.22f, 1.3f));
             Primitive(PrimitiveType.Cube, "Nose", model, art.EnemyHull, new Vector3(0f, 0f, 0.65f), new Vector3(0.45f, 0.2f, 0.45f), Quaternion.Euler(0f, 45f, 0f));
@@ -95,12 +95,11 @@ namespace Pathfinder.Editor.Setup
             var tail = Glow(Primitive(PrimitiveType.Cube, "Tail", model, art.EnemyGlow, new Vector3(0f, 0f, -0.66f), new Vector3(0.3f, 0.1f, 0.08f)));
 
             var brain = root.AddComponent<LancerBrain>();
-            var line = FlatQuad("TelegraphLine", root.transform, art.LancerLine, 0.04f, 1f);
-            line.GetComponent<Renderer>().enabled = false;
-            SetFields(root.AddComponent<TelegraphLine>(), ("lancer", brain), ("line", line.GetComponent<Renderer>()));
+            var lane = ChargeLane("TelegraphLane", art, root.transform);
+            SetFields(root.AddComponent<TelegraphLine>(), ("source", brain), ("lane", lane.GetComponent<ChevronLane>()));
 
-            // The telegraph line must not flash white when the Lancer is hit.
-            return FinishEnemyWithExclusions(root, data.Lancer, 0.5f, art, new[] { halo, line.GetComponent<Renderer>() }, spine, tail);
+            // The telegraph must not flash white when the Lancer is hit.
+            return FinishEnemyWithExclusions(root, data.Lancer, 0.5f, art, new[] { halo, lane.GetComponentInChildren<Renderer>(true) }, spine, tail);
         }
 
         static Enemy BuildCarrier(Art art, Data data)

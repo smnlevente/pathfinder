@@ -3,7 +3,8 @@
     "rootNamespace": "Pathfinder.Game",
     "references": [
         "Pathfinder.Core",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
