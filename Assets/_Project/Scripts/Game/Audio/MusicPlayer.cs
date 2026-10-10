@@ -13,6 +13,7 @@ namespace Pathfinder.Game.Audio
         static MusicPlayer s_instance;
 
         AudioSource _current, _previous;
+        float _currentWeight, _previousWeight;
         float _level = 0.55f;
         float _fadeTime = 1f;
 
@@ -61,6 +62,8 @@ namespace Pathfinder.Game.Audio
             Track = track;
 
             (_current, _previous) = (_previous, _current);
+            _previousWeight = _currentWeight;
+            _currentWeight = 0f;
             _current.clip = clip;
             _current.volume = 0f;
             if (clip != null)
@@ -76,14 +79,27 @@ namespace Pathfinder.Game.Audio
             _fadeTime = Mathf.Max(0.01f, fadeTime);
         }
 
+        /// <summary>
+        /// The crossfade is a 0–1 weight per voice, separate from the volume settings, so the settings act at once: music
+        /// set to off is silent the same frame (playtest 5: the old fade crept down over most of a minute).
+        /// </summary>
         void Update()
         {
-            float target = _level * Settings.GameSettings.MasterVolume * Settings.GameSettings.MusicVolume;
-            float step = Time.unscaledDeltaTime / _fadeTime * Mathf.Max(target, 0.01f);
-            _current.volume = Mathf.MoveTowards(_current.volume, _current.clip != null ? target : 0f, step);
-            _previous.volume = Mathf.MoveTowards(_previous.volume, 0f, step);
-            if (_previous.isPlaying && _previous.volume <= 0f)
+            float level = _level * Settings.GameSettings.MasterVolume * Settings.GameSettings.MusicVolume;
+            float step = Time.unscaledDeltaTime / _fadeTime;
+            _currentWeight = Mathf.MoveTowards(_currentWeight, _current.clip != null ? 1f : 0f, step);
+            _previousWeight = Mathf.MoveTowards(_previousWeight, 0f, step);
+            _current.volume = _currentWeight * level;
+            _previous.volume = _previousWeight * level;
+            if (_previous.isPlaying && _previousWeight <= 0f)
                 _previous.Stop();
+        }
+
+        /// <summary>Switching away from the game silences it, unless the player wants sound in the background.</summary>
+        void OnApplicationFocus(bool focused)
+        {
+            if (Settings.GameSettings.RespondToFocus)
+                AudioListener.pause = !focused && !Settings.GameSettings.SoundInBackground;
         }
 
         void OnDestroy()

@@ -10,6 +10,7 @@ using Pathfinder.Game.Run;
 using Pathfinder.Game.Settings;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
@@ -33,8 +34,7 @@ namespace Pathfinder.Tests.PlayMode
         [TearDown]
         public void Restore()
         {
-            GameSettings.ResetToDefaults();
-            GameSettings.Persist = true;
+            GameSettings.ResetToDefaults(); // SilentTestRun keeps settings in memory for the whole run
             MetaProgression.SavePath = null;
             if (File.Exists(_savePath))
                 File.Delete(_savePath);
@@ -94,10 +94,41 @@ namespace Pathfinder.Tests.PlayMode
             Assert.AreEqual(0f, GameSettings.MasterVolume, 0.001f, "Enter or click wraps past 100% to off.");
             Assert.AreEqual("OFF", master.Value());
 
-            var shake = SettingsOptions.All[4];
+            var shake = SettingsOptions.Find("options.shake");
             shake.Change(-1, false);
             Assert.AreEqual(0.75f, GameSettings.ScreenShake, 0.001f, "Screen shake steps by 25%.");
         }
+
+        [UnityTest]
+        public IEnumerator Options_HaveSliders_ClickSteps_AndTickboxes()
+        {
+            yield return LoadRun();
+            var menu = Object.FindAnyObjectByType<PauseMenu>();
+            Object.FindAnyObjectByType<RunFlow>().SetPaused(true);
+            yield return null;
+            menu.ShowPage(PauseMenu.Page.Options);
+            yield return null;
+
+            var music = menu.FindRow(Pathfinder.Game.Localization.Loc.T("options.music"));
+            Assert.IsNotNull(music.Slider, "Volumes are real sliders (playtest 5).");
+            music.Slider.SetFromPointer(0.42f); // a press or drag at 42% of the track
+            Assert.AreEqual(0.4f, GameSettings.MusicVolume, 0.001f, "Dragging sets the volume, snapped to 5%.");
+            Assert.AreEqual("40%", music.NoteText);
+
+            ClickRow(music, PointerEventData.InputButton.Right);
+            Assert.AreEqual(0.3f, GameSettings.MusicVolume, 0.001f, "A right click steps down 10%.");
+            ClickRow(music, PointerEventData.InputButton.Left);
+            Assert.AreEqual(0.4f, GameSettings.MusicVolume, 0.001f, "A click steps up 10%.");
+            Assert.AreEqual(0.4f, music.Slider.Value, 0.001f, "The slider follows.");
+
+            var background = menu.FindRow(Pathfinder.Game.Localization.Loc.T("options.background_sound"));
+            Assert.IsFalse(background.IsChecked);
+            ClickRow(background, PointerEventData.InputButton.Left);
+            Assert.IsTrue(background.IsChecked && GameSettings.SoundInBackground, "Sound in background is a tickbox.");
+        }
+
+        static void ClickRow(Pathfinder.Game.Presentation.Ui.UiRow row, PointerEventData.InputButton button) =>
+            ExecuteEvents.Execute(row.Rect.gameObject, new PointerEventData(EventSystem.current) { button = button }, ExecuteEvents.pointerClickHandler);
 
         [UnityTest, Category("Screenshot")]
         public IEnumerator CapturePages()

@@ -12,11 +12,20 @@ namespace Pathfinder.Game.Presentation.Ui
         readonly Image _background;
         readonly Text _label, _note, _detail;
         readonly Color _noteColor;
+        readonly RectTransform _header;
+        Image _check;
 
         public RectTransform Rect { get; }
         public UiPointer Pointer { get; }
         public string LabelText => _label.text;
         public string DetailText => _detail != null ? _detail.text : string.Empty;
+        public string NoteText => _note.text;
+
+        /// <summary>The row's slider, if it has one (see <see cref="AddSlider"/>).</summary>
+        public UiSlider Slider { get; private set; }
+
+        /// <summary>Whether the row's tickbox is ticked, if it has one (see <see cref="AddCheckbox"/>).</summary>
+        public bool IsChecked => _check != null && _check.enabled;
 
         public UiRow(Transform parent, string label, string note = null, string detail = null, Color? accent = null, Color? noteColor = null)
         {
@@ -24,7 +33,7 @@ namespace Pathfinder.Game.Presentation.Ui
             Rect = _background.rectTransform;
             UiKit.Vertical(_background, 4f, new RectOffset(28, 24, 12, 13), TextAnchor.UpperLeft);
 
-            var header = UiKit.Node("Header", Rect);
+            var header = _header = UiKit.Node("Header", Rect);
             UiKit.Horizontal(header, 20f, null, TextAnchor.MiddleLeft);
             _label = UiKit.Text(header, "Label", label, 24, UiKit.TextBright, TextAnchor.MiddleLeft, FontStyle.Bold);
             UiKit.Layout(_label, flexibleWidth: 1f);
@@ -48,6 +57,34 @@ namespace Pathfinder.Game.Presentation.Ui
             }
 
             Pointer = _background.gameObject.AddComponent<UiPointer>();
+        }
+
+        /// <summary>Adds a slider before the note, which then shows its value at a fixed width so the slider stays put.</summary>
+        public UiSlider AddSlider(float width, float snap)
+        {
+            Slider = UiSlider.Create(_header, width, UiKit.Accent, snap);
+            Slider.transform.SetSiblingIndex(_note.transform.GetSiblingIndex());
+            UiKit.Layout(_note, preferredWidth: 86f);
+            return Slider;
+        }
+
+        /// <summary>Adds a tickbox where the note was. Clicking the row toggles it (the owner decides what that does).</summary>
+        public void AddCheckbox()
+        {
+            var box = UiKit.Image(_header, "Tickbox", new Color(1f, 1f, 1f, 0.16f));
+            UiKit.Layout(box, preferredWidth: 30f, preferredHeight: 30f);
+            box.transform.SetSiblingIndex(_note.transform.GetSiblingIndex());
+            _check = UiKit.Image(box.transform, "Tick", UiKit.Accent);
+            UiKit.Stretch(_check.rectTransform, 6f);
+            _check.enabled = false;
+            _note.text = string.Empty;
+            _note.gameObject.SetActive(false);
+        }
+
+        public void SetChecked(bool on)
+        {
+            if (_check != null)
+                _check.enabled = on;
         }
 
         public void SetLabel(string text) => _label.text = text;

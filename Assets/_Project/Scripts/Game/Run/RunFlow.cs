@@ -47,6 +47,13 @@ namespace Pathfinder.Game.Run
                 SetPaused(true);
         }
 
+        /// <summary>Switching away from the game mid-fight pauses it, so nothing kills the ship while you're gone.</summary>
+        void OnApplicationFocus(bool focused)
+        {
+            if (!focused && Settings.GameSettings.RespondToFocus && !IsGameOver && !IsPaused && !GameClock.Paused)
+                SetPaused(true);
+        }
+
         public void SetPaused(bool paused)
         {
             if (paused)

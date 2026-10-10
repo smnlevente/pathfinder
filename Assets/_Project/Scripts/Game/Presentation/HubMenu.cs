@@ -62,10 +62,7 @@ namespace Pathfinder.Game.Presentation
             if (_page == Page.Loadout && step.x != 0 && _selected < 3)
                 Cycle(_selected, step.x);
             else if (_page == Page.Options && step.x != 0 && _selected < SettingsOptions.All.Count)
-            {
-                SettingsOptions.All[_selected].Change(step.x, false);
-                ShowPage(Page.Options, keepSelection: true);
-            }
+                ChangeOption(_selected, option => option.Change(step.x, false));
             else if (_input.Submitted)
                 Activate(_selected);
             else if (_input.Cancelled && _page != Page.Main)
@@ -93,10 +90,7 @@ namespace Pathfinder.Game.Presentation
                     break;
                 case Page.Options:
                     if (index < SettingsOptions.All.Count)
-                    {
-                        SettingsOptions.All[index].Change(1, true);
-                        ShowPage(Page.Options, keepSelection: true);
-                    }
+                        ChangeOption(index, option => option.Click());
                     else
                     {
                         ShowPage(Page.Main);
@@ -114,6 +108,18 @@ namespace Pathfinder.Game.Presentation
                     }
                     break;
             }
+        }
+
+        /// <summary>Changes an option and shows the new value. A new language rebuilds the page in that language.</summary>
+        void ChangeOption(int index, System.Action<SettingOption> change)
+        {
+            var option = SettingsOptions.All[index];
+            string language = Loc.Language;
+            change(option);
+            if (Loc.Language != language)
+                ShowPage(Page.Options, keepSelection: true);
+            else if (index < _rows.Count)
+                OptionRows.Refresh(_rows[index], option);
         }
 
         void ChooseMain(int index)
@@ -246,7 +252,13 @@ namespace Pathfinder.Game.Presentation
                 case Page.Options:
                     _pageTitle.text = Loc.T("hub.options.title");
                     foreach (var option in SettingsOptions.All)
-                        AddRow(option.Label, option.Value(), option.Detail, noteColor: UiKit.Accent);
+                    {
+                        // Sliders drag, tickboxes toggle; click steps up, right click steps down (playtest 5).
+                        var row = OptionRows.Create(_list, option);
+                        int index = _rows.Count;
+                        Register(row, true);
+                        row.Pointer.RightClicked += () => ChangeOption(index, o => o.RightClick());
+                    }
                     AddRow(Loc.T("common.back"));
                     _hint.text = Loc.T("hub.options.hint");
                     break;
@@ -276,9 +288,11 @@ namespace Pathfinder.Game.Presentation
             LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_list.parent);
         }
 
-        void AddRow(string label, string note = null, string detail = null, Color? accent = null, bool enabled = true, Color? noteColor = null)
+        void AddRow(string label, string note = null, string detail = null, Color? accent = null, bool enabled = true, Color? noteColor = null) =>
+            Register(new UiRow(_list, label, note, detail, accent, noteColor), enabled);
+
+        void Register(UiRow row, bool enabled)
         {
-            var row = new UiRow(_list, label, note, detail, accent, noteColor);
             int index = _rows.Count;
             row.Pointer.Entered += () => _selected = index;
             row.Pointer.Clicked += () => Activate(index);

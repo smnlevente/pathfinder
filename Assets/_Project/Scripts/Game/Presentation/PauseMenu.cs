@@ -83,6 +83,9 @@ namespace Pathfinder.Game.Presentation
 
         public void Resume() => runFlow.SetPaused(false);
 
+        /// <summary>The row with this label on the current page, or null. For tests.</summary>
+        public UiRow FindRow(string label) => _rows.Find(row => row.View.LabelText == label)?.View;
+
         /// <summary>Leaves for the Hub. A run in progress is lost, and what it earned is banked.</summary>
         public void Leave()
         {
@@ -124,11 +127,11 @@ namespace Pathfinder.Game.Presentation
                     _title.text = Loc.T("pause.options.title");
                     foreach (var option in SettingsOptions.All)
                     {
+                        // Sliders drag, tickboxes toggle; click steps up, right click steps down (playtest 5).
                         var captured = option;
-                        UiRow view = null;
-                        view = AddRow(option.Label, option.Value(), option.Detail,
-                            () => ChangeOption(captured, view, 1, true),
-                            step => ChangeOption(captured, view, step, false));
+                        var view = OptionRows.Create(_list, option);
+                        Register(view, () => ChangeOption(captured, view, captured.Click), step => ChangeOption(captured, view, () => captured.Change(step, false)));
+                        view.Pointer.RightClicked += () => ChangeOption(captured, view, captured.RightClick);
                     }
                     AddRow(Loc.T("common.back"), null, null, () => ShowPage(Page.Main));
                     _hint.text = Loc.T("pause.options.hint");
@@ -146,10 +149,10 @@ namespace Pathfinder.Game.Presentation
         }
 
         /// <summary>Changes an option. A new language rebuilds the page, so every row is in the new language.</summary>
-        void ChangeOption(SettingOption option, UiRow view, int step, bool wrap)
+        void ChangeOption(SettingOption option, UiRow view, Action change)
         {
             string language = Loc.Language;
-            option.Change(step, wrap);
+            change();
             if (Loc.Language != language)
             {
                 int selected = _selected;
@@ -158,13 +161,15 @@ namespace Pathfinder.Game.Presentation
             }
             else
             {
-                view.SetNote(option.Value());
+                OptionRows.Refresh(view, option);
             }
         }
 
-        UiRow AddRow(string label, string note, string detail, Action activate, Action<int> step = null)
+        UiRow AddRow(string label, string note, string detail, Action activate, Action<int> step = null) =>
+            Register(new UiRow(_list, label, note, detail, null, UiKit.Accent), activate, step);
+
+        UiRow Register(UiRow view, Action activate, Action<int> step)
         {
-            var view = new UiRow(_list, label, note, detail, null, UiKit.Accent);
             int index = _rows.Count;
             view.Pointer.Entered += () => _selected = index;
             view.Pointer.Clicked += () => activate?.Invoke();

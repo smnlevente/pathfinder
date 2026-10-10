@@ -84,5 +84,11 @@ flowchart LR
 
 ## Options
 
-Options are in the Hub and the pause menu: **Language**, **Master / Effects / Music volume**, **Screen shake**,
-**Fullscreen**, and an **FPS counter**. They are saved on this machine.
+Options are in the Hub and the pause menu: **Language**, **Master / Music / Effects volume**, **Sound in background**,
+**Screen shake**, **Fullscreen**, and an **FPS counter**. They are saved on this machine.
+
+- **Volumes and screen shake are sliders:** drag them, or click the row to step up 10% and right-click to step down.
+  Left and Right on the keyboard or gamepad step them too.
+- **On/off options are tickboxes:** click or press Enter to toggle.
+- **Sound in background** keeps the music and sounds playing when you switch to another window. Either way, switching
+  away mid-fight pauses the game.

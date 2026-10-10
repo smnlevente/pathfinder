@@ -15,10 +15,11 @@ frame or on change.
 | `UiKit` | Creates canvases (1920 × 1080 reference, scaled to fit), text, images, panels, layout groups; holds the colour theme and generated sprites (ring, circle, vignette) |
 | `UiRow` | A selectable menu row: accent stripe, bold label, right-aligned note (price or state), wrapping detail line |
 | `UiBar` | A filled bar with a track, for hull, shield, ammo, cooldowns and boss health |
-| `UiPointer` | Mouse hover and click on any element |
+| `UiPointer` | Mouse hover, click and right click on any element |
+| `UiSlider` | A draggable 0–1 slider (track, fill, handle) that snaps to steps; takes its own left clicks, passes right clicks to its row |
 | `MenuInput` | Keyboard and gamepad navigation with key repeat, Submit and Cancel, each with its menu sound; works while paused |
 | `ModalScreens` | Tracks open menus. `AnyOpen` brings the cursor back; `BlocksPause` stops Esc from closing a menu *and* opening the pause menu in the same frame |
-| `SettingsOptions` | The option rows shared by the Hub and the pause menu: language, volumes, screen shake, fullscreen, FPS |
+| `SettingsOptions`, `OptionRows` | The options shared by the Hub and the pause menu (language, volumes, sound in background, screen shake, fullscreen, FPS), each a choice, a slider or a tickbox, and the builder that makes their rows the same way in both menus |
 
 Layout groups size rows and cards to their text, so descriptions wrap instead of being cut off, and long lists scroll.
 Every string goes through `Loc.T`, and menus rebuild when the language changes (`Loc.Changed`).

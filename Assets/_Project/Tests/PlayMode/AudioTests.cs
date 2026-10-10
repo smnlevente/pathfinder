@@ -82,6 +82,11 @@ namespace Pathfinder.Tests.PlayMode
             Assert.IsNotNull(source, "A music voice holds the combat track.");
             Assert.IsTrue(source.isPlaying, "The music is playing.");
             Assert.Greater(source.volume, 0.2f, "Loud enough to hear at default settings.");
+
+            Pathfinder.Game.Settings.GameSettings.MusicVolume = 0f;
+            yield return null;
+            Assert.AreEqual(0f, source.volume, "Music set to off is silent at once (playtest 5).");
+            Pathfinder.Game.Settings.GameSettings.ResetToDefaults();
         }
 
         [UnityTest]
