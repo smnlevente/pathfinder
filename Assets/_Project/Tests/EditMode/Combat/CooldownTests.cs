@@ -24,6 +24,19 @@ namespace Pathfinder.Tests.Combat
         }
 
         [Test]
+        public void TimeUntilNextCharge_CountsDownWhileAChargeIsStillReady()
+        {
+            var cooldown = new Cooldown(maxCharges: 2, rechargeTime: 8f);
+            Assert.AreEqual(0f, cooldown.TimeUntilNextCharge, "Full: nothing is recharging.");
+
+            cooldown.TryUse();
+            Advance(cooldown, 3f);
+            Assert.IsTrue(cooldown.IsReady);
+            Assert.AreEqual(0f, cooldown.TimeUntilReady, "A charge is ready now...");
+            Assert.AreEqual(5f, cooldown.TimeUntilNextCharge, 0.02f, "...and the spent one returns in 5 s.");
+        }
+
+        [Test]
         public void RechargesAfterRechargeTime()
         {
             var cooldown = new Cooldown(1, rechargeTime: 8f);

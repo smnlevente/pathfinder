@@ -89,7 +89,7 @@ namespace Pathfinder.Editor.Setup
 
             var world = FindOrCreate<CombatWorld>("Combat World");
             SetFields(world, ("arenaSize", ArenaSize), ("scrapPickupPrefab", Load<GameObject>(assets.Scrap)), ("deflectEffectPrefab", Load<GameObject>(assets.Deflect)));
-            AddAudio(assets, isRun ? MusicTrack.Hub : MusicTrack.Combat); // a run opens on the map
+            AddAudio(assets, MusicTrack.Combat); // the first galaxy's track, on the map and in the sandbox
 
             var floor = GameObject.Find("ArenaFloor");
             if (floor != null)

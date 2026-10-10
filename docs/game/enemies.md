@@ -19,7 +19,7 @@ flare and it plays its own wind-up sound**, so you can read a crowded arena by e
 | [Carrier](#carrier) | Galaxy 1, wave 4 | 150 | 1.8 | 6 | Launches Drones; armoured front | Flank it and shoot the yellow rear |
 | [Scorcher](#scorcher) | Galaxy 2 | 45 | 3.2 | 3 | Flamethrower cone up close | Stay out of the cone; hit it during the cooldown |
 | [Arc Drone](#arc-drone) | Galaxy 2 | 20 | 5 | 2 | Instant zap along a locked line | Step off the line, or dash through |
-| [Crusher](#crusher) | Galaxy 2, wave 2 | 110 | 2.2 | 4 | A huge slam if it reaches you | Keep your distance; shoot it while it recovers |
+| [Crusher](#crusher) | Galaxy 2, wave 2 | 110 | 2.8 | 4 | A lunging slam if it reaches you | Move away the moment its ring appears; shoot it while it recovers |
 
 Speeds are in units per second (the ship flies at 8). Cost is the wave director's budget price.
 
@@ -87,12 +87,13 @@ buzz). Then it fires **instantly** along the locked line: **14 damage** to the f
 
 <img src="../images/crusher-windup.png" width="60%" alt="A Crusher's red slam ring filling in around it, the ship at its edge">
 
-A heavy armoured block on treads, slow and almost **immune to knockback** (15%). When it gets within **2.6 u** it rears
-up for **0.55 s** behind a **red ring** at its 2.8 u reach (a servo groan), with a fill growing out to the ring, still
-creeping in. Then it **slams: 40 damage** to everything in the ring, with a shockwave. It recovers, motionless, for 1 s.
+A heavy armoured block on treads, slow and almost **immune to knockback** (15%). When it gets within **3.2 u** it rears
+up for **0.4 s** behind a **red ring** at its 3.3 u reach (a servo groan), with a fill growing out to the ring, and
+**lunges at you**. Then it **slams: 40 damage** to everything in the ring, with a shockwave. It recovers, motionless,
+for 1 s.
 
-> It only hurts if you let it reach you. Keep moving, or dash out of the ring as it fills. Its recovery is the time to
-> unload on it.
+> Don't let it get close. Move away the instant the ring appears, or dash out of it: drifting away isn't enough, it
+> lunges. Its recovery is the time to unload on it.
 
 ## Elites
 

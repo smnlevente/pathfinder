@@ -47,8 +47,11 @@ namespace Pathfinder.Editor.Setup
             SetFields(bolt.AddComponent<ArcBolt>(), ("core", core), ("glow", glow));
             art.ArcBolt = SavePrefab(bolt, "FX");
 
-            // The slam's shockwave ring reaches the Crusher's 2.8 u slam radius (the ring band sits at 44% of the quad).
-            art.SlamShockwave = SavePrefab(Explosion("FX_SlamShockwave", art.FxGrey, art.FxOrange, art.ShockRing, count: 30, speed: 6f, size: 0.5f, lifetime: 0.5f, ringSize: 6.4f), "FX");
+            // The slam's shockwave ring reaches the Crusher's 3.3 u slam radius (the ring band sits at 44% of the quad).
+            art.SlamShockwave = SavePrefab(Explosion("FX_SlamShockwave", art.FxGrey, art.FxOrange, art.ShockRing, count: 30, speed: 6f, size: 0.5f, lifetime: 0.5f, ringSize: 7.5f), "FX");
+
+            // Arriving at a level: a cyan flash and ring where the ship comes out of the wormhole (playtest 5).
+            art.WarpIn = SavePrefab(Explosion("FX_WarpIn", art.FxCyan, art.FxCyan, art.NovaRing, count: 24, speed: 5f, size: 0.4f, lifetime: 0.45f, ringSize: 6f), "FX");
             art.CoreOffline = SavePrefab(Explosion("FX_CoreOffline", art.FxOrange, art.FxGrey, art.ShockRing, count: 26, speed: 6f, size: 0.35f, lifetime: 0.6f, ringSize: 4f), "FX");
             art.CoreReboot = SavePrefab(Explosion("FX_CoreReboot", art.FxRed, art.FxOrange, art.ShockRing, count: 20, speed: 5f, size: 0.3f, lifetime: 0.4f, ringSize: 5.5f), "FX");
         }

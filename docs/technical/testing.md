@@ -82,6 +82,18 @@ public class MortarTests : SandboxTestBase
 Run-scene tests (`RunTests`) drive the `RunDirector` instead: choose nodes, `DebugTakeExit()` to skip levels, and
 `StartTestLevel(type)` to jump straight into a level of the current galaxy.
 
+### Sound during tests
+
+`SilentTestRun` mutes the game (`AudioListener.volume = 0`) for the whole PlayMode run, so a batch run doesn't fill
+the room with music and explosions. Sounds still play and are checked by `AudioTests`; they just aren't heard.
+
+### Watching the tests
+
+Batch runs have no window. To **watch** the PlayMode tests, open the project in the Editor, open **Window › General ›
+Test Runner**, choose **PlayMode** and run a test or a whole class: the Game view shows each fight as it plays.
+Most tests take a few seconds; the balance bots run at 5× speed. For a slower look, set `Time.timeScale` lower in a
+test while you watch, or capture screenshots (below).
+
 ### Rules for tests
 
 - **Never touch the player's data.** Tests that bank rewards point `MetaProgression.SavePath` at a temporary file, and

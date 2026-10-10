@@ -20,4 +20,5 @@ MonoBehaviour:
   <BudgetCost>k__BackingField: 20
   <ScrapsDrop>k__BackingField: 30
   <ScrapsDropChance>k__BackingField: 1
+  <KnockbackMultiplier>k__BackingField: 0
   <Prefab>k__BackingField: {fileID: 2759972179597607688, guid: 920c341ce9fb3ee4ba9e5e23b22a475f, type: 3}

@@ -77,6 +77,7 @@ namespace Pathfinder.Editor.Setup
             LinkDefinitions(art, actors, data);
             var runArt = BuildRunArt(art);
             var runConfig = BuildRunConfig(data, runArt);
+            SetIfEmpty(runConfig, ("ArrivalEffect", art.WarpIn));
             var quarryMaw = BuildQuarryMaw(art);
             UseQuarryMawAsBoss(runConfig, quarryMaw, data);
             var wardens = BuildBinaryWardens(art);

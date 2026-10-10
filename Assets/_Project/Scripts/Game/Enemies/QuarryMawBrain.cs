@@ -66,6 +66,7 @@ namespace Pathfinder.Game.Enemies
 
         [Header("Phase 3: Enrage")]
         [SerializeField, Min(1f)] float orbitDistance = 9f;
+        [SerializeField, Min(1f), Tooltip("Enraged, it circles this much faster than its normal speed (playtest 5).")] float enrageSpeedMultiplier = 1.6f;
         [SerializeField, Min(0.1f)] float streamInterval = 0.6f;
         [SerializeField, Min(1)] int streamBullets = 5;
         [SerializeField, Min(0f)] float streamSpread = 36f;
@@ -279,7 +280,8 @@ namespace Pathfinder.Game.Enemies
                         Vector2 forward = distance > 1e-4f ? toTarget / distance : Vector2.up;
                         Vector2 tangent = new Vector2(-forward.y, forward.x) * _orbitSign;
                         float radial = Mathf.Clamp((distance - orbitDistance) * 0.4f, -1f, 1f);
-                        desired = (tangent + forward * radial).normalized * self.MoveSpeed * 1.2f;
+                        self.SpeedMultiplier = enrageSpeedMultiplier;
+                        desired = (tangent + forward * radial).normalized * self.MoveSpeed * enrageSpeedMultiplier;
                         self.FaceTowards(forward);
 
                         if (Tick(ref _attackTimer, deltaTime * self.AttackRate, streamInterval))

@@ -342,9 +342,28 @@ namespace Pathfinder.Tests.PlayMode
             Assert.IsTrue(_player.IsPulled);
             yield return WaitUntil(() => _director.State != RunDirector.Phase.Level, 4f);
             Assert.AreEqual(RunDirector.Phase.GalaxyCleared, _director.State);
+            Assert.IsFalse(_player.IsPulled, "The pull ends with the level, so its camera rumble stops (playtest 5).");
             yield return WaitUntil(() => _director.State == RunDirector.Phase.Map, 5f);
             Assert.AreEqual(1, Run.GalaxyIndex);
             CollectionAssert.AreEqual(Run.Map.EntryNodes, Run.AvailableNodes);
+        }
+
+        [UnityTest]
+        public IEnumerator NewLevel_CameraCutsToTheShip()
+        {
+            yield return LoadRun(24);
+            var rig = Object.FindAnyObjectByType<CameraRig>();
+            Assert.IsTrue(_director.ChooseNode(Run.AvailableNodes[0]));
+            _level.DebugTakeExit(); // the ship ends the level at the top of the arena
+            yield return WaitUntil(() => _director.State == RunDirector.Phase.Map, 3f);
+            yield return null;
+            Assert.Greater(rig.Focus.z, 5f, "Behind the map, the camera is still at the exit.");
+
+            Assert.IsTrue(_director.ChooseNode(Run.AvailableNodes[0]));
+            yield return null;
+            yield return null;
+            float target = _player.transform.position.z + 2f; // the view leads 2 u toward the aim (up)
+            Assert.Less(Mathf.Abs(rig.Focus.z - target), 1.5f, "The camera cuts to the ship at the entry instead of sliding (playtest 5).");
         }
 
         [UnityTest]

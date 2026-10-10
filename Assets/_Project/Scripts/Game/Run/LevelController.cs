@@ -169,7 +169,13 @@ namespace Pathfinder.Game.Run
             world.BeginLevel(context.Seed, RunConfig.ForGalaxy(config.GalaxyEnemyHealth, context.GalaxyIndex), scrapsDrop);
 
             foreach (var player in CombatRegistry.Players)
+            {
                 player.PlaceForLevel(config.PlayerEntry);
+                // The ship arrives through a wormhole: a flash where it lands, and the camera cuts to it (playtest 5).
+                if (config.ArrivalEffect != null)
+                    Instantiate(config.ArrivalEffect, PlaneMath.ToWorld(config.PlayerEntry, 0.5f), Quaternion.identity);
+            }
+            Audio.GameAudio.Play(Audio.SoundCue.WarpIn);
 
             float budget = context.Ambush ? config.AmbushBudgetMultiplier : 1f;
             int directorRow = context.Row + 1;
@@ -237,6 +243,8 @@ namespace Pathfinder.Game.Run
                 Boss.Died -= OnBossDied;
 
             world.ClearLevel(collector);
+            foreach (var player in CombatRegistry.Players)
+                player.StopPull(); // the wormhole took them: the pull (and its camera rumble) ends with the level
             foreach (var spawned in _spawnedObjects)
             {
                 if (spawned != null)

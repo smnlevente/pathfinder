@@ -55,6 +55,8 @@ namespace Pathfinder.Editor.Setup
                 (SoundCue.Slam, Slam, 0.8f, 0.15f, 2, 0.08f),
                 (SoundCue.CoreOffline, CoreOffline, 0.8f, 0.3f, 1, 0f),
                 (SoundCue.CoreReboot, CoreReboot, 0.7f, 0.3f, 1, 0f),
+                (SoundCue.SecondaryReady, SecondaryReady, 0.35f, 0.15f, 1, 0f),
+                (SoundCue.WarpIn, WarpIn, 0.55f, 0.5f, 1, 0f),
             };
 
             var clips = new Dictionary<SoundCue, AudioClip>();
@@ -78,7 +80,7 @@ namespace Pathfinder.Editor.Setup
             }
 
             var music = new Dictionary<string, AudioClip>();
-            foreach (var (name, style) in new[] { ("Hub", HubMusic), ("Combat", CombatMusic), ("Boss", BossMusic) })
+            foreach (var (name, style) in new[] { ("Hub", HubMusic), ("Combat", CombatMusic), ("Boss", BossMusic), ("Galaxy2", Galaxy2Music), ("Galaxy3", Galaxy3Music) })
             {
                 string path = $"{AudioDir}/Music_{name}.wav";
                 WriteWav(path, Compose(style));
@@ -131,6 +133,8 @@ namespace Pathfinder.Editor.Setup
             so.FindProperty("<HubMusic>k__BackingField").objectReferenceValue = music["Hub"];
             so.FindProperty("<CombatMusic>k__BackingField").objectReferenceValue = music["Combat"];
             so.FindProperty("<BossMusic>k__BackingField").objectReferenceValue = music["Boss"];
+            so.FindProperty("<Galaxy2Music>k__BackingField").objectReferenceValue = music["Galaxy2"];
+            so.FindProperty("<Galaxy3Music>k__BackingField").objectReferenceValue = music["Galaxy3"];
             so.ApplyModifiedPropertiesWithoutUndo();
             return library;
         }
@@ -385,6 +389,27 @@ namespace Pathfinder.Editor.Setup
             Tone(b, 0f, 0.55f, Wave.Triangle, 150f, 900f, 0.5f, attack: 0.05f, decayPower: 0.5f);
             Tone(b, 0.5f, 0.25f, Wave.Sine, 1320f, 1320f, 0.4f, decayPower: 1.2f);
             Tone(b, 0.5f, 0.25f, Wave.Sine, 1980f, 1980f, 0.2f, decayPower: 1.5f);
+            return b;
+        }
+
+        /// <summary>A secondary charge is back: a soft, bright two-note chime, distinct from every combat sound.</summary>
+        static float[] SecondaryReady()
+        {
+            var b = Samples(0.3f);
+            Tone(b, 0f, 0.14f, Wave.Triangle, 1047f, 1047f, 0.5f, attack: 0.005f, decayPower: 1.2f);
+            Tone(b, 0.08f, 0.22f, Wave.Triangle, 1568f, 1568f, 0.5f, attack: 0.005f, decayPower: 1.4f);
+            Tone(b, 0.08f, 0.22f, Wave.Sine, 3136f, 3136f, 0.12f, decayPower: 2f);
+            return b;
+        }
+
+        /// <summary>Arriving at a level: a reversed whoosh that snaps into a low thump.</summary>
+        static float[] WarpIn()
+        {
+            var b = Samples(0.6f);
+            Tone(b, 0f, 0.45f, Wave.Noise, 800f, 6000f, 0.4f, attack: 0.4f, decayPower: 0.2f, seed: 50);
+            Tone(b, 0f, 0.45f, Wave.Sine, 200f, 900f, 0.25f, attack: 0.4f, decayPower: 0.2f);
+            Tone(b, 0.42f, 0.18f, Wave.Sine, 120f, 50f, 0.7f, decayPower: 1.5f);
+            LowPass(b, 3000f, 1500f);
             return b;
         }
 

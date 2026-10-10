@@ -67,6 +67,7 @@ MonoBehaviour:
   <SingularityCores>k__BackingField: 010000000200000003000000
   <BossHealFraction>k__BackingField: 0.3
   <ExitPrefab>k__BackingField: {fileID: 1460294685376848309, guid: b74a5534ce7f41c4abed1503ef20fd83, type: 3}
+  <ArrivalEffect>k__BackingField: {fileID: 2178330559369581766, guid: 86ee05afba5bc294d8629469c3c649e9, type: 3}
   <DarkMatterNodePrefab>k__BackingField: {fileID: 3926833002581884884, guid: 176b6fd5cb18502419f06cca0d8da08e, type: 3}
   <RepairStationPrefab>k__BackingField: {fileID: 1947758191507598400, guid: c1f34cf4e1ed1e14eae1c768c1e2d2a5, type: 3}
   <ShopTerminalPrefab>k__BackingField: {fileID: 7730497755224227096, guid: 5965c3e461badfd42bbdf295e73de9ac, type: 3}

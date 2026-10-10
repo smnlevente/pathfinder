@@ -20,6 +20,9 @@ namespace Pathfinder.Core.Combat
         /// <summary>Seconds until the next charge is ready, or 0 when one is available.</summary>
         public float TimeUntilReady => Charges > 0 ? 0f : Math.Max(0f, RechargeTime - _recharge);
 
+        /// <summary>Seconds until the recharging charge comes back, or 0 when all charges are full.</summary>
+        public float TimeUntilNextCharge => Charges < MaxCharges ? Math.Max(0f, RechargeTime - _recharge) : 0f;
+
         float _recharge;
 
         public Cooldown(int maxCharges, float rechargeTime)

@@ -129,13 +129,14 @@ namespace Pathfinder.Tests.PlayMode
         public IEnumerator Crusher_CanBeOutrun_AndShrugsOffKnockback()
         {
             yield return LoadRun();
-            var crusher = Spawn("enemy.crusher", new Vector2(0f, 2.3f));
+            // Just inside its reach: a pilot who moves away the moment the ring appears gets clear of the lunge.
+            var crusher = Spawn("enemy.crusher", new Vector2(0f, 3.1f));
             var brain = crusher.GetComponent<CrusherBrain>();
             Script(_ => new ShipCommand { Move = brain.Current == CrusherBrain.State.WindUp ? Vector2.down : Vector2.zero });
 
             yield return WaitUntilTicks(() => brain.Current == CrusherBrain.State.Recover, 200);
             Assert.AreEqual(CrusherBrain.State.Recover, brain.Current, "It slammed.");
-            Assert.AreEqual(0f, DamageTaken, "A pilot who moves away during the wind-up escapes the slam.");
+            Assert.AreEqual(0f, DamageTaken, "A pilot who moves away at once escapes the slam.");
 
             float x = crusher.Position.x;
             crusher.ApplyKnockback(Vector2.right * 20f);

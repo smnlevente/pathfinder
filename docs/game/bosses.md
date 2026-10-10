@@ -22,7 +22,7 @@ harmless** and fades out, so a stray shot can't kill you after you've won.
 ![The enraged Quarry Maw: yellow weak-point bands along its body, a magenta bullet fan aimed at the ship](../images/m5-quarry-maw.png)
 
 A colossal rock-worm: a head and **12 segments** trailing behind, all sharing one pool of **5,500 HP** (×1.6 and ×2.4
-in later galaxies).
+in later galaxies). Nothing knocks it back.
 
 **Its shell is armour.** Shots on the head or a plain segment stop with a grey spark. Every third segment carries a
 **yellow weak point**, and its **maw opens** (a big yellow crystal on the head) while it dives, emerges and rests
@@ -48,8 +48,8 @@ weak points. Each phase change opens with a **1.5 s roar**, during which even th
 
 ### Phase 3: Enrage (below 1/3)
 
-- The maw stays open. It circles you at 9 u, firing a **5-bullet stream** every 0.6 s, with a **16-rock shower** every
-  5 s.
+- The maw stays open. It circles you at 9 u, **much faster than before** (7.2 u/s, nearly your own speed), firing a
+  **5-bullet stream** every 0.6 s, with a **16-rock shower** every 5 s.
 - Every 8 s it stops, flares, and spins a **3-arm spiral** of bullets for 2.4 s.
 
 ---

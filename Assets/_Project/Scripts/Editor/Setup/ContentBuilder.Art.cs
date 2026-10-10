@@ -21,7 +21,7 @@ namespace Pathfinder.Editor.Setup
 
             // Galaxy 2: flames (a hazard orange), floor telegraphs, lightning and the Wardens' tether.
             public Material Flame, FlameCore, HazardArea, SlamArea, Beam, BoltCore, BoltGlow, Tether;
-            public GameObject FlameVisual, ArcBolt, SlamShockwave, CoreOffline, CoreReboot;
+            public GameObject FlameVisual, ArcBolt, SlamShockwave, CoreOffline, CoreReboot, WarpIn;
         }
 
         static Art BuildArt()

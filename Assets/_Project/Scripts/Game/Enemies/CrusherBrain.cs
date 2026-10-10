@@ -7,17 +7,18 @@ namespace Pathfinder.Game.Enemies
 {
     /// <summary>
     /// Crusher: a slow, heavy drone that shrugs off knockback. When it gets close it rears up, a red ring marking its
-    /// reach, and slams down: a shockwave that hits very hard. Then it needs a moment to recover, the time to hurt it.
-    /// Keep your distance, or dash out of the ring (GDD §7.3).
+    /// reach, and lunges in as it slams down: a shockwave that hits very hard. Then it needs a moment to recover, the time
+    /// to hurt it. Move away the moment the ring appears, or dash out of it (GDD §7.3). Playtest 5 found the first
+    /// version too easy to walk away from: the wind-up is shorter, the reach longer, and it lunges.
     /// </summary>
     public sealed class CrusherBrain : EnemyBrain, IAreaTelegraph
     {
         public enum State { Approach, WindUp, Recover }
 
-        [SerializeField, Min(0f), Tooltip("Starts the slam when the target's centre is this close.")] float triggerDistance = 2.6f;
-        [SerializeField, Min(0.05f)] float windUpTime = 0.55f;
-        [SerializeField, Range(0f, 1f), Tooltip("Move speed multiplier while rearing up: it keeps creeping in.")] float windUpMoveFactor = 0.2f;
-        [SerializeField, Min(0.1f)] float slamRadius = 2.8f;
+        [SerializeField, Min(0f), Tooltip("Starts the slam when the target's centre is this close.")] float triggerDistance = 3.2f;
+        [SerializeField, Min(0.05f)] float windUpTime = 0.4f;
+        [SerializeField, Min(0f), Tooltip("Speed it lunges at the target while rearing up, in u/s.")] float lungeSpeed = 3.5f;
+        [SerializeField, Min(0.1f)] float slamRadius = 3.3f;
         [SerializeField, Min(0f)] float slamDamage = 40f;
         [SerializeField, Min(0f)] float recoverTime = 1f;
         [SerializeField, Min(0f)] float slamShake = 0.22f;
@@ -54,14 +55,19 @@ namespace Pathfinder.Game.Enemies
                     return chase;
 
                 case State.WindUp:
-                    self.SpeedMultiplier = windUpMoveFactor;
+                    // Lunge: it closes in fast while the ring fills, so standing still or drifting gets you hit. The
+                    // slam is the hit: no contact damage now, and it stops short of ramming the ship.
+                    self.SpeedMultiplier = lungeSpeed / Mathf.Max(self.MoveSpeed, 0.01f);
+                    self.AccelerationMultiplier = 3f;
+                    self.ContactDamageMultiplier = 0f;
                     _timer -= deltaTime * self.AttackRate;
                     if (_timer <= 0f)
                     {
                         Slam(self);
                         Enter(self, State.Recover, recoverTime);
                     }
-                    return chase;
+                    float stopAt = self.Radius + (target != null ? target.Radius : 0f) + 0.4f;
+                    return target != null && toTarget.magnitude > stopAt ? toTarget.normalized * lungeSpeed : Vector2.zero;
 
                 default: // Recover
                     self.SpeedMultiplier = 0f;

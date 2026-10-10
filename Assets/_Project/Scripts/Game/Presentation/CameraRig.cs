@@ -37,6 +37,10 @@ namespace Pathfinder.Game.Presentation
         Vector3 _velocity;
         float _shake;
         PlayerShip _subscribed;
+        int _placements = -1;
+
+        /// <summary>The point the camera looks at, before shake. For tests.</summary>
+        public Vector3 Focus => _focus;
 
         /// <summary>Kicks the camera, e.g. for an eruption. Kicks don't add up: the strongest wins. Safe without a rig.</summary>
         public static void Kick(float amount)
@@ -94,15 +98,20 @@ namespace Pathfinder.Game.Presentation
             }
 
             SubscribeTo(firstLocal);
-            if (firstLocal != null && firstLocal.IsPulled)
+            // The rumble only while the pull is actually playing: never behind the map or a menu.
+            if (firstLocal != null && firstLocal.IsPulled && !GameClock.Paused)
                 Kick(wormholePullShake);
             if (count == 0)
                 return false;
 
             focus /= count;
-            if (!_hasFocus)
+            // Cut, don't slide, when the ship is placed at a new level's entry (playtest 5).
+            bool placed = firstLocal.Placements != _placements;
+            _placements = firstLocal.Placements;
+            if (!_hasFocus || placed)
             {
                 _focus = ClampToArena(focus);
+                _velocity = Vector3.zero;
                 _hasFocus = true;
             }
             return true;

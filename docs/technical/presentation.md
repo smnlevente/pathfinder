@@ -38,8 +38,8 @@ Every string goes through `Loc.T`, and menus rebuild when the language changes (
 
 `CombatHud` binds to the local pilot:
 
-- **Top left:** hull and shield bars, primary weapon state and ammo gauge, secondary cooldown, dash charges, ship trait
-  and equipment list coloured by rarity.
+- **Top left:** hull and shield bars, primary weapon state and ammo gauge, secondary cooldown (with a charge count
+  and the time to the next charge when it has several), dash charges, ship trait and equipment list coloured by rarity.
 - **Top right:** Scraps, Dark Matter and Singularity Cores, the seed code and an optional FPS counter.
 - **Top centre:** galaxy, row and level type; the objective; the boss bar with phase marks, or **one bar per part**
   for a boss that implements `IMultiPartBoss` (each named inside its bar, with a reboot countdown when a part is down).
@@ -75,8 +75,10 @@ the interface on its brain and add the component in the builder; no visual code 
 ## Camera
 
 `CameraRig` follows the local pilots at a 60° pitch with a slight lead toward their aim, and stays inside the arena.
+When a ship is placed at a level's entry (`PlayerShip.Placements` changes) it **cuts** to it instead of sliding.
 It shakes on hull hits and big explosions, and other code can call `CameraRig.Kick(amount)` (an eruption, a slam, the
-wormhole pull). Kicks don't add up: the strongest wins. Every shake is scaled by the **Screen Shake** setting, which
+wormhole pull, which rumbles only while the pull is playing, never behind a paused menu). Kicks don't add up: the
+strongest wins. Every shake is scaled by the **Screen Shake** setting, which
 can turn it off.
 
 ## Audio
@@ -89,7 +91,9 @@ can turn it off.
   (full volume within 6 u, 30% at 32 u). Without a living ship, the camera is the centre.
 - **Each enemy type winds up with its own sound**, chosen from its brain type, with pitch jitter.
 - **Voice limits.** 28 pooled voices; each cue has a minimum interval and a voice cap, and the oldest copy makes way.
-- **Music** crossfades between the Hub, combat and boss tracks over 1 s.
+- **Music** is played by `MusicPlayer`, which survives scene loads: asking for the track already playing carries on
+  instead of restarting. Each galaxy has its own track (`SoundLibrary.ForGalaxy`), on its map and in its levels;
+  bosses have theirs; tracks crossfade over 1 s.
 - **Volumes** multiply the director's own level by the player's master, effects and music settings.
 
 See [Content pipeline](content-pipeline.md#the-sound-library) for the library and the synthesizer.

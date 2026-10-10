@@ -119,8 +119,9 @@ namespace Pathfinder.Game.Run
             BankRun(won: false);
         }
 
+        /// <summary>Each galaxy has its own track, the same on its map and in its levels so it never restarts between them; bosses have theirs.</summary>
         void PlayLevelMusic() =>
-            Audio.GameAudio.PlayMusic(level.Context.Type == MapNodeType.Boss ? Audio.MusicTrack.Boss : Audio.MusicTrack.Combat);
+            Audio.GameAudio.PlayMusic(level.Context.Type == MapNodeType.Boss ? Audio.MusicTrack.Boss : Audio.SoundLibrary.ForGalaxy(level.Context.GalaxyIndex));
 
         void OnLevelExited(LevelController source)
         {
@@ -217,9 +218,11 @@ namespace Pathfinder.Game.Run
         void SetPhase(Phase phase)
         {
             State = phase;
-            // Levels pick their own track once they've begun (the boss has its own).
+            // Levels pick their own track once they've begun (the boss has its own). The map plays the galaxy's track;
+            // once a galaxy is cleared, the next galaxy's track comes in under the "jumping" screen.
             if (phase != Phase.Level)
-                Audio.GameAudio.PlayMusic(phase is Phase.Victory or Phase.Defeat ? Audio.MusicTrack.None : Audio.MusicTrack.Hub);
+                Audio.GameAudio.PlayMusic(phase is Phase.Victory or Phase.Defeat ? Audio.MusicTrack.None
+                    : Run != null ? Audio.SoundLibrary.ForGalaxy(Run.GalaxyIndex) : Audio.MusicTrack.Combat);
             PhaseChanged?.Invoke(this);
         }
 

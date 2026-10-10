@@ -58,7 +58,7 @@ namespace Pathfinder.Tests.PlayMode
             yield return LoadRun();
             yield return null;
             var library = Library();
-            foreach (var track in new[] { MusicTrack.Hub, MusicTrack.Combat, MusicTrack.Boss })
+            foreach (var track in new[] { MusicTrack.Hub, MusicTrack.Combat, MusicTrack.Boss, MusicTrack.Galaxy2, MusicTrack.Galaxy3 })
             {
                 Assert.IsNotNull(library.Music(track), $"{track} music exists.");
                 Assert.Greater(library.Music(track).length, 10f, $"{track} music is a real loop, not a jingle.");
@@ -78,10 +78,31 @@ namespace Pathfinder.Tests.PlayMode
                 yield return null;
 
             var music = Library().Music(MusicTrack.Combat);
-            var source = Object.FindAnyObjectByType<GameAudio>().GetComponents<AudioSource>().FirstOrDefault(s => s.clip == music);
+            var source = Object.FindAnyObjectByType<MusicPlayer>().GetComponents<AudioSource>().FirstOrDefault(s => s.clip == music);
             Assert.IsNotNull(source, "A music voice holds the combat track.");
             Assert.IsTrue(source.isPlaying, "The music is playing.");
             Assert.Greater(source.volume, 0.2f, "Loud enough to hear at default settings.");
+        }
+
+        [UnityTest]
+        public IEnumerator Music_CarriesOnAcrossScenes_AndChangesPerGalaxy()
+        {
+            yield return LoadRun();
+            yield return null;
+            var player = Object.FindAnyObjectByType<MusicPlayer>();
+            var voice = player.GetComponents<AudioSource>().First(s => s.clip == player.Clip);
+            float position = voice.time;
+
+            yield return LoadRun(); // a new scene asking for the same track
+            yield return null;
+            Assert.AreSame(player, Object.FindAnyObjectByType<MusicPlayer>(), "One music player for the whole session.");
+            Assert.AreEqual(MusicTrack.Combat, GameAudio.CurrentMusic);
+            Assert.GreaterOrEqual(voice.time, position, "The track carries on instead of restarting (playtest 5).");
+
+            Assert.AreEqual(MusicTrack.Combat, SoundLibrary.ForGalaxy(0));
+            Assert.AreEqual(MusicTrack.Galaxy2, SoundLibrary.ForGalaxy(1));
+            Assert.AreEqual(MusicTrack.Galaxy3, SoundLibrary.ForGalaxy(2));
+            Assert.AreNotSame(Library().Music(MusicTrack.Galaxy2), Library().Music(MusicTrack.Combat), "Each galaxy has its own music.");
         }
 
         [UnityTest]

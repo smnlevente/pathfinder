@@ -15,7 +15,7 @@ MonoBehaviour:
   id: enemy.crusher
   displayName: Crusher
   <MaxHealth>k__BackingField: 110
-  <MoveSpeed>k__BackingField: 2.2
+  <MoveSpeed>k__BackingField: 2.8
   <ContactDamage>k__BackingField: 15
   <BudgetCost>k__BackingField: 4
   <ScrapsDrop>k__BackingField: 4

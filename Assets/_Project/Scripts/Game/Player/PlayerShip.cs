@@ -91,6 +91,9 @@ namespace Pathfinder.Game.Player
         public event Action<PlayerShip> Dashed;
         public event Action<PlayerShip> Fired;
         public event Action<PlayerShip, SecondaryWeaponDefinition> SecondaryActivated;
+
+        /// <summary>A secondary charge came back, from the cooldown or an effect such as Kill Refund. For the "ready" sound.</summary>
+        public event Action<PlayerShip> SecondaryRecharged;
         public event Action<PlayerShip, int> ScrapsCollected;
 
         /// <summary>Raised after the loadout changes, e.g. for the HUD.</summary>
@@ -104,6 +107,7 @@ namespace Pathfinder.Game.Player
         bool _wasDashing;
         float _intangibleRemaining;
         Vector2? _pullTarget;
+        int _secondaryCharges;
         float _pullSpeed;
         bool _godMode;
         bool _tickInvulnerable; // dash or intangibility, as of the last tick
@@ -268,7 +272,10 @@ namespace Pathfinder.Game.Player
                 int charges = Mathf.Max(1, Stats.GetInt(StatId.SecondaryCharges, secondaryWeapon.Charges));
                 float cooldown = Mathf.Max(0.5f, Stats.Get(StatId.SecondaryCooldown, secondaryWeapon.Cooldown));
                 if (SecondaryCooldown == null || SecondaryCooldown.MaxCharges != charges || !Mathf.Approximately(SecondaryCooldown.RechargeTime, cooldown))
+                {
                     SecondaryCooldown = new Cooldown(charges, cooldown);
+                    _secondaryCharges = charges; // a fresh cooldown starts full: that isn't a recharge
+                }
             }
             else
             {
@@ -348,19 +355,24 @@ namespace Pathfinder.Game.Player
                 AddRunModifier(StatId.MaxHull, amount, 0f);
         }
 
-        /// <summary>Places the ship at a level entry point, at rest, and tells its effects a new level began.</summary>
         /// <summary>Being drawn into the exit wormhole: no control, no damage. See <see cref="PullTo"/>.</summary>
         public bool IsPulled => _pullTarget.HasValue;
 
+        /// <summary>Counts placements at a level entry, so the camera can cut to the ship instead of sliding (playtest 5).</summary>
+        public int Placements { get; private set; }
+
         /// <summary>
         /// Draws the ship into a point, spinning faster as it goes, with no control and no damage: the wormhole taking it
-        /// after a boss fight (playtest 4). Ends when the ship is placed for the next level.
+        /// after a boss fight (playtest 4). Ends when the level ends (<see cref="StopPull"/>) or the ship is placed for the next.
         /// </summary>
         public void PullTo(Vector2 point)
         {
             _pullTarget = point;
             _pullSpeed = 3f;
         }
+
+        /// <summary>Ends a wormhole pull, e.g. when the level it was leaving is torn down.</summary>
+        public void StopPull() => _pullTarget = null;
 
         void SimulatePull(float deltaTime, CombatWorld world)
         {
@@ -375,9 +387,11 @@ namespace Pathfinder.Game.Player
             Heading += SpinDegrees * deltaTime * Mathf.Clamp01(_pullSpeed / MaxSpeed + 0.2f);
         }
 
+        /// <summary>Places the ship at a level entry point, at rest, and tells its effects a new level began.</summary>
         public void PlaceForLevel(Vector2 position)
         {
             _pullTarget = null;
+            Placements++;
             Teleport(position);
             Velocity = Vector2.zero;
             AimDirection = Vector2.up;
@@ -507,11 +521,14 @@ namespace Pathfinder.Game.Player
             if (SecondaryCooldown != null)
             {
                 SecondaryCooldown.Tick(deltaTime);
+                if (SecondaryCooldown.Charges > _secondaryCharges)
+                    SecondaryRecharged?.Invoke(this); // includes charges Kill Refund returned since the last tick
                 if (command.FireSecondary && SecondaryCooldown.TryUse())
                 {
                     secondaryWeapon.Activate(this, world, WeaponRandom);
                     SecondaryActivated?.Invoke(this, secondaryWeapon);
                 }
+                _secondaryCharges = SecondaryCooldown.Charges;
             }
         }
 

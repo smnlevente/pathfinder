@@ -223,6 +223,20 @@ MonoBehaviour:
     PitchJitter: 0
     MinInterval: 0.3
     MaxVoices: 1
+  - Cue: 35
+    Clip: {fileID: 8300000, guid: 310055a578438514ab74391362887b07, type: 3}
+    Volume: 0.35
+    PitchJitter: 0
+    MinInterval: 0.15
+    MaxVoices: 1
+  - Cue: 36
+    Clip: {fileID: 8300000, guid: e39765fce500d5e47be8b7e3eae03381, type: 3}
+    Volume: 0.55
+    PitchJitter: 0
+    MinInterval: 0.5
+    MaxVoices: 1
   <HubMusic>k__BackingField: {fileID: 8300000, guid: 959ace4af4b4f39419a6d4267f7477e5, type: 3}
   <CombatMusic>k__BackingField: {fileID: 8300000, guid: bb5cf62707a5a8b498628ecaf1b5ff62, type: 3}
   <BossMusic>k__BackingField: {fileID: 8300000, guid: 9438c99484f9142448d207bb0a3cad7f, type: 3}
+  <Galaxy2Music>k__BackingField: {fileID: 8300000, guid: e27777276d043e24f8736ffdea7db62a, type: 3}
+  <Galaxy3Music>k__BackingField: {fileID: 8300000, guid: 07226753a2803e34585887f749d5f5c1, type: 3}

@@ -163,6 +163,29 @@ namespace Pathfinder.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator TwinCharge_ShowsBothCharges_AndAnnouncesEachRecharge()
+        {
+            yield return LoadRun();
+            Player.Equip(Item("equipment.twin-charge"));
+            Assert.AreEqual(2, Player.SecondaryCooldown.MaxCharges);
+            int recharged = 0;
+            Player.SecondaryRecharged += _ => recharged++;
+
+            Script(Once(new ShipCommand { FireSecondary = true }));
+            yield return WaitTicks(2);
+            Assert.AreEqual(1, Player.SecondaryCooldown.Charges, "One salvo spends one charge; the other stays ready.");
+            string label = Pathfinder.Game.Presentation.CombatHud.SecondaryLabel(Player);
+            StringAssert.Contains("1/2", label, "The HUD counts the charges (playtest 5).");
+            StringAssert.Contains("+1 in", label, "...and shows when the next one returns.");
+            Assert.AreEqual(0, recharged);
+
+            yield return WaitUntilTicks(() => recharged > 0, Mathf.CeilToInt(Player.SecondaryCooldown.RechargeTime * 60f) + 10);
+            Assert.AreEqual(1, recharged, "The returning charge is announced once (the ready chime).");
+            Assert.AreEqual(2, Player.SecondaryCooldown.Charges);
+            StringAssert.Contains("2/2", Pathfinder.Game.Presentation.CombatHud.SecondaryLabel(Player));
+        }
+
+        [UnityTest]
         public IEnumerator LastStand_SurvivesOneLethalHit()
         {
             yield return LoadRun();

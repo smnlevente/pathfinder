@@ -34,8 +34,6 @@ namespace Pathfinder.Game.Audio
         readonly Dictionary<SoundCue, float> _lastPlayed = new Dictionary<SoundCue, float>();
         readonly Dictionary<AudioSource, SoundCue> _playing = new Dictionary<AudioSource, SoundCue>();
         readonly HashSet<PlayerShip> _subscribed = new HashSet<PlayerShip>();
-        AudioSource _musicA, _musicB;
-        MusicTrack _track;
 
         /// <summary>Crossfades to a music track, or fades out for <see cref="MusicTrack.None"/>. Safe without a director.</summary>
         public static void PlayMusic(MusicTrack track)
@@ -44,7 +42,7 @@ namespace Pathfinder.Game.Audio
                 s_instance.SwitchMusic(track);
         }
 
-        public static MusicTrack CurrentMusic => s_instance != null ? s_instance._track : MusicTrack.None;
+        public static MusicTrack CurrentMusic => MusicPlayer.CurrentTrack;
 
         /// <summary>Plays a cue. A position pans it toward that side of the screen. Does nothing without a director.</summary>
         public static void Play(SoundCue cue, Vector3? position = null, float volume = 1f)
@@ -64,9 +62,6 @@ namespace Pathfinder.Game.Audio
                 source.spatialBlend = 0f;
                 _sources.Add(source);
             }
-
-            _musicA = MusicSource();
-            _musicB = MusicSource();
         }
 
         void Start()
@@ -81,41 +76,15 @@ namespace Pathfinder.Game.Audio
                     $"music {Settings.GameSettings.MusicVolume:P0}, effects {Settings.GameSettings.EffectsVolume:P0}. Silent in the Editor? Check Mute Audio in the Game view.");
         }
 
-        AudioSource MusicSource()
-        {
-            var source = gameObject.AddComponent<AudioSource>();
-            source.playOnAwake = false;
-            source.loop = true;
-            source.spatialBlend = 0f;
-            source.volume = 0f;
-            return source;
-        }
-
+        /// <summary>
+        /// Music lives on the <see cref="MusicPlayer"/>, which outlasts the scene, so a track that is already playing
+        /// carries on when a new scene asks for it (playtest 5: the Hub track restarted when a run began).
+        /// </summary>
         void SwitchMusic(MusicTrack track)
         {
-            var clip = library != null ? library.Music(track) : null;
-            if (track == _track && (_musicA.clip == clip || clip == null))
-                return;
-            _track = track;
-
-            // The current source fades out; the other one starts the new track and fades in.
-            (_musicA, _musicB) = (_musicB, _musicA);
-            _musicA.clip = clip;
-            _musicA.volume = 0f;
-            if (clip != null)
-                _musicA.Play();
-            else
-                _musicA.Stop();
-        }
-
-        void FadeMusic()
-        {
-            float step = Time.unscaledDeltaTime / musicFade;
-            float target = musicVolume * masterVolume * Settings.GameSettings.MasterVolume * Settings.GameSettings.MusicVolume;
-            _musicA.volume = Mathf.MoveTowards(_musicA.volume, _musicA.clip != null ? target : 0f, step * Mathf.Max(target, 0.01f));
-            _musicB.volume = Mathf.MoveTowards(_musicB.volume, 0f, step * Mathf.Max(target, 0.01f));
-            if (_musicB.isPlaying && _musicB.volume <= 0f)
-                _musicB.Stop();
+            var player = MusicPlayer.Instance;
+            player.SetLevel(musicVolume * masterVolume, musicFade);
+            player.Play(track, library != null ? library.Music(track) : null);
         }
 
         void OnEnable()
@@ -150,7 +119,7 @@ namespace Pathfinder.Game.Audio
 
         void Update()
         {
-            FadeMusic();
+            MusicPlayer.Instance.SetLevel(musicVolume * masterVolume, musicFade);
 
             // Local pilots can spawn later (a new run, a respawn), so pick them up as they appear.
             foreach (var player in CombatRegistry.Players)
@@ -161,6 +130,7 @@ namespace Pathfinder.Game.Audio
                     player.SecondaryActivated += OnSecondary;
                     player.Dashed += OnDashed;
                     player.ScrapsCollected += OnScraps;
+                    player.SecondaryRecharged += OnSecondaryReady;
                 }
             }
         }
@@ -171,6 +141,7 @@ namespace Pathfinder.Game.Audio
             ship.SecondaryActivated -= OnSecondary;
             ship.Dashed -= OnDashed;
             ship.ScrapsCollected -= OnScraps;
+            ship.SecondaryRecharged -= OnSecondaryReady;
         }
 
         // ---------------------------------------------------------------- event handlers
@@ -188,6 +159,8 @@ namespace Pathfinder.Game.Audio
             Play(weapon is NovaPulseDefinition ? SoundCue.NovaPulse : SoundCue.MissileLaunch, ship.transform.position);
 
         void OnDashed(PlayerShip ship) => Play(SoundCue.Dash, ship.transform.position);
+
+        void OnSecondaryReady(PlayerShip ship) => Play(SoundCue.SecondaryReady, ship.transform.position);
 
         void OnScraps(PlayerShip ship, int amount) => Play(SoundCue.Pickup, ship.transform.position, 0.8f);
 

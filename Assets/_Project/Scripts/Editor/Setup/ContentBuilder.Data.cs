@@ -66,7 +66,7 @@ namespace Pathfinder.Editor.Setup
                 ArcDrone = Definition<EnemyDefinition>("Enemies/Enemy_ArcDrone", "enemy.arc-drone", "Arc Drone", so => Set(so,
                     ("MaxHealth", 20f), ("MoveSpeed", 5f), ("ContactDamage", 8f), ("BudgetCost", 2), ("ScrapsDrop", 1), ("ScrapsDropChance", 0.7f))),
                 Crusher = Definition<EnemyDefinition>("Enemies/Enemy_Crusher", "enemy.crusher", "Crusher", so => Set(so,
-                    ("MaxHealth", 110f), ("MoveSpeed", 2.2f), ("ContactDamage", 15f), ("BudgetCost", 4), ("ScrapsDrop", 4), ("ScrapsDropChance", 0.9f),
+                    ("MaxHealth", 110f), ("MoveSpeed", 2.8f), ("ContactDamage", 15f), ("BudgetCost", 4), ("ScrapsDrop", 4), ("ScrapsDropChance", 0.9f),
                     ("KnockbackMultiplier", 0.15f))),
 
                 Armored = Definition<EliteModifierDefinition>("Enemies/Elite_Armored", "elite.armored", "Armored", so => Set(so,

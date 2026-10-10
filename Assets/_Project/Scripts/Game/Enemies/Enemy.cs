@@ -197,7 +197,7 @@ namespace Pathfinder.Game.Enemies
                 Heading = PlaneMath.HeadingDegrees(Velocity);
 
             _contactCooldown -= deltaTime;
-            if (_contactCooldown <= 0f && definition.ContactDamage > 0f && !Burrowed)
+            if (_contactCooldown <= 0f && definition.ContactDamage * ContactDamageMultiplier > 0f && !Burrowed)
                 TryContactDamage();
 
             _vitals.Tick(deltaTime);

@@ -539,10 +539,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b66452287ac27dd44bde5c2da310a6bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  triggerDistance: 2.6
-  windUpTime: 0.55
-  windUpMoveFactor: 0.2
-  slamRadius: 2.8
+  triggerDistance: 3.2
+  windUpTime: 0.4
+  lungeSpeed: 3.5
+  slamRadius: 3.3
   slamDamage: 40
   recoverTime: 1
   slamShake: 0.22

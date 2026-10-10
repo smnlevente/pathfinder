@@ -1201,6 +1201,7 @@ MonoBehaviour:
   wallRockSpeed: 3.5
   sweepContactMultiplier: 1.6
   orbitDistance: 9
+  enrageSpeedMultiplier: 1.6
   streamInterval: 0.6
   streamBullets: 5
   streamSpread: 36

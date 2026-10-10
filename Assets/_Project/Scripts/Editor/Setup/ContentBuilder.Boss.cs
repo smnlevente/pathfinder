@@ -17,7 +17,8 @@ namespace Pathfinder.Editor.Setup
         static EnemyDefinition BuildQuarryMaw(Art art)
         {
             var definition = Definition<EnemyDefinition>("Enemies/Enemy_QuarryMaw", "boss.quarry-maw", "The Quarry Maw", so => Set(so,
-                ("MaxHealth", 5500f), ("MoveSpeed", 4.5f), ("ContactDamage", 15f), ("BudgetCost", 20), ("ScrapsDrop", 30), ("ScrapsDropChance", 1f)));
+                ("MaxHealth", 5500f), ("MoveSpeed", 4.5f), ("ContactDamage", 15f), ("BudgetCost", 20), ("ScrapsDrop", 30), ("ScrapsDropChance", 1f),
+                ("KnockbackMultiplier", 0f)));
 
             var telegraph = new GameObject("FX_EruptTelegraph");
             var glow = FlatQuad("Glow", telegraph.transform, art.FxRed, 0.03f, 6.6f);

@@ -9,7 +9,7 @@ You choose a ship, one primary and one secondary weapon at the start of each run
 | Stat | Base | Notes |
 |---|---|---|
 | Hull | 100 | **Doesn't regenerate.** Restored only by repairs and healing effects. At 0 the run ends. |
-| Shield | 25 | Absorbs damage first. Regenerates at 10/s after 3 s without damage. |
+| Shield | 25 | Absorbs damage first. Regenerates at 4/s after 5 s without damage, so it rarely refills mid-fight. |
 | Speed | 8 u/s | Reaches top speed almost instantly |
 | Magnet radius | 3 u | Scraps inside it fly to the ship |
 | Post-hit invulnerability | 0.3 s | After any hull hit, so a burst can't land all at once |
@@ -58,6 +58,13 @@ Cooldown-based bursts or utility.
 | Railgun | A piercing line shot across the screen after a 0.25 s wind-up, 150 damage | 6 s | Planned |
 | Gravity Well | A singularity that pulls enemies and bullets, then implodes | 14 s | Planned |
 | Arc Lance | A channelled piercing beam, 120 damage per second | 10 s | Planned |
+
+### Secondary charges
+
+Twin Charge gives a secondary **2 charges**. They share one cooldown and come back **one at a time**: fire both, and
+the first returns after one cooldown, the second after another. The HUD shows the count and the time to the next
+charge ("SEEKER SWARM   1/2   READY · +1 in 4.2s"), the gauge fills as the next charge returns, and a soft **chime**
+plays each time a charge is back.
 
 ## Damage and crits
 

@@ -101,9 +101,11 @@ namespace Pathfinder.Game.Presentation
             _secondary.Rect.gameObject.SetActive(hasSecondary);
             if (hasSecondary)
             {
+                _secondaryText.text = SecondaryLabel(player);
+                // The gauge fills as the next charge comes back; full only when every charge is (playtest 5).
                 var cooldown = player.SecondaryCooldown;
-                _secondaryText.text = $"{player.SecondaryWeapon.DisplayName.ToUpperInvariant()}   {(cooldown.IsReady ? Loc.T("hud.ready") : Loc.T("hud.cooldown", ("seconds", cooldown.TimeUntilReady)))}";
-                _secondary.Set(cooldown.IsReady ? 1f : cooldown.RechargeProgress, cooldown.IsReady ? WeaponColor : WarningColor);
+                bool full = cooldown.Charges >= cooldown.MaxCharges;
+                _secondary.Set(full ? 1f : cooldown.RechargeProgress, cooldown.IsReady ? WeaponColor : WarningColor);
             }
 
             var dash = player.Dash;
@@ -126,6 +128,24 @@ namespace Pathfinder.Game.Presentation
             }
             _loadoutText.text = _builder.ToString();
             _scraps.text = Loc.T("hud.scraps", ("amount", player.Scraps));
+        }
+
+        /// <summary>
+        /// "SEEKER SWARM   READY". With several charges it also counts them and shows when the next one returns:
+        /// "SEEKER SWARM   1/2   READY · +1 in 4.2s". Charges recharge one at a time.
+        /// </summary>
+        public static string SecondaryLabel(PlayerShip player)
+        {
+            var cooldown = player.SecondaryCooldown;
+            string name = player.SecondaryWeapon.DisplayName.ToUpperInvariant();
+            if (cooldown.MaxCharges <= 1)
+                return $"{name}   {(cooldown.IsReady ? Loc.T("hud.ready") : Loc.T("hud.cooldown", ("seconds", cooldown.TimeUntilReady)))}";
+
+            string charges = Loc.T("hud.secondary.charges", ("charges", cooldown.Charges), ("max", cooldown.MaxCharges));
+            string state = !cooldown.IsReady ? Loc.T("hud.cooldown", ("seconds", cooldown.TimeUntilReady))
+                : cooldown.Charges < cooldown.MaxCharges ? Loc.T("hud.secondary.next", ("seconds", cooldown.TimeUntilNextCharge))
+                : Loc.T("hud.ready");
+            return $"{name}   {charges}   {state}";
         }
 
         void RefreshStatus(PlayerShip player)

@@ -9832,7 +9832,7 @@ MonoBehaviour:
   ring: {fileID: 6426681451876239378}
   duration: 0.3
   startScale: 0.6
-  endScale: 6.4
+  endScale: 7.5
 --- !u!1 &8046775185581225250
 GameObject:
   m_ObjectHideFlags: 0

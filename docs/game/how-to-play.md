@@ -54,8 +54,8 @@ flowchart LR
 
 ![The HUD in a boss fight: pilot panel top left, currencies top right, boss bars top centre](../images/wardens.png)
 
-- **Top left:** hull (red) and shield (blue), your weapons with ammo and cooldown, dash charges, ship trait and
-  equipment.
+- **Top left:** hull (red) and shield (blue), your weapons with ammo and cooldown (and charges, for a secondary with
+  more than one), dash charges, ship trait and equipment.
 - **Top right:** Scraps, Dark Matter, Singularity Cores and the run's seed code.
 - **Top centre:** where you are, the objective, and the boss's health bar (one per part for a boss in pieces).
 - **Crosshair:** its ring shows your ammo, reload or charge.
@@ -76,7 +76,8 @@ flowchart LR
 ## Tips
 
 - The dash makes you **fully invulnerable** for its duration. Dash *through* bullets and attacks, not just away.
-- Your hull **doesn't regenerate**. Repairs are rare: the Repair node, the Shop, boss rewards and some events.
+- Your hull **doesn't regenerate**, and your shield only refills after 5 s out of harm. Repairs are rare: the Repair
+  node, the Shop, boss rewards and some events.
 - Every route is a trade. Equipment nodes grow your build, Scraps nodes fund the Shop, Dark Matter nodes invest in
   future runs.
 - In a Dark Matter level, the exit is open from the start. Greed is a choice: the longer you stay, the harder it gets.

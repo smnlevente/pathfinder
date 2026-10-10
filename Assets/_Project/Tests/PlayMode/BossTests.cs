@@ -123,6 +123,13 @@ namespace Pathfinder.Tests.PlayMode
             yield return WaitUntilVulnerable();
             Assert.IsTrue(_brain.IsMawExposed);
             Assert.IsFalse(_boss.Armoured, "Enraged, the cracked maw can be hit.");
+            float topSpeed = 0f;
+            for (int i = 0; i < 90; i++)
+            {
+                yield return WaitTicks(1);
+                topSpeed = Mathf.Max(topSpeed, _boss.Velocity.magnitude);
+            }
+            Assert.Greater(topSpeed, _boss.MoveSpeed * 1.4f, "Enraged, it circles much faster (playtest 5).");
             yield return WaitUntilTicks(() => World.Projectiles.CountForTeam(Team.Enemy) >= 5, 300);
             Assert.That(World.Projectiles.CountForTeam(Team.Enemy), Is.GreaterThanOrEqualTo(5), "Enraged, it spews bullet streams.");
         }

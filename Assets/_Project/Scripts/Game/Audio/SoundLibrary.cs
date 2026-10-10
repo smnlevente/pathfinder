@@ -45,10 +45,17 @@ namespace Pathfinder.Game.Audio
         Slam,
         CoreOffline,
         CoreReboot,
+
+        // Playtest 5.
+        SecondaryReady,
+        WarpIn,
     }
 
-    /// <summary>Background music, by context (GDD §13.2).</summary>
-    public enum MusicTrack { None, Hub, Combat, Boss }
+    /// <summary>
+    /// Background music, by context (GDD §13.2). <see cref="Combat"/> is the first galaxy's track; each galaxy has its own
+    /// (playtest 5). Append new tracks at the end: scenes store these as numbers.
+    /// </summary>
+    public enum MusicTrack { None, Hub, Combat, Boss, Galaxy2, Galaxy3 }
 
     /// <summary>The clips and mix settings for each <see cref="SoundCue"/>, and the music tracks.</summary>
     [CreateAssetMenu(menuName = "Pathfinder/Sound Library", fileName = "SoundLibrary")]
@@ -69,13 +76,25 @@ namespace Pathfinder.Game.Audio
         [field: SerializeField] public AudioClip HubMusic { get; private set; }
         [field: SerializeField] public AudioClip CombatMusic { get; private set; }
         [field: SerializeField] public AudioClip BossMusic { get; private set; }
+        [field: SerializeField] public AudioClip Galaxy2Music { get; private set; }
+        [field: SerializeField] public AudioClip Galaxy3Music { get; private set; }
 
         public AudioClip Music(MusicTrack track) => track switch
         {
             MusicTrack.Hub => HubMusic,
             MusicTrack.Combat => CombatMusic,
             MusicTrack.Boss => BossMusic,
+            MusicTrack.Galaxy2 => Galaxy2Music,
+            MusicTrack.Galaxy3 => Galaxy3Music,
             _ => null,
+        };
+
+        /// <summary>The track for a galaxy's map and levels (0-based). Bosses have their own.</summary>
+        public static MusicTrack ForGalaxy(int galaxyIndex) => galaxyIndex switch
+        {
+            <= 0 => MusicTrack.Combat,
+            1 => MusicTrack.Galaxy2,
+            _ => MusicTrack.Galaxy3,
         };
 
         public Entry Find(SoundCue cue)

@@ -78,6 +78,7 @@ namespace Pathfinder.Game.Run
 
         [field: Header("Objects")]
         [field: SerializeField] public GameObject ExitPrefab { get; private set; }
+        [field: SerializeField, Tooltip("Played where the ship arrives at the start of each level.")] public GameObject ArrivalEffect { get; private set; }
         [field: SerializeField] public GameObject DarkMatterNodePrefab { get; private set; }
         [field: SerializeField] public GameObject RepairStationPrefab { get; private set; }
         [field: SerializeField] public GameObject ShopTerminalPrefab { get; private set; }
