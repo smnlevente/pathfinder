@@ -29,7 +29,7 @@ namespace Pathfinder.Game.Presentation.Ui
         public static readonly Color Gold = new Color(1f, 0.8f, 0.3f);
 
         static Font s_font;
-        static Sprite s_circle, s_ring;
+        static Sprite s_circle, s_ring, s_vignette;
 
         public static Font Font => s_font != null ? s_font : s_font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
@@ -38,6 +38,9 @@ namespace Pathfinder.Game.Presentation.Ui
 
         /// <summary>A thin ring, for selection halos.</summary>
         public static Sprite Ring => s_ring != null ? s_ring : s_ring = MakeRadialSprite(128, d => Mathf.Clamp01((0.06f - Mathf.Abs(d - 0.9f)) * 40f));
+
+        /// <summary>Clear in the middle, opaque at the edges: a full-screen flash that leaves the action visible.</summary>
+        public static Sprite Vignette => s_vignette != null ? s_vignette : s_vignette = MakeRadialSprite(128, d => Mathf.Clamp01((d - 0.55f) / 0.6f));
 
         /// <summary>A screen-space overlay canvas that scales the 1920×1080 layout to fit any screen.</summary>
         public static Canvas Canvas(string name, Transform parent, int sortingOrder)

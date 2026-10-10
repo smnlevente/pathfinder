@@ -76,7 +76,7 @@ namespace Pathfinder.Tests.PlayMode
                 for (int i = 0; i < 30; i++)
                     yield return new WaitForFixedUpdate();
                 yield return null;
-                Screenshots.CaptureCamera(Path.Combine(directory, $"run_{type.ToString().ToLowerInvariant()}.png"));
+                Screenshots.CaptureWithUi(Path.Combine(directory, $"run_{type.ToString().ToLowerInvariant()}.png"));
 
                 level.DebugTakeExit();
                 float deadline = Time.realtimeSinceStartup + 3f;
@@ -96,11 +96,11 @@ namespace Pathfinder.Tests.PlayMode
             var brain = boss.GetComponent<QuarryMawBrain>();
             _player.PlaceForLevel(new Vector2(0f, -4f));
 
-            // Surfaced and chasing: the trailing body with its yellow weak points.
+            // Surfaced and chasing: the trailing body with its yellow weak points, and the HUD with the boss bar.
             for (int i = 0; i < 100; i++)
                 yield return new WaitForFixedUpdate();
             yield return null;
-            Screenshots.CaptureCamera(Path.Combine(directory, "boss_surfaced.png"));
+            Screenshots.CaptureWithUi(Path.Combine(directory, "boss_surfaced.png"));
 
             // Sweep: the chevron lane of an incoming charge.
             var weakPoint = brain.Segments.First(segment => segment.IsWeakPoint);

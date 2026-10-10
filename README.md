@@ -16,7 +16,7 @@ The design lives in [docs/GDD.md](docs/GDD.md).
 | M4 Build system | ✅ 20 equipment items, stats, choice cards, Shop catalog, Titan + Stormbringer traits, Hub loadout |
 | M5 Boss + meta | ✅ the Quarry Maw (3-phase rock-worm boss), run summary with banked rewards, Pathfinder Lab upgrades, save file |
 | Playtest 2 fixes | ✅ readable bullets, chevron charge telegraphs, tougher Lancer, weak-point-only Quarry Maw with harder phases, Mystery events, uGUI map/shop/cards |
-| M6 Slice polish | In progress (GDD §17): VFX, juice, audio, balance, external playtest |
+| M6 Slice polish | In progress: synthesized SFX, explosions and camera kicks, uGUI HUD and Hub, economy probe done; music, ammo ring and the external playtest left |
 
 ## Playing
 

@@ -1,76 +1,105 @@
+using System.Collections.Generic;
 using Pathfinder.Core.Run;
 using Pathfinder.Game.Boot;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Content;
 using Pathfinder.Game.Meta;
+using Pathfinder.Game.Presentation.Ui;
 using Pathfinder.Game.Run;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace Pathfinder.Game.Presentation
 {
     /// <summary>
-    /// Placeholder Hub (GDD §11.2, §12.1): start a run after choosing a ship and loadout (GDD §5.4), spend Dark Matter and
-    /// Singularity Cores in the Lab, or open the combat sandbox. Locked weapons are skipped in the loadout until bought.
+    /// The Hub (GDD §11.2, §12.1): start a run after choosing a ship and loadout (GDD §5.4), spend Dark Matter and
+    /// Singularity Cores in the Pathfinder Lab, or open the combat sandbox. Locked weapons are skipped in the loadout until
+    /// bought. Mouse, keyboard and gamepad all work.
     /// </summary>
     public sealed class HubMenu : MonoBehaviour
     {
-        const float ReferenceHeight = 1080f;
+        static readonly string[] MainOptions = { "START RUN", "PATHFINDER LAB", "COMBAT SANDBOX", "QUIT" };
 
-        static readonly string[] MainOptions = { "START RUN", "LAB", "COMBAT SANDBOX", "QUIT" };
+        static readonly string[] MainDetails =
+        {
+            "Choose a ship and weapons, then jump into the Shattered Expanse.",
+            "Spend Dark Matter and Singularity Cores on permanent upgrades.",
+            "Endless waves for practice and tuning.",
+            null,
+        };
 
-        enum Page { Main, Loadout, Lab }
+        public enum Page { Main, Loadout, Lab }
 
         [SerializeField] ContentDatabase content;
 
         MenuInput _input;
-        Page _screen;
+        Page _page;
         int _selected;
         int _ship, _primary, _secondary;
-        GUIStyle _title, _subtitle, _button, _label, _detail;
 
-        void Awake() => _input = new MenuInput();
+        Text _meta, _pageTitle, _hint;
+        RectTransform _list;
+        readonly List<UiRow> _rows = new List<UiRow>();
+        readonly List<bool> _enabled = new List<bool>();
+
+        public Page CurrentPage => _page;
+
+        /// <summary>Opens a page directly. For tests and debug tools.</summary>
+        public void Open(Page page) => ShowPage(page);
+
+        void Awake()
+        {
+            _input = new MenuInput();
+            Build();
+            ShowPage(Page.Main);
+        }
 
         void Update()
         {
             var step = _input.ReadStep();
-            if (_screen == Page.Main)
-            {
-                if (step.y != 0)
-                    _selected = (_selected - step.y + MainOptions.Length) % MainOptions.Length;
-                if (_input.Submitted)
-                    ChooseMain(_selected);
-                return;
-            }
+            if (step.y != 0 && _rows.Count > 0)
+                _selected = (_selected - step.y + _rows.Count) % _rows.Count;
 
-            if (_screen == Page.Lab)
-            {
-                int count = content.MetaUpgrades.Length + 1;
-                if (step.y != 0)
-                    _selected = (_selected - step.y + count) % count;
-                if (_input.Submitted)
-                {
-                    if (_selected < content.MetaUpgrades.Length)
-                        MetaProgression.TryPurchase(content.MetaUpgrades[_selected]);
-                    else
-                        _screen = Page.Main;
-                }
-                else if (_input.Cancelled)
-                {
-                    _screen = Page.Main;
-                }
-                return;
-            }
-
-            // Loadout rows: ship, primary, secondary, launch. Left/right cycles the row, up/down moves between rows.
-            if (step.y != 0)
-                _selected = (_selected - step.y + 4) % 4;
-            if (step.x != 0)
+            if (_page == Page.Loadout && step.x != 0 && _selected < 3)
                 Cycle(_selected, step.x);
-            if (_input.Submitted && _selected == 3)
-                StartRun();
-            else if (_input.Cancelled)
-                _screen = Page.Main;
+            else if (_input.Submitted)
+                Activate(_selected);
+            else if (_input.Cancelled && _page != Page.Main)
+                ShowPage(Page.Main);
+
+            _meta.text = MetaLine();
+            for (int i = 0; i < _rows.Count; i++)
+                _rows[i].SetState(i == _selected, _enabled[i]);
+        }
+
+        // ---------------------------------------------------------------- actions
+
+        void Activate(int index)
+        {
+            switch (_page)
+            {
+                case Page.Main:
+                    ChooseMain(index);
+                    break;
+                case Page.Loadout:
+                    if (index == 3)
+                        StartRun();
+                    else
+                        Cycle(index, 1);
+                    break;
+                case Page.Lab:
+                    if (index < content.MetaUpgrades.Length)
+                    {
+                        if (MetaProgression.TryPurchase(content.MetaUpgrades[index]))
+                            ShowPage(Page.Lab, keepSelection: true);
+                    }
+                    else
+                    {
+                        ShowPage(Page.Main);
+                    }
+                    break;
+            }
         }
 
         void ChooseMain(int index)
@@ -78,14 +107,13 @@ namespace Pathfinder.Game.Presentation
             switch (index)
             {
                 case 0:
-                    _screen = Page.Loadout;
-                    _selected = 3;
                     _primary = NextAvailable(content.PrimaryWeapons, _primary, 0);
                     _secondary = NextAvailable(content.SecondaryWeapons, _secondary, 0);
+                    ShowPage(Page.Loadout);
+                    _selected = 3;
                     break;
                 case 1:
-                    _screen = Page.Lab;
-                    _selected = 0;
+                    ShowPage(Page.Lab);
                     break;
                 case 2:
                     SceneManager.LoadScene(SceneNames.Sandbox);
@@ -104,6 +132,7 @@ namespace Pathfinder.Game.Presentation
                 case 1: _primary = NextAvailable(content.PrimaryWeapons, _primary, step); break;
                 case 2: _secondary = NextAvailable(content.SecondaryWeapons, _secondary, step); break;
             }
+            ShowPage(Page.Loadout, keepSelection: true);
         }
 
         /// <summary>Steps through the list, skipping content that is still locked (GDD §11.2).</summary>
@@ -133,142 +162,111 @@ namespace Pathfinder.Game.Presentation
             SceneManager.LoadScene(SceneNames.Run);
         }
 
-        void OnGUI()
+        // ---------------------------------------------------------------- view
+
+        void Build()
         {
-            EnsureStyles();
-            float scale = Screen.height / ReferenceHeight;
-            GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
-            float width = Screen.width / scale;
+            var canvas = UiKit.Canvas("Hub", transform, sortingOrder: 0);
+            var root = canvas.transform;
+            var background = UiKit.Image(root, "Background", new Color(0.012f, 0.02f, 0.045f, 1f));
+            UiKit.Stretch(background.rectTransform);
 
-            GUI.Label(new Rect(0f, 110f, width, 90f), "PROJECT PATHFINDER", _title);
-            GUI.Label(new Rect(0f, 200f, width, 40f), "NEW HOME", _subtitle);
+            var title = UiKit.Text(root, "Title", "PROJECT PATHFINDER", 76, new Color(0.5f, 0.9f, 1f), TextAnchor.MiddleCenter, FontStyle.Bold);
+            UiKit.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -90f), new Vector2(1600f, 96f));
+            var subtitle = UiKit.Text(root, "Subtitle", "NEW HOME", 32, new Color(0.8f, 0.9f, 1f), TextAnchor.MiddleCenter, FontStyle.Bold);
+            UiKit.Place(subtitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -186f), new Vector2(1600f, 44f));
+            _meta = UiKit.Text(root, "Profile", string.Empty, 20, UiKit.TextBody, TextAnchor.MiddleCenter);
+            UiKit.Place(_meta.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -242f), new Vector2(1600f, 30f));
 
+            var panel = UiKit.Image(root, "Panel", UiKit.Panel);
+            UiKit.Place(panel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -300f), new Vector2(900f, 0f));
+            UiKit.Vertical(panel, 12f, new RectOffset(40, 40, 28, 26));
+            UiKit.FitContent(panel);
+            _pageTitle = UiKit.Text(panel.transform, "Page", string.Empty, 30, UiKit.TextBright, TextAnchor.MiddleCenter, FontStyle.Bold);
+            _list = UiKit.Node("Rows", panel.transform);
+            UiKit.Vertical(_list, 8f);
+            _hint = UiKit.Text(panel.transform, "Hint", string.Empty, 17, UiKit.TextDim, TextAnchor.MiddleCenter);
+        }
+
+        void ShowPage(Page page, bool keepSelection = false)
+        {
+            _page = page;
+            if (!keepSelection)
+                _selected = 0;
+
+            for (int i = _list.childCount - 1; i >= 0; i--)
+                Destroy(_list.GetChild(i).gameObject);
+            _list.DetachChildren();
+            _rows.Clear();
+            _enabled.Clear();
+
+            switch (page)
+            {
+                case Page.Main:
+                    _pageTitle.text = string.Empty;
+                    for (int i = 0; i < MainOptions.Length; i++)
+                        AddRow(MainOptions[i], null, MainDetails[i]);
+                    _hint.text = "Up / Down: choose     Enter: confirm";
+                    break;
+
+                case Page.Loadout:
+                {
+                    _pageTitle.text = "LOADOUT";
+                    var ship = content.Ships[_ship];
+                    var primary = content.PrimaryWeapons[_primary];
+                    var secondary = content.SecondaryWeapons[_secondary];
+                    AddRow($"SHIP:   ‹ {ship.DisplayName} ›", null,
+                        $"Hull {ship.MaxHull:0}   Shield {ship.MaxShield:0}   Speed {ship.MoveSpeed:0.#}\n{ship.TraitName}: {ship.TraitDescription}");
+                    AddRow($"PRIMARY:   ‹ {primary.DisplayName} ›", null, PrimarySummary(primary));
+                    AddRow($"SECONDARY:   ‹ {secondary.DisplayName} ›", null, $"Cooldown {secondary.Cooldown:0} s");
+                    AddRow("LAUNCH", null, null, UiKit.Accent);
+                    _hint.text = "Up / Down: choose row     Left / Right or click: change     Esc: back";
+                    break;
+                }
+
+                case Page.Lab:
+                {
+                    _pageTitle.text = "PATHFINDER LAB";
+                    var meta = MetaProgression.Current;
+                    foreach (var upgrade in content.MetaUpgrades)
+                    {
+                        int tier = upgrade.Effect == MetaUpgradeDefinition.EffectKind.Unlock ? (meta.IsUnlocked(upgrade.Id) ? 1 : 0) : meta.Tier(upgrade.Id);
+                        bool maxed = tier >= upgrade.MaxTiers;
+                        int cost = upgrade.CostOfTier(tier);
+                        string currency = upgrade.Currency == Core.Meta.MetaCurrency.DarkMatter ? "DM" : "CORES";
+                        string level = upgrade.MaxTiers > 1 ? $"   {tier} / {upgrade.MaxTiers}" : string.Empty;
+                        AddRow(upgrade.DisplayName + level, maxed ? "OWNED" : $"{cost} {currency}", upgrade.Describe(),
+                            enabled: !maxed && meta.Balance(upgrade.Currency) >= cost,
+                            noteColor: upgrade.Currency == Core.Meta.MetaCurrency.DarkMatter ? new Color(0.65f, 0.55f, 1f) : UiKit.Gold);
+                    }
+                    AddRow("BACK");
+                    _hint.text = "Up / Down: choose     Enter: buy     Esc: back";
+                    break;
+                }
+            }
+
+            _selected = Mathf.Clamp(_selected, 0, Mathf.Max(0, _rows.Count - 1));
+            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)_list.parent);
+        }
+
+        void AddRow(string label, string note = null, string detail = null, Color? accent = null, bool enabled = true, Color? noteColor = null)
+        {
+            var row = new UiRow(_list, label, note, detail, accent, noteColor);
+            int index = _rows.Count;
+            row.Pointer.Entered += () => _selected = index;
+            row.Pointer.Clicked += () => Activate(index);
+            _rows.Add(row);
+            _enabled.Add(enabled);
+        }
+
+        string MetaLine()
+        {
             var meta = MetaProgression.Current;
-            GUI.Label(new Rect(0f, 260f, width, 30f),
-                $"DARK MATTER {meta.DarkMatter}   ·   SINGULARITY CORES {meta.SingularityCores}   ·   RUNS {meta.RunsWon} WON / {meta.RunsPlayed}", _detail);
-
-            switch (_screen)
-            {
-                case Page.Loadout: DrawLoadout(width); break;
-                case Page.Lab: DrawLab(width); break;
-                default: DrawMain(width); break;
-            }
-        }
-
-        void DrawLab(float width)
-        {
-            var meta = MetaProgression.Current;
-            var upgrades = content.MetaUpgrades;
-            for (int i = 0; i <= upgrades.Length; i++)
-            {
-                var rect = new Rect(width * 0.5f - 420f, 320f + i * 64f, 840f, 54f);
-                string label;
-                bool enabled = true;
-                if (i == upgrades.Length)
-                {
-                    label = "BACK";
-                }
-                else
-                {
-                    var upgrade = upgrades[i];
-                    int tier = upgrade.Effect == MetaUpgradeDefinition.EffectKind.Unlock ? (meta.IsUnlocked(upgrade.Id) ? 1 : 0) : meta.Tier(upgrade.Id);
-                    bool maxed = tier >= upgrade.MaxTiers;
-                    int cost = upgrade.CostOfTier(tier);
-                    string currency = upgrade.Currency == Core.Meta.MetaCurrency.DarkMatter ? "DM" : "Cores";
-                    string state = maxed ? "OWNED" : $"{cost} {currency}";
-                    label = $"{upgrade.DisplayName}  [{tier}/{upgrade.MaxTiers}]   {upgrade.Describe()}   ·   {state}";
-                    enabled = !maxed && meta.Balance(upgrade.Currency) >= cost;
-                }
-
-                GUI.enabled = enabled;
-                GUI.color = _selected == i ? new Color(0.4f, 0.9f, 1f) : Color.white;
-                if (GUI.Button(rect, label, _button))
-                {
-                    if (i == upgrades.Length)
-                        _screen = Page.Main;
-                    else
-                        MetaProgression.TryPurchase(upgrades[i]);
-                }
-                if (rect.Contains(Event.current.mousePosition))
-                    _selected = i;
-            }
-            GUI.enabled = true;
-            GUI.color = Color.white;
-        }
-
-        void DrawMain(float width)
-        {
-            for (int i = 0; i < MainOptions.Length; i++)
-            {
-                var rect = new Rect(width * 0.5f - 200f, 360f + i * 80f, 400f, 60f);
-                GUI.color = i == _selected ? new Color(0.4f, 0.9f, 1f) : Color.white;
-                if (GUI.Button(rect, MainOptions[i], _button))
-                    ChooseMain(i);
-                if (rect.Contains(Event.current.mousePosition))
-                    _selected = i;
-            }
-            GUI.color = Color.white;
-        }
-
-        void DrawLoadout(float width)
-        {
-            var ship = content.Ships[_ship];
-            var primary = content.PrimaryWeapons[_primary];
-            var secondary = content.SecondaryWeapons[_secondary];
-
-            Row(width, 0, 340f, "SHIP", ship.DisplayName,
-                $"Hull {ship.MaxHull:0}   Shield {ship.MaxShield:0}   Speed {ship.MoveSpeed:0.#}\n{ship.TraitName}: {ship.TraitDescription}");
-            Row(width, 1, 500f, "PRIMARY", primary.DisplayName, PrimarySummary(primary));
-            Row(width, 2, 620f, "SECONDARY", secondary.DisplayName, $"Cooldown {secondary.Cooldown:0} s");
-
-            var launch = new Rect(width * 0.5f - 200f, 760f, 400f, 64f);
-            GUI.color = _selected == 3 ? new Color(0.4f, 0.9f, 1f) : Color.white;
-            if (GUI.Button(launch, "LAUNCH", _button))
-                StartRun();
-            if (launch.Contains(Event.current.mousePosition))
-                _selected = 3;
-            GUI.color = Color.white;
-            GUI.Label(new Rect(0f, 840f, width, 30f), "Up/down: choose row   ·   Left/right: change   ·   Cancel: back", _detail);
-        }
-
-        void Row(float width, int row, float y, string title, string value, string detail)
-        {
-            bool selected = _selected == row;
-            GUI.color = selected ? new Color(0.4f, 0.9f, 1f) : Color.white;
-            GUI.Label(new Rect(width * 0.5f - 420f, y, 200f, 40f), title, _label);
-            if (GUI.Button(new Rect(width * 0.5f - 200f, y, 50f, 40f), "<", _button))
-            {
-                _selected = row;
-                Cycle(row, -1);
-            }
-            GUI.Label(new Rect(width * 0.5f - 140f, y, 280f, 40f), value, _label);
-            if (GUI.Button(new Rect(width * 0.5f + 150f, y, 50f, 40f), ">", _button))
-            {
-                _selected = row;
-                Cycle(row, 1);
-            }
-            GUI.color = Color.white;
-            GUI.Label(new Rect(width * 0.5f - 420f, y + 42f, 840f, 70f), detail, _detail);
+            return $"DARK MATTER {meta.DarkMatter}    ·    SINGULARITY CORES {meta.SingularityCores}    ·    RUNS {meta.RunsWon} WON / {meta.RunsPlayed}";
         }
 
         static string PrimarySummary(PrimaryWeaponDefinition weapon) => weapon.FireMode == PrimaryFireMode.Charge
             ? $"Hold to charge: {weapon.Damage:0}–{weapon.MaxChargeDamage:0} damage, pierces everything"
             : $"{weapon.Damage:0}{(weapon.ProjectilesPerShot > 1 ? "×" + weapon.ProjectilesPerShot : "")} damage   {weapon.ShotsPerSecond:0.#}/s   magazine {weapon.MagazineSize}";
-
-        void EnsureStyles()
-        {
-            if (_title != null)
-                return;
-
-            _title = new GUIStyle(GUI.skin.label) { fontSize = 72, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-            _title.normal.textColor = new Color(0.5f, 0.9f, 1f);
-            _subtitle = new GUIStyle(_title) { fontSize = 30 };
-            _subtitle.normal.textColor = new Color(0.8f, 0.9f, 1f);
-            _button = new GUIStyle(GUI.skin.button) { fontSize = 22, fontStyle = FontStyle.Bold };
-            _label = new GUIStyle(GUI.skin.label) { fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-            _label.normal.textColor = Color.white;
-            _detail = new GUIStyle(GUI.skin.label) { fontSize = 18, alignment = TextAnchor.UpperCenter, wordWrap = true };
-            _detail.normal.textColor = new Color(0.75f, 0.85f, 1f);
-        }
     }
 }

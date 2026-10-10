@@ -35,11 +35,15 @@ namespace Pathfinder.Game.Meta
 
         public int CostOfTier(int tier) => Costs.Length == 0 ? 0 : Costs[Mathf.Clamp(tier, 0, Costs.Length - 1)];
 
-        public string Describe() => Effect switch
+        public string Describe()
         {
-            EffectKind.StatBonus => $"+{AmountPerTier:0.#} {Equipment.StatNames.Name(Stat)} per tier",
-            EffectKind.StartingScraps => $"Start each run with +{AmountPerTier:0} Scraps per tier",
-            _ => UnlockTarget != null ? $"Unlocks {UnlockTarget.DisplayName}" : "Unlock",
-        };
+            string perTier = MaxTiers > 1 ? " per tier" : string.Empty;
+            return Effect switch
+            {
+                EffectKind.StatBonus => $"+{AmountPerTier:0.#} {Equipment.StatNames.Name(Stat)}{perTier}",
+                EffectKind.StartingScraps => $"Start each run with +{AmountPerTier:0} Scraps{perTier}",
+                _ => UnlockTarget != null ? $"Unlocks the {UnlockTarget.DisplayName}" : "Unlock",
+            };
+        }
     }
 }

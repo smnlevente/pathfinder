@@ -1,22 +1,24 @@
+using System.Text;
+using Pathfinder.Core.Combat;
 using Pathfinder.Core.Random;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Dev;
 using Pathfinder.Game.Enemies;
 using Pathfinder.Game.Player;
+using Pathfinder.Game.Presentation.Ui;
 using Pathfinder.Game.Run;
-using Pathfinder.Game.Simulation;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Pathfinder.Game.Presentation
 {
     /// <summary>
-    /// Placeholder IMGUI HUD for combat testing (GDD §12.2 layout): hull and shield, weapons, dash charges, Scraps,
-    /// wave and seed, plus the pause and game-over overlays. The real uGUI or UI Toolkit HUD comes with the UI pass.
+    /// The combat HUD (GDD §12.2): hull and shield, weapons, dash charges and equipment top left; currencies top right;
+    /// level, objective and the boss bar top centre; banners and prompts; the pause, galaxy-cleared and run-over
+    /// overlays; and a red edge flash when the hull is hit. Built in uGUI below the menus, which cover it when open.
     /// </summary>
     public sealed class CombatHud : MonoBehaviour
     {
-        const float ReferenceHeight = 1080f;
-
         [SerializeField] CombatWorld world;
         [SerializeField] RunFlow runFlow;
         [SerializeField] WaveDirector waveDirector;
@@ -25,96 +27,161 @@ namespace Pathfinder.Game.Presentation
 
         static readonly Color HullColor = new Color(0.95f, 0.35f, 0.3f);
         static readonly Color ShieldColor = new Color(0.3f, 0.85f, 1f);
-        static readonly Color BackColor = new Color(0f, 0f, 0f, 0.55f);
         static readonly Color DashColor = new Color(0.4f, 1f, 0.9f);
         static readonly Color WeaponColor = new Color(0.55f, 0.85f, 1f);
         static readonly Color WarningColor = new Color(1f, 0.6f, 0.2f);
         static readonly Color ScrapsColor = new Color(1f, 0.8f, 0.3f);
-
         static readonly Color DarkMatterColor = new Color(0.65f, 0.55f, 1f);
         static readonly Color BossColor = new Color(1f, 0.3f, 0.25f);
+        static readonly Color BannerColor = new Color(1f, 0.95f, 0.6f);
 
-        GUIStyle _label, _big, _small, _scraps, _darkMatter, _banner, _prompt;
+        const int MaxDashPips = 4;
+        const float VignetteFade = 2.5f;
+
+        UiBar _hull, _shield, _primary, _secondary, _boss;
+        readonly UiBar[] _dash = new UiBar[MaxDashPips];
+        Text _hullText, _primaryText, _secondaryText, _loadoutText;
+        Text _scraps, _darkMatter, _seed, _header, _objective, _bossName, _banner, _prompt, _debug;
+        Text _overlayTitle, _overlayHint;
+        GameObject _playerPanel, _bossPanel, _overlay;
+        Image _vignette;
+        float _vignetteAlpha;
         float _fps;
+        PlayerShip _subscribed;
+        readonly StringBuilder _builder = new StringBuilder();
 
-        void Update() => _fps = Mathf.Lerp(_fps, 1f / Mathf.Max(Time.unscaledDeltaTime, 1e-4f), 0.05f);
+        void Awake() => Build();
 
-        void OnGUI()
+        void Update()
         {
-            // Full-screen menus are uGUI, which IMGUI would draw over: step aside while one is open.
-            if (Ui.ModalScreens.AnyOpen)
-                return;
-
-            // Menus (map, dialogs) draw on top of the HUD.
-            GUI.depth = 10;
-            EnsureStyles();
-            float scale = Screen.height / ReferenceHeight;
-            GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
-            float width = Screen.width / scale;
+            _fps = Mathf.Lerp(_fps, 1f / Mathf.Max(Time.unscaledDeltaTime, 1e-4f), 0.05f);
 
             var player = LocalPlayer();
-            if (player != null && player.Vitals != null)
+            Subscribe(player);
+            _playerPanel.SetActive(player != null && player.Vitals != null);
+            if (_playerPanel.activeSelf)
+                RefreshPlayer(player);
+
+            RefreshStatus(player);
+            RefreshOverlay();
+
+            _vignetteAlpha = Mathf.Max(0f, _vignetteAlpha - VignetteFade * Time.unscaledDeltaTime);
+            _vignette.color = new Color(1f, 0.1f, 0.08f, _vignetteAlpha);
+            _vignette.enabled = _vignetteAlpha > 0.001f;
+        }
+
+        // ---------------------------------------------------------------- refresh
+
+        void RefreshPlayer(PlayerShip player)
+        {
+            var vitals = player.Vitals;
+            _hull.Set(vitals.Hull / vitals.MaxHull);
+            _shield.Rect.gameObject.SetActive(vitals.MaxShield > 0f);
+            _shield.Set(vitals.MaxShield > 0f ? vitals.Shield / vitals.MaxShield : 0f);
+            _hullText.text = $"HULL {Mathf.CeilToInt(vitals.Hull)} / {vitals.MaxHull:0}    SHIELD {Mathf.CeilToInt(vitals.Shield)}{(player.GodMode ? "    [GOD]" : "")}";
+
+            // Primary: name, state, and a gauge for ammo, reload or charge.
+            var status = player.Primary.Status;
+            _primaryText.text = $"{player.PrimaryWeapon.DisplayName.ToUpperInvariant()}   {status.Label}";
+            _primary.Set(status.Fill, status.Warning ? WarningColor : WeaponColor);
+
+            bool hasSecondary = player.SecondaryWeapon != null;
+            _secondaryText.gameObject.SetActive(hasSecondary);
+            _secondary.Rect.gameObject.SetActive(hasSecondary);
+            if (hasSecondary)
             {
-                DrawPlayerPanel(player);
-                GUI.Label(new Rect(width - 420f, 54f, 400f, 40f), $"SCRAPS {player.Scraps}", _scraps);
+                var cooldown = player.SecondaryCooldown;
+                _secondaryText.text = $"{player.SecondaryWeapon.DisplayName.ToUpperInvariant()}   {(cooldown.IsReady ? "READY" : $"{cooldown.TimeUntilReady:0.0}s")}";
+                _secondary.Set(cooldown.IsReady ? 1f : cooldown.RechargeProgress, cooldown.IsReady ? WeaponColor : WarningColor);
             }
+
+            var dash = player.Dash;
+            for (int i = 0; i < MaxDashPips; i++)
+            {
+                bool shown = i < dash.MaxCharges;
+                _dash[i].Rect.gameObject.SetActive(shown);
+                if (shown)
+                    _dash[i].Set(i < dash.Charges ? 1f : i == dash.Charges ? dash.RechargeProgress : 0f);
+            }
+
+            // Ship trait and equipped items (GDD §8), coloured by rarity.
+            _builder.Clear();
+            if (!string.IsNullOrEmpty(player.Definition.TraitName))
+                _builder.Append(player.Definition.DisplayName.ToUpperInvariant()).Append("   ·   ").Append(player.Definition.TraitName).Append('\n');
+            foreach (var entry in player.Equipment.All)
+            {
+                _builder.Append("<color=#").Append(UiKit.Hex(EquipmentChoiceScreen.RarityColor(entry.Item.Rarity))).Append('>')
+                    .Append(entry.Item.DisplayName).Append(' ').Append(EquipmentChoiceScreen.Roman(entry.Level)).Append("</color>\n");
+            }
+            _loadoutText.text = _builder.ToString();
+            _scraps.text = $"SCRAPS {player.Scraps}";
+        }
+
+        void RefreshStatus(PlayerShip player)
+        {
+            _scraps.gameObject.SetActive(player != null);
+            _seed.text = world != null ? $"SEED {RunSeed.ToCode(world.Seed)}    {_fps:0} FPS" : string.Empty;
+
+            var run = runDirector != null ? runDirector.Run : null;
+            _darkMatter.text = run != null ? $"DARK MATTER {run.DarkMatter}    CORES {run.SingularityCores}" : string.Empty;
+            _debug.text = debugHotkeys != null && debugHotkeys.isActiveAndEnabled ? debugHotkeys.HintText : string.Empty;
 
             var level = runDirector != null ? runDirector.Level : null;
             if (level != null && level.IsActive)
             {
-                DrawLevelStatus(width, level);
+                var context = level.Context;
+                string kind = context.Ambush ? " (AMBUSH)" : context.FromMystery && !context.IsEvent ? " (MYSTERY)" : "";
+                _header.text = $"GALAXY {context.GalaxyIndex + 1}   ·   ROW {context.Row + 1}   ·   {LevelNames.Title(context.Type)}{kind}";
+                _objective.text = level.Objective;
+                _banner.text = level.Banner;
+                _prompt.text = level.Prompt;
+
+                var boss = level.Boss;
+                _bossPanel.SetActive(boss != null && boss.IsAlive);
+                if (_bossPanel.activeSelf)
+                {
+                    _boss.Set(boss.Vitals.Hull / boss.Vitals.MaxHull);
+                    _bossName.text = boss.Definition.DisplayName.ToUpperInvariant();
+                }
             }
-            else if (runDirector == null)
+            else
             {
-                string wave = waveDirector != null ? $"WAVE {waveDirector.Wave}   ENEMIES {CombatRegistry.Enemies.Count}" : string.Empty;
-                GUI.Label(new Rect(width * 0.5f - 300f, 20f, 600f, 40f), wave, _label);
+                _header.text = runDirector == null && waveDirector != null ? $"WAVE {waveDirector.Wave}   ENEMIES {CombatRegistry.Enemies.Count}" : string.Empty;
+                _objective.text = _banner.text = _prompt.text = string.Empty;
+                _bossPanel.SetActive(false);
             }
-
-            if (runDirector != null && runDirector.Run != null)
-                GUI.Label(new Rect(width - 420f, 92f, 400f, 36f), $"DARK MATTER {runDirector.Run.DarkMatter}   CORES {runDirector.Run.SingularityCores}", _darkMatter);
-
-            if (world != null)
-                GUI.Label(new Rect(width - 420f, 20f, 400f, 30f), $"SEED {RunSeed.ToCode(world.Seed)}   {_fps:0} FPS", _small);
-
-            if (debugHotkeys != null && debugHotkeys.isActiveAndEnabled)
-                GUI.Label(new Rect(40f, ReferenceHeight - 44f, width - 80f, 30f), debugHotkeys.HintText, _small);
-
-            if (runFlow != null && runFlow.IsVictory)
-                DrawOverlay(width, "NEW HOME REACHED", $"{RunSummary()}\nPress E / (Y) for a new run   ·   Esc / Start for the Hub");
-            else if (runFlow != null && runFlow.IsGameOver)
-                DrawOverlay(width, runDirector != null ? "RUN OVER" : "SHIP DESTROYED",
-                    runDirector != null ? $"{RunSummary()}\nPress E / (Y) for a new run   ·   Esc / Start for the Hub" : "Press E / (Y) to restart");
-            else if (runDirector != null && runDirector.State == RunDirector.Phase.GalaxyCleared)
-                DrawOverlay(width, "GALAXY CLEARED", $"Jumping to {runDirector.GalaxyName}...");
-            else if (runFlow != null && runFlow.IsPaused)
-                DrawOverlay(width, "PAUSED", "Press Esc / Start to resume");
         }
 
-        void DrawLevelStatus(float width, LevelController level)
+        void RefreshOverlay()
         {
-            var context = level.Context;
-            string header = $"GALAXY {context.GalaxyIndex + 1}   ·   ROW {context.Row + 1}   ·   {LevelNames.Title(context.Type)}{(context.Ambush ? " (AMBUSH)" : context.FromMystery ? " (MYSTERY)" : "")}";
-            GUI.Label(new Rect(width * 0.5f - 450f, 14f, 900f, 34f), header, _label);
-            GUI.Label(new Rect(width * 0.5f - 450f, 46f, 900f, 30f), level.Objective, _prompt);
-
-            if (level.Boss != null && level.Boss.IsAlive)
+            string title = null, hint = null;
+            if (runFlow != null && runFlow.IsVictory)
             {
-                var boss = level.Boss;
-                var rect = new Rect(width * 0.5f - 400f, 86f, 800f, 18f);
-                Bar(rect, boss.Vitals.Hull / boss.Vitals.MaxHull, BossColor);
-
-                // Phase marks at 2/3 and 1/3 health (GDD §7.5: three health bar segments).
-                GUI.color = Color.black;
-                GUI.DrawTexture(new Rect(rect.x + rect.width / 3f - 1f, rect.y, 3f, rect.height), Texture2D.whiteTexture);
-                GUI.DrawTexture(new Rect(rect.x + rect.width * 2f / 3f - 1f, rect.y, 3f, rect.height), Texture2D.whiteTexture);
-                GUI.color = Color.white;
-                GUI.Label(new Rect(rect.x, rect.y + 18f, rect.width, 26f), boss.Definition.DisplayName.ToUpperInvariant(), _small);
+                title = "NEW HOME REACHED";
+                hint = $"{RunSummary()}\n\nPress E / (Y) for a new run    ·    Esc / Start for the Hub";
+            }
+            else if (runFlow != null && runFlow.IsGameOver)
+            {
+                title = runDirector != null ? "RUN OVER" : "SHIP DESTROYED";
+                hint = runDirector != null ? $"{RunSummary()}\n\nPress E / (Y) for a new run    ·    Esc / Start for the Hub" : "Press E / (Y) to restart";
+            }
+            else if (runDirector != null && runDirector.State == RunDirector.Phase.GalaxyCleared)
+            {
+                title = "GALAXY CLEARED";
+                hint = $"Jumping to {runDirector.GalaxyName}...";
+            }
+            else if (runFlow != null && runFlow.IsPaused)
+            {
+                title = "PAUSED";
+                hint = "Press Esc / Start to resume";
             }
 
-            if (!string.IsNullOrEmpty(level.Banner))
-                GUI.Label(new Rect(0f, ReferenceHeight * 0.22f, width, 60f), level.Banner, _banner);
-            if (!string.IsNullOrEmpty(level.Prompt))
-                GUI.Label(new Rect(0f, ReferenceHeight * 0.7f, width, 40f), level.Prompt, _label);
+            _overlay.SetActive(title != null);
+            if (title != null)
+            {
+                _overlayTitle.text = title;
+                _overlayHint.text = hint;
+            }
         }
 
         string RunSummary()
@@ -125,76 +192,29 @@ namespace Pathfinder.Game.Presentation
             string banked = runDirector.BankedRewards is { } rewards
                 ? $"\nBanked: {rewards.TotalDarkMatter} Dark Matter ({rewards.DarkMatter} harvested + {rewards.ConvertedScraps} from Scraps), {rewards.SingularityCores} Singularity Cores"
                 : string.Empty;
-            return $"Galaxy {run.GalaxyIndex + 1}   ·   Levels cleared {run.LevelsCleared}   ·   Seed {RunSeed.ToCode(run.Seed)}{banked}";
+            return $"Galaxy {run.GalaxyIndex + 1}    ·    Levels cleared {run.LevelsCleared}    ·    Seed {RunSeed.ToCode(run.Seed)}{banked}";
         }
 
-        void DrawPlayerPanel(PlayerShip player)
+        // ---------------------------------------------------------------- hull-hit flash
+
+        void Subscribe(PlayerShip player)
         {
-            var vitals = player.Vitals;
-            const float x = 40f, y = 40f, barWidth = 360f;
-
-            Bar(new Rect(x, y, barWidth, 26f), vitals.Hull / vitals.MaxHull, HullColor);
-            if (vitals.MaxShield > 0f)
-                Bar(new Rect(x, y - 10f, barWidth, 8f), vitals.Shield / vitals.MaxShield, ShieldColor);
-            string god = player.GodMode ? "   [GOD]" : string.Empty;
-            GUI.Label(new Rect(x + 10f, y, barWidth, 26f), $"HULL {Mathf.CeilToInt(vitals.Hull)} / {vitals.MaxHull:0}   SHIELD {Mathf.CeilToInt(vitals.Shield)}{god}", _small);
-
-            // Primary: name, state text, and a gauge for ammo, reload or charge.
-            var status = player.Primary.Status;
-            GUI.Label(new Rect(x, y + 34f, barWidth, 26f), $"{player.PrimaryWeapon.DisplayName.ToUpperInvariant()}   {status.Label}", _small);
-            Bar(new Rect(x, y + 60f, barWidth, 6f), status.Fill, status.Warning ? WarningColor : WeaponColor);
-
-            // Secondary: name and cooldown.
-            if (player.SecondaryWeapon != null)
-            {
-                var cooldown = player.SecondaryCooldown;
-                string state = cooldown.IsReady ? "READY" : $"{cooldown.TimeUntilReady:0.0}s";
-                GUI.Label(new Rect(x, y + 72f, barWidth, 26f), $"{player.SecondaryWeapon.DisplayName.ToUpperInvariant()}   {state}", _small);
-                Bar(new Rect(x, y + 98f, barWidth, 6f), cooldown.IsReady ? 1f : cooldown.RechargeProgress, cooldown.IsReady ? WeaponColor : WarningColor);
-            }
-
-            var dash = player.Dash;
-            for (int i = 0; i < dash.MaxCharges; i++)
-            {
-                var pip = new Rect(x + i * 46f, y + 114f, 40f, 10f);
-                float fill = i < dash.Charges ? 1f : i == dash.Charges ? dash.RechargeProgress : 0f;
-                Bar(pip, fill, DashColor);
-            }
-
-            // Ship trait and equipped items (GDD §8).
-            float line = y + 140f;
-            if (!string.IsNullOrEmpty(player.Definition.TraitName))
-            {
-                GUI.Label(new Rect(x, line, 500f, 24f), $"{player.Definition.DisplayName.ToUpperInvariant()}   ·   {player.Definition.TraitName}", _small);
-                line += 26f;
-            }
-            foreach (var entry in player.Equipment.All)
-            {
-                GUI.color = EquipmentChoiceScreen.RarityColor(entry.Item.Rarity);
-                GUI.Label(new Rect(x, line, 500f, 24f), $"{entry.Item.DisplayName} {EquipmentChoiceScreen.Roman(entry.Level)}", _small);
-                GUI.color = Color.white;
-                line += 24f;
-            }
+            if (player == _subscribed)
+                return;
+            if (_subscribed != null)
+                _subscribed.Damaged -= OnPlayerDamaged;
+            _subscribed = player;
+            if (_subscribed != null)
+                _subscribed.Damaged += OnPlayerDamaged;
         }
 
-        void DrawOverlay(float width, string title, string hint)
+        void OnPlayerDamaged(CombatEntity entity, DamageInfo info, DamageResult result)
         {
-            float height = ReferenceHeight;
-            GUI.color = new Color(0f, 0f, 0f, 0.6f);
-            GUI.DrawTexture(new Rect(0f, 0f, width, height), Texture2D.whiteTexture);
-            GUI.color = Color.white;
-            GUI.Label(new Rect(0f, height * 0.4f, width, 80f), title, _big);
-            GUI.Label(new Rect(0f, height * 0.4f + 80f, width, 120f), hint, _label);
+            if (result.HullDamage > 0f)
+                _vignetteAlpha = Mathf.Clamp(0.35f + result.HullDamage / 40f, 0.35f, 0.8f);
         }
 
-        static void Bar(Rect rect, float fill, Color color)
-        {
-            GUI.color = BackColor;
-            GUI.DrawTexture(rect, Texture2D.whiteTexture);
-            GUI.color = color;
-            GUI.DrawTexture(new Rect(rect.x, rect.y, rect.width * Mathf.Clamp01(fill), rect.height), Texture2D.whiteTexture);
-            GUI.color = Color.white;
-        }
+        void OnDestroy() => Subscribe(null);
 
         static PlayerShip LocalPlayer()
         {
@@ -206,23 +226,118 @@ namespace Pathfinder.Game.Presentation
             return null;
         }
 
-        void EnsureStyles()
-        {
-            if (_label != null)
-                return;
+        // ---------------------------------------------------------------- view
 
-            _label = new GUIStyle(GUI.skin.label) { fontSize = 24, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-            _label.normal.textColor = Color.white;
-            _big = new GUIStyle(_label) { fontSize = 64 };
-            _small = new GUIStyle(_label) { fontSize = 18, alignment = TextAnchor.MiddleLeft };
-            _scraps = new GUIStyle(_label) { fontSize = 26, alignment = TextAnchor.MiddleLeft };
-            _scraps.normal.textColor = ScrapsColor;
-            _darkMatter = new GUIStyle(_small) { fontSize = 20 };
-            _darkMatter.normal.textColor = DarkMatterColor;
-            _banner = new GUIStyle(_label) { fontSize = 40 };
-            _banner.normal.textColor = new Color(1f, 0.95f, 0.6f);
-            _prompt = new GUIStyle(_label) { fontSize = 20, fontStyle = FontStyle.Normal };
-            _prompt.normal.textColor = new Color(0.8f, 0.92f, 1f);
+        void Build()
+        {
+            var canvas = UiKit.Canvas("HUD", transform, sortingOrder: 0);
+            var root = canvas.transform;
+
+            _vignette = UiKit.Image(root, "Hull Hit", Color.clear, UiKit.Vignette);
+            UiKit.Stretch(_vignette.rectTransform);
+
+            // Top left: the pilot.
+            _playerPanel = UiKit.Node("Pilot", root).gameObject;
+            var panel = (RectTransform)_playerPanel.transform;
+            UiKit.Place(panel, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -26f), new Vector2(560f, 520f));
+
+            _shield = Bar(panel, "Shield", ShieldColor, 0f, 380f, 8f);
+            _hull = Bar(panel, "Hull", HullColor, 12f, 380f, 30f);
+            _hullText = UiKit.Text(_hull.Rect, "Label", string.Empty, 18, Color.white, TextAnchor.MiddleLeft, FontStyle.Bold);
+            UiKit.Stretch(_hullText.rectTransform).offsetMin = new Vector2(12f, 0f);
+            AddShadow(_hullText);
+
+            _primaryText = Label(panel, "Primary", 50f, 18, WeaponColor);
+            _primary = Bar(panel, "Primary Gauge", WeaponColor, 76f, 380f, 6f);
+            _secondaryText = Label(panel, "Secondary", 88f, 18, WeaponColor);
+            _secondary = Bar(panel, "Secondary Gauge", WeaponColor, 114f, 380f, 6f);
+            for (int i = 0; i < MaxDashPips; i++)
+            {
+                _dash[i] = new UiBar(panel, $"Dash {i + 1}", DashColor);
+                UiKit.Place(_dash[i].Rect, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(i * 52f, -128f), new Vector2(46f, 10f));
+            }
+            _loadoutText = Label(panel, "Loadout", 150f, 18, UiKit.TextBody);
+            _loadoutText.rectTransform.sizeDelta = new Vector2(560f, 360f);
+
+            // Top right: currencies and the seed.
+            _seed = Corner(root, "Seed", -18f, 16, UiKit.TextDim);
+            _scraps = Corner(root, "Scraps", -44f, 30, ScrapsColor, FontStyle.Bold);
+            _darkMatter = Corner(root, "Dark Matter", -84f, 20, DarkMatterColor, FontStyle.Bold);
+
+            // Top centre: level, objective, boss.
+            _header = Centre(root, "Level", -14f, 24, Color.white, FontStyle.Bold);
+            _objective = Centre(root, "Objective", -48f, 20, new Color(0.8f, 0.92f, 1f));
+            _bossPanel = UiKit.Node("Boss", root).gameObject;
+            var bossRect = (RectTransform)_bossPanel.transform;
+            UiKit.Place(bossRect, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -86f), new Vector2(800f, 48f));
+            _boss = new UiBar(bossRect, "Health", BossColor);
+            UiKit.Place(_boss.Rect, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(800f, 18f));
+            foreach (float mark in new[] { 1f / 3f, 2f / 3f })
+            {
+                // Phase marks at 1/3 and 2/3 health (GDD §7.5: three health bar segments).
+                var tick = UiKit.Image(_boss.Rect, "Phase Mark", Color.black);
+                UiKit.Place(tick.rectTransform, new Vector2(mark, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(3f, 18f));
+            }
+            _bossName = UiKit.Text(bossRect, "Name", string.Empty, 18, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
+            UiKit.Place(_bossName.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(800f, 26f));
+
+            _banner = UiKit.Text(root, "Banner", string.Empty, 42, BannerColor, TextAnchor.MiddleCenter, FontStyle.Bold);
+            UiKit.Place(_banner.rectTransform, new Vector2(0.5f, 0.78f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1700f, 60f));
+            AddShadow(_banner);
+            _prompt = UiKit.Text(root, "Prompt", string.Empty, 24, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
+            UiKit.Place(_prompt.rectTransform, new Vector2(0.5f, 0.3f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1400f, 40f));
+            AddShadow(_prompt);
+            _debug = UiKit.Text(root, "Dev Keys", string.Empty, 16, UiKit.TextDim, TextAnchor.MiddleLeft);
+            UiKit.Place(_debug.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(40f, 16f), new Vector2(1840f, 28f));
+
+            // Full-screen overlays: paused, galaxy cleared, run over.
+            var overlay = UiKit.Image(root, "Overlay", new Color(0f, 0f, 0f, 0.65f));
+            UiKit.Stretch(overlay.rectTransform);
+            _overlay = overlay.gameObject;
+            _overlayTitle = UiKit.Text(overlay.transform, "Title", string.Empty, 68, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
+            UiKit.Place(_overlayTitle.rectTransform, new Vector2(0.5f, 0.6f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1600f, 90f));
+            _overlayHint = UiKit.Text(overlay.transform, "Hint", string.Empty, 24, UiKit.TextBody, TextAnchor.UpperCenter);
+            UiKit.Place(_overlayHint.rectTransform, new Vector2(0.5f, 0.52f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(1500f, 300f));
+            _overlay.SetActive(false);
+        }
+
+        static UiBar Bar(RectTransform parent, string name, Color color, float top, float width, float height)
+        {
+            var bar = new UiBar(parent, name, color);
+            UiKit.Place(bar.Rect, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, -top), new Vector2(width, height));
+            return bar;
+        }
+
+        static Text Label(RectTransform parent, string name, float top, int size, Color color)
+        {
+            var text = UiKit.Text(parent, name, string.Empty, size, color, TextAnchor.UpperLeft, FontStyle.Bold);
+            UiKit.Place(text.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, -top), new Vector2(560f, 26f));
+            AddShadow(text);
+            return text;
+        }
+
+        static Text Corner(Transform root, string name, float top, int size, Color color, FontStyle style = FontStyle.Normal)
+        {
+            var text = UiKit.Text(root, name, string.Empty, size, color, TextAnchor.UpperRight, style);
+            UiKit.Place(text.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-40f, top), new Vector2(600f, 40f));
+            AddShadow(text);
+            return text;
+        }
+
+        static Text Centre(Transform root, string name, float top, int size, Color color, FontStyle style = FontStyle.Normal)
+        {
+            var text = UiKit.Text(root, name, string.Empty, size, color, TextAnchor.UpperCenter, style);
+            UiKit.Place(text.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, top), new Vector2(1100f, 34f));
+            AddShadow(text);
+            return text;
+        }
+
+        /// <summary>A dark drop shadow keeps HUD text readable over bright explosions.</summary>
+        static void AddShadow(Text text)
+        {
+            var shadow = text.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0f, 0f, 0f, 0.8f);
+            shadow.effectDistance = new Vector2(2f, -2f);
         }
     }
 }

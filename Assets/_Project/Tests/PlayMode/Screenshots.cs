@@ -110,7 +110,8 @@ namespace Pathfinder.Tests.PlayMode
         /// </summary>
         public static void CaptureWithUi(string path)
         {
-            var world = Render(Camera.main, TextureFormat.RGB24);
+            // Menus like the Hub may have no scene camera: they then draw over black.
+            var world = Camera.main != null ? Render(Camera.main, TextureFormat.RGB24) : Black();
 
             var canvases = new System.Collections.Generic.List<Canvas>();
             foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
@@ -166,6 +167,14 @@ namespace Pathfinder.Tests.PlayMode
             File.WriteAllBytes(path, world.EncodeToPNG());
             Object.Destroy(world);
             Object.Destroy(ui);
+        }
+
+        static Texture2D Black()
+        {
+            var black = new Texture2D(Width, Height, TextureFormat.RGB24, mipChain: false);
+            black.SetPixels32(new Color32[Width * Height]);
+            black.Apply();
+            return black;
         }
 
         static Texture2D Render(Camera camera, TextureFormat format)
