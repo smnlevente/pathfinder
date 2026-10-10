@@ -1,5 +1,6 @@
 using Pathfinder.Core.Combat;
 using Pathfinder.Game.Combat;
+using Pathfinder.Game.Enemies;
 using Pathfinder.Game.Player;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
@@ -8,7 +9,7 @@ namespace Pathfinder.Game.Presentation
 {
     /// <summary>
     /// Top-down follow camera (GDD §7.1, §13.1). It follows the local pilots with a slight lead toward their
-    /// aim, stays inside the arena, and shakes when they take damage. Presentation only.
+    /// aim, stays inside the arena, and shakes when they take damage or something big blows up. Presentation only.
     /// </summary>
     public sealed class CameraRig : MonoBehaviour
     {
@@ -22,14 +23,45 @@ namespace Pathfinder.Game.Presentation
         [Header("Shake")]
         [SerializeField, Min(0f)] float hullHitShake = 0.35f;
         [SerializeField, Min(0f)] float shieldHitShake = 0.12f;
+        [SerializeField, Min(0f)] float killShake = 0.07f;
+        [SerializeField, Min(0f)] float eliteKillShake = 0.2f;
+        [SerializeField, Min(0f)] float bossKillShake = 0.7f;
         [SerializeField, Min(0f)] float shakeDecay = 2.5f;
         [SerializeField, Min(0f)] float shakeFrequency = 25f;
+
+        static CameraRig s_active;
 
         Vector3 _focus;
         bool _hasFocus;
         Vector3 _velocity;
         float _shake;
         PlayerShip _subscribed;
+
+        /// <summary>Kicks the camera, e.g. for an eruption. Kicks don't add up: the strongest wins. Safe without a rig.</summary>
+        public static void Kick(float amount)
+        {
+            if (s_active != null)
+                s_active._shake = Mathf.Max(s_active._shake, amount);
+        }
+
+        void OnEnable()
+        {
+            s_active = this;
+            CombatEvents.Killed += OnKilled;
+        }
+
+        void OnDisable()
+        {
+            if (s_active == this)
+                s_active = null;
+            CombatEvents.Killed -= OnKilled;
+        }
+
+        void OnKilled(CombatEntity target, DamageInfo info)
+        {
+            if (target is Enemy enemy)
+                Kick(enemy.Radius > 1f ? bossKillShake : enemy.IsElite ? eliteKillShake : killShake);
+        }
 
         void LateUpdate()
         {

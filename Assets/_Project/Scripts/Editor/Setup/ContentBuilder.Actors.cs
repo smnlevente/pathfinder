@@ -162,6 +162,7 @@ namespace Pathfinder.Editor.Setup
             trail.shadowCastingMode = ShadowCastingMode.Off;
 
             var ship = root.AddComponent<PlayerShip>();
+            SetFields(root.AddComponent<MuzzleFlash>(), ("ship", ship), ("flashPrefab", art.MuzzleFlash));
             SetFields(ship, ("radius", 0.45f), ("ship", data.Ship), ("primaryWeapon", data.PhotonRepeater), ("secondaryWeapon", data.SeekerSwarm));
 
             // Ship glow parts brighten as a Quantum Charger shot charges.

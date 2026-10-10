@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Pathfinder.Game.Audio;
 using Pathfinder.Game.Boot;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Content;
@@ -56,7 +57,7 @@ namespace Pathfinder.Editor.Setup
             EditorBuildSettings.scenes = scenes.Select(name => new EditorBuildSettingsScene($"{ScenesDir}/{name}.unity", true)).ToArray();
         }
 
-        static void PopulateScenes(Art art, Actors actors, Data data, RunArt runArt, RunConfig runConfig, EquipmentContent equipment)
+        static void PopulateScenes(Art art, Actors actors, Data data, RunArt runArt, RunConfig runConfig, EquipmentContent equipment, SoundLibrary audio)
         {
             // Opening a scene can unload assets that nothing references yet, which invalidates the in-memory
             // handles from the build steps above. Capture paths first and reload afterwards.
@@ -64,7 +65,7 @@ namespace Pathfinder.Editor.Setup
             {
                 Player = AssetPathOf(actors.Player), Telegraph = AssetPathOf(art.SpawnTelegraph), Scrap = AssetPathOf(art.ScrapVisual), Deflect = AssetPathOf(art.Deflect),
                 Floor = AssetPathOf(art.Floor), Wall = AssetPathOf(art.Wall), Ship = AssetPathOf(data.Ship), Waves = AssetPathOf(data.Waves),
-                RunConfig = AssetPathOf(runConfig), Database = AssetPathOf(equipment.Database),
+                RunConfig = AssetPathOf(runConfig), Database = AssetPathOf(equipment.Database), Audio = AssetPathOf(audio),
                 Primaries = Array.ConvertAll(data.Primaries, p => AssetPathOf(p)),
                 Secondaries = Array.ConvertAll(data.Secondaries, s => AssetPathOf(s)),
             };
@@ -76,7 +77,7 @@ namespace Pathfinder.Editor.Setup
 
         sealed class ScenePaths
         {
-            public string Player, Telegraph, Scrap, Deflect, Floor, Wall, Ship, Waves, RunConfig, Database;
+            public string Player, Telegraph, Scrap, Deflect, Floor, Wall, Ship, Waves, RunConfig, Database, Audio;
             public string[] Primaries, Secondaries;
         }
 
@@ -88,6 +89,7 @@ namespace Pathfinder.Editor.Setup
 
             var world = FindOrCreate<CombatWorld>("Combat World");
             SetFields(world, ("arenaSize", ArenaSize), ("scrapPickupPrefab", Load<GameObject>(assets.Scrap)), ("deflectEffectPrefab", Load<GameObject>(assets.Deflect)));
+            AddAudio(assets);
 
             var floor = GameObject.Find("ArenaFloor");
             if (floor != null)
@@ -159,9 +161,18 @@ namespace Pathfinder.Editor.Setup
             var scene = EditorSceneManager.OpenScene(HubScenePath, OpenSceneMode.Single);
             var menu = FindOrCreate<HubMenu>("Hub Menu");
             SetFields(menu, ("content", Load<ContentDatabase>(assets.Database)));
+            AddAudio(assets);
             RequireReferences(menu);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
+        }
+
+        /// <summary>Every scene gets a sound director (GDD §13.2).</summary>
+        static void AddAudio(ScenePaths assets)
+        {
+            var audio = FindOrCreate<GameAudio>("Audio");
+            SetFields(audio, ("library", Load<SoundLibrary>(assets.Audio)));
+            RequireReferences(audio);
         }
 
         static void BuildArenaWalls(Material material)

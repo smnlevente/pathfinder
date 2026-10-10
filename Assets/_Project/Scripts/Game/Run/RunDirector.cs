@@ -121,6 +121,7 @@ namespace Pathfinder.Game.Run
                 if (Run.IsWon)
                 {
                     BankRun(won: true);
+                    Audio.GameAudio.Play(Audio.SoundCue.BossDefeated);
                     SetPhase(Phase.Victory);
                     return;
                 }
@@ -137,6 +138,7 @@ namespace Pathfinder.Game.Run
         {
             Run.MarkLost();
             BankRun(won: false);
+            Audio.GameAudio.Play(Audio.SoundCue.RunOver);
             GameClock.Resume(this);
             SetPhase(Phase.Defeat);
         }

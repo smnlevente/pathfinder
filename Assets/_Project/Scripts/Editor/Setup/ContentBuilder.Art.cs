@@ -13,9 +13,9 @@ namespace Pathfinder.Editor.Setup
             // glow; enemy bullets the only magenta; pickups gold; weak points yellow.
             public Material Floor, Wall, ShipHull, ShipGlow, EnemyHull, EnemyGlow, EnemyHalo, WeakPoint;
             public Material PlayerBolt, ChargeBolt, PlayerMissile, EnemyBulletCore, EnemyBulletBody, EnemyBulletHalo, Scrap;
-            public Material Telegraph, LancerLine, EliteRing, NovaRing, WeakPointRing, FxOrange, FxCyan, FxMagenta, FxRed, FxGrey;
+            public Material Telegraph, LancerLine, EliteRing, NovaRing, WeakPointRing, ShockRing, FxOrange, FxCyan, FxMagenta, FxRed, FxGrey;
 
-            public GameObject BoltImpact, BulletImpact, MissileImpact, EnemyExplosion, PlayerExplosion, Deflect;
+            public GameObject BoltImpact, BulletImpact, MissileImpact, EnemyExplosion, PlayerExplosion, Deflect, MuzzleFlash;
             public GameObject SpawnTelegraph, NovaPulse, EliteMarker, ChargeLane;
             public GameObject PlayerBoltVisual, PelletVisual, ChargeBoltVisual, MissileVisual, EnemyBulletVisual, ScrapVisual;
         }
@@ -87,6 +87,7 @@ namespace Pathfinder.Editor.Setup
                 EliteRing = Additive("M_FX_EliteRing", new Color(3.5f, 2.4f, 0.4f), ring),
                 NovaRing = Additive("M_FX_NovaRing", new Color(0.35f, 1.5f, 2.8f), ring),
                 WeakPointRing = Additive("M_FX_WeakPointRing", new Color(2.6f, 2f, 0.3f), ring),
+                ShockRing = Additive("M_FX_ShockRing", new Color(2.4f, 0.9f, 0.2f), ring),
                 FxOrange = Additive("M_FX_Orange", new Color(4f, 1.4f, 0.3f), dot),
                 FxCyan = Additive("M_FX_Cyan", new Color(0.6f, 2.4f, 4f), dot),
                 FxMagenta = Additive("M_FX_Magenta", new Color(2.2f, 0.35f, 1.7f), dot),
@@ -107,8 +108,9 @@ namespace Pathfinder.Editor.Setup
             // Armour: a dull grey spark, so a deflected shot reads as "no damage" (GDD §12.4).
             art.Deflect = SavePrefab(Burst("FX_Deflect", art.FxGrey, count: 5, speed: 6f, size: 0.14f, lifetime: 0.12f), "FX");
             art.MissileImpact = SavePrefab(Burst("FX_MissileImpact", art.FxCyan, count: 14, speed: 6f, size: 0.3f, lifetime: 0.25f), "FX");
-            art.EnemyExplosion = SavePrefab(Burst("FX_EnemyExplosion", art.FxOrange, count: 28, speed: 7f, size: 0.4f, lifetime: 0.45f), "FX");
-            art.PlayerExplosion = SavePrefab(Burst("FX_PlayerExplosion", art.FxCyan, count: 70, speed: 9f, size: 0.55f, lifetime: 0.9f), "FX");
+            art.EnemyExplosion = SavePrefab(Explosion("FX_EnemyExplosion", art.FxOrange, art.FxRed, art.ShockRing, count: 28, speed: 7f, size: 0.4f, lifetime: 0.5f, ringSize: 5f), "FX");
+            art.PlayerExplosion = SavePrefab(Explosion("FX_PlayerExplosion", art.FxCyan, art.FxCyan, art.NovaRing, count: 70, speed: 9f, size: 0.55f, lifetime: 0.9f, ringSize: 8f), "FX");
+            art.MuzzleFlash = SavePrefab(Burst("FX_MuzzleFlash", art.FxCyan, count: 4, speed: 3f, size: 0.28f, lifetime: 0.07f), "FX");
 
             // A soft additive glow on the floor reads as "something is arriving here", not as a solid object.
             var telegraph = new GameObject("FX_SpawnTelegraph");
@@ -130,6 +132,18 @@ namespace Pathfinder.Editor.Setup
             SetFields(eliteRing.AddComponent<SimpleMotion>(), ("pulseAmount", 0.08f), ("pulseFrequency", 1.5f));
             SetFields(elite.AddComponent<SimpleMotion>(), ("spinSpeed", 45f));
             art.EliteMarker = SavePrefab(elite, "FX");
+        }
+
+        /// <summary>Sparks, slower debris and a shockwave ring on the floor: a death that reads at a glance.</summary>
+        static GameObject Explosion(string name, Material sparks, Material debris, Material shock, int count, float speed, float size, float lifetime, float ringSize)
+        {
+            var root = Burst(name, sparks, count, speed, size, lifetime);
+            Burst("Debris", debris, Mathf.Max(3, count / 3), speed * 0.55f, size * 1.5f, lifetime).transform.SetParent(root.transform, false);
+            var wave = new GameObject("Shockwave");
+            wave.transform.SetParent(root.transform, false);
+            var ring = FlatQuad("Ring", wave.transform, shock, -0.45f, 1f);
+            SetFields(wave.AddComponent<RingPulse>(), ("ring", ring.GetComponent<Renderer>()), ("duration", 0.3f), ("startScale", 0.6f), ("endScale", ringSize));
+            return root;
         }
 
         static GameObject Burst(string name, Material material, int count, float speed, float size, float lifetime)

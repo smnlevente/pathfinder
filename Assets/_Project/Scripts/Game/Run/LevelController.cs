@@ -775,6 +775,7 @@ namespace Pathfinder.Game.Run
 
             // The fight is won: every enemy bullet still in the air turns harmless and fades out (playtest 2).
             world.Projectiles.Defuse(Pathfinder.Core.Combat.Team.Enemy);
+            Audio.GameAudio.Play(Audio.SoundCue.BossDefeated);
             int cores = RunConfig.ForGalaxy(config.SingularityCores, Context.GalaxyIndex);
             _run?.AddSingularityCores(cores);
             foreach (var player in CombatRegistry.Players)
@@ -924,6 +925,7 @@ namespace Pathfinder.Game.Run
                 return;
 
             ExitOpen = true;
+            Audio.GameAudio.Play(Audio.SoundCue.ExitOpen);
             if (config.ExitPrefab != null)
             {
                 _exit = Instantiate(config.ExitPrefab, PlaneMath.ToWorld(config.ExitPosition), Quaternion.identity);

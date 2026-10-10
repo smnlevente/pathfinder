@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Pathfinder.Core.Combat;
 using Pathfinder.Core.Random;
+using Pathfinder.Game.Audio;
 using Pathfinder.Game.Combat;
 using Pathfinder.Game.Player;
 using Pathfinder.Game.Simulation;
@@ -135,6 +136,8 @@ namespace Pathfinder.Game.Enemies
             {
                 CurrentPhase = phase;
                 Enter(self, Action.Roar, roarTime);
+                GameAudio.Play(SoundCue.Roar, transform.position);
+                Presentation.CameraRig.Kick(0.25f);
             }
 
             _timer -= deltaTime;
@@ -348,6 +351,8 @@ namespace Pathfinder.Game.Enemies
             FireRing(self, world, _eruptTarget, rockCount, slowRockSpeed, offset + 180f / rockCount);
             if (eruptEffect != null)
                 Instantiate(eruptEffect, PlaneMath.ToWorld(_eruptTarget, 0.5f), Quaternion.identity);
+            GameAudio.Play(SoundCue.Erupt, PlaneMath.ToWorld(_eruptTarget));
+            Presentation.CameraRig.Kick(0.45f);
 
             _attackTimer = surfacedBurstInterval;
             Enter(self, Action.Surfaced, surfacedTime);

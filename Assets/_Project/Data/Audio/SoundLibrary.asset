@@ -1,0 +1,153 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb9c2d65c0593d147962e84cfb4db5dc, type: 3}
+  m_Name: SoundLibrary
+  m_EditorClassIdentifier: 
+  <Entries>k__BackingField:
+  - Cue: 0
+    Clip: {fileID: 8300000, guid: 4b9fad9a922fbb34c93a64b824371203, type: 3}
+    Volume: 0.32
+    PitchJitter: 0.06
+    MinInterval: 0.05
+    MaxVoices: 3
+  - Cue: 1
+    Clip: {fileID: 8300000, guid: 8b79b93f49381254f9e895197c61a3aa, type: 3}
+    Volume: 0.5
+    PitchJitter: 0.05
+    MinInterval: 0.08
+    MaxVoices: 2
+  - Cue: 2
+    Clip: {fileID: 8300000, guid: b88d07852709b8248b8308fe00f8f188, type: 3}
+    Volume: 0.6
+    PitchJitter: 0.03
+    MinInterval: 0.1
+    MaxVoices: 2
+  - Cue: 3
+    Clip: {fileID: 8300000, guid: 74d1e086bb7a1ae4ba6ad28573f2c463, type: 3}
+    Volume: 0.5
+    PitchJitter: 0.05
+    MinInterval: 0.1
+    MaxVoices: 2
+  - Cue: 4
+    Clip: {fileID: 8300000, guid: 5119141578f7a5642961956ad7b36948, type: 3}
+    Volume: 0.75
+    PitchJitter: 0
+    MinInterval: 0.2
+    MaxVoices: 1
+  - Cue: 5
+    Clip: {fileID: 8300000, guid: 9a980ce954140544dade042705d4250c, type: 3}
+    Volume: 0.22
+    PitchJitter: 0.08
+    MinInterval: 0.07
+    MaxVoices: 3
+  - Cue: 6
+    Clip: {fileID: 8300000, guid: 0ed4897bd878887479a90fcdd517b47b, type: 3}
+    Volume: 0.25
+    PitchJitter: 0.12
+    MinInterval: 0.04
+    MaxVoices: 3
+  - Cue: 7
+    Clip: {fileID: 8300000, guid: b12415506c09acc488d259898811805a, type: 3}
+    Volume: 0.3
+    PitchJitter: 0.1
+    MinInterval: 0.06
+    MaxVoices: 3
+  - Cue: 8
+    Clip: {fileID: 8300000, guid: e9c3eb1764c2b8c469de9451bc5c2b32, type: 3}
+    Volume: 0.55
+    PitchJitter: 0.05
+    MinInterval: 0.08
+    MaxVoices: 2
+  - Cue: 9
+    Clip: {fileID: 8300000, guid: b65095de588a46c40bb2e04584ccc3e8, type: 3}
+    Volume: 0.75
+    PitchJitter: 0.04
+    MinInterval: 0.1
+    MaxVoices: 2
+  - Cue: 10
+    Clip: {fileID: 8300000, guid: 9aaf30afc4758aa418237627b1a2d236, type: 3}
+    Volume: 0.5
+    PitchJitter: 0.12
+    MinInterval: 0.05
+    MaxVoices: 4
+  - Cue: 11
+    Clip: {fileID: 8300000, guid: 4cf9e26fba61d96459824f71b19a3215, type: 3}
+    Volume: 0.8
+    PitchJitter: 0.06
+    MinInterval: 0.1
+    MaxVoices: 2
+  - Cue: 12
+    Clip: {fileID: 8300000, guid: 99f543cbf7c233848a95e5a04f50773e, type: 3}
+    Volume: 0.45
+    PitchJitter: 0.05
+    MinInterval: 0.1
+    MaxVoices: 2
+  - Cue: 13
+    Clip: {fileID: 8300000, guid: 1e9a96679e1ad604fb10e4452343b3e3, type: 3}
+    Volume: 0.3
+    PitchJitter: 0.04
+    MinInterval: 0.06
+    MaxVoices: 3
+  - Cue: 14
+    Clip: {fileID: 8300000, guid: 9af77845a251e104998e90b63560ddd1, type: 3}
+    Volume: 0.45
+    PitchJitter: 0.04
+    MinInterval: 0.15
+    MaxVoices: 3
+  - Cue: 15
+    Clip: {fileID: 8300000, guid: 9d936c36eff370246a418f7a1757b0ab, type: 3}
+    Volume: 0.85
+    PitchJitter: 0.02
+    MinInterval: 0.5
+    MaxVoices: 1
+  - Cue: 16
+    Clip: {fileID: 8300000, guid: bcfee6eab9eadfd4ab63db1aae87bbb8, type: 3}
+    Volume: 0.85
+    PitchJitter: 0.04
+    MinInterval: 0.2
+    MaxVoices: 2
+  - Cue: 17
+    Clip: {fileID: 8300000, guid: 0c48ad4ea9e4ff545a63a87c484592a3, type: 3}
+    Volume: 0.3
+    PitchJitter: 0.02
+    MinInterval: 0.03
+    MaxVoices: 2
+  - Cue: 18
+    Clip: {fileID: 8300000, guid: 9558ccc01f6cad54ba72f22464dfb249, type: 3}
+    Volume: 0.45
+    PitchJitter: 0
+    MinInterval: 0.05
+    MaxVoices: 2
+  - Cue: 19
+    Clip: {fileID: 8300000, guid: 200f58c5e54dd5a4782799745f0ebcf4, type: 3}
+    Volume: 0.4
+    PitchJitter: 0
+    MinInterval: 0.05
+    MaxVoices: 2
+  - Cue: 20
+    Clip: {fileID: 8300000, guid: b2a3ab79dc0cd954a8dee00de4654190, type: 3}
+    Volume: 0.55
+    PitchJitter: 0
+    MinInterval: 0.5
+    MaxVoices: 1
+  - Cue: 21
+    Clip: {fileID: 8300000, guid: 68a7b084439e67148a0929737e8eb188, type: 3}
+    Volume: 0.75
+    PitchJitter: 0
+    MinInterval: 1
+    MaxVoices: 1
+  - Cue: 22
+    Clip: {fileID: 8300000, guid: fda61bc6415efa34fbdc3fb3ecab8f46, type: 3}
+    Volume: 0.7
+    PitchJitter: 0
+    MinInterval: 1
+    MaxVoices: 1

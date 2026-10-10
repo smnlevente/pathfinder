@@ -80,9 +80,10 @@ namespace Pathfinder.Editor.Setup
             var quarryMaw = BuildQuarryMaw(art);
             UseQuarryMawAsBoss(runConfig, quarryMaw, data);
             var equipment = BuildEquipment(art, data, quarryMaw);
+            var audio = BuildAudio();
 
             TunePostProcessing();
-            PopulateScenes(art, actors, data, runArt, runConfig, equipment);
+            PopulateScenes(art, actors, data, runArt, runConfig, equipment, audio);
             AssetDatabase.SaveAssets();
             Debug.Log("[ContentBuilder] Combat sandbox built.");
         }

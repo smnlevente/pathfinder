@@ -39,7 +39,19 @@ namespace Pathfinder.Game.Enemies
         public IRandom Random { get; private set; }
 
         /// <summary>Presentation hint: the enemy is winding up an attack.</summary>
-        public bool IsTelegraphing { get; set; }
+        /// <summary>Winding up a telegraphed attack. Turning it on raises <see cref="CombatEvents.Telegraphed"/>.</summary>
+        public bool IsTelegraphing
+        {
+            get => _telegraphing;
+            set
+            {
+                if (value && !_telegraphing)
+                    CombatEvents.RaiseTelegraphed(this);
+                _telegraphing = value;
+            }
+        }
+
+        bool _telegraphing;
 
         /// <summary>Set by the brain each tick. Allows bursts beyond normal speed, e.g. a Lancer charge.</summary>
         public float SpeedMultiplier { get; set; } = 1f;

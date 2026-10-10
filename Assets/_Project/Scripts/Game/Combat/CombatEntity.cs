@@ -179,15 +179,33 @@ namespace Pathfinder.Game.Combat
         public static event Action<CombatEntity, DamageInfo, DamageResult> Damaged;
         public static event Action<CombatEntity, DamageInfo> Killed;
 
+        /// <summary>A projectile was launched, by team and position. For audio and effects.</summary>
+        public static event Action<Team, Vector2> ProjectileFired;
+
+        /// <summary>Armour stopped a projectile at this position.</summary>
+        public static event Action<Vector2> Deflected;
+
+        /// <summary>An enemy started a telegraphed attack (a wind-up, a roar).</summary>
+        public static event Action<Enemies.Enemy> Telegraphed;
+
         internal static void RaiseDamaged(CombatEntity target, in DamageInfo info, DamageResult result) => Damaged?.Invoke(target, info, result);
 
         internal static void RaiseKilled(CombatEntity target, in DamageInfo info) => Killed?.Invoke(target, info);
+
+        internal static void RaiseProjectileFired(Team team, Vector2 position) => ProjectileFired?.Invoke(team, position);
+
+        internal static void RaiseDeflected(Vector2 position) => Deflected?.Invoke(position);
+
+        internal static void RaiseTelegraphed(Enemies.Enemy enemy) => Telegraphed?.Invoke(enemy);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
         {
             Damaged = null;
             Killed = null;
+            ProjectileFired = null;
+            Deflected = null;
+            Telegraphed = null;
         }
     }
 }

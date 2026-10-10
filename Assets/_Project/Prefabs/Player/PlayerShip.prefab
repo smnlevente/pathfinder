@@ -713,6 +713,7 @@ GameObject:
   m_Component:
   - component: {fileID: 647163743956946567}
   - component: {fileID: 4330562196222121647}
+  - component: {fileID: 3037865629995854951}
   - component: {fileID: 6222661277026082252}
   m_Layer: 0
   m_Name: PlayerShip
@@ -754,6 +755,21 @@ MonoBehaviour:
   primaryWeapon: {fileID: 11400000, guid: be9a8083b9dba724e882afe3bd748c78, type: 2}
   secondaryWeapon: {fileID: 11400000, guid: 8e51f5109c1f38b469bd6af412e2d79b, type: 2}
   muzzleDistance: 0.9
+--- !u!114 &3037865629995854951
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4368987870069496545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d281a9906ec0def49a41160c88d42dcc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ship: {fileID: 4330562196222121647}
+  flashPrefab: {fileID: 5037179279872761114, guid: 5f3bdd71636f4d74f9386faaf99e4e99, type: 3}
+  forwardOffset: 0.85
 --- !u!114 &6222661277026082252
 MonoBehaviour:
   m_ObjectHideFlags: 0

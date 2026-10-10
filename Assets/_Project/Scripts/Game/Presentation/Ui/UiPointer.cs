@@ -10,12 +10,18 @@ namespace Pathfinder.Game.Presentation.Ui
         public event Action Entered;
         public event Action Clicked;
 
-        public void OnPointerEnter(PointerEventData eventData) => Entered?.Invoke();
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            Audio.GameAudio.Play(Audio.SoundCue.UiMove);
+            Entered?.Invoke();
+        }
 
         public void OnPointerClick(PointerEventData eventData)
         {
-            if (eventData.button == PointerEventData.InputButton.Left)
-                Clicked?.Invoke();
+            if (eventData.button != PointerEventData.InputButton.Left)
+                return;
+            Audio.GameAudio.Play(Audio.SoundCue.UiConfirm);
+            Clicked?.Invoke();
         }
     }
 }

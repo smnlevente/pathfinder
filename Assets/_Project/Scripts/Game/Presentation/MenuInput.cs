@@ -4,8 +4,8 @@ using UnityEngine.InputSystem;
 namespace Pathfinder.Game.Presentation
 {
     /// <summary>
-    /// Keyboard and gamepad navigation for the placeholder IMGUI menus, read from the UI action map: Navigate with
-    /// key repeat, Submit and Cancel. It works while gameplay is paused. Mouse clicks are handled by the menus.
+    /// Keyboard and gamepad navigation for the menus, read from the UI action map: Navigate with key repeat, Submit and
+    /// Cancel, each with its menu sound. It works while gameplay is paused. Mouse clicks are handled by the menus.
     /// </summary>
     public sealed class MenuInput
     {
@@ -31,8 +31,15 @@ namespace Pathfinder.Game.Presentation
             _cancel = map.FindAction("Cancel");
         }
 
-        public bool Submitted => _submit != null && _submit.WasPressedThisFrame();
-        public bool Cancelled => _cancel != null && _cancel.WasPressedThisFrame();
+        public bool Submitted => Sounded(_submit != null && _submit.WasPressedThisFrame(), Audio.SoundCue.UiConfirm);
+        public bool Cancelled => Sounded(_cancel != null && _cancel.WasPressedThisFrame(), Audio.SoundCue.UiBack);
+
+        static bool Sounded(bool pressed, Audio.SoundCue cue)
+        {
+            if (pressed)
+                Audio.GameAudio.Play(cue);
+            return pressed;
+        }
 
         /// <summary>Call once per frame. Returns a step of -1, 0 or +1 per axis, with key repeat while held.</summary>
         public Vector2Int ReadStep()
@@ -55,6 +62,7 @@ namespace Pathfinder.Game.Presentation
             {
                 _heldDirection = direction;
                 _repeatTimer = RepeatDelay;
+                Audio.GameAudio.Play(Audio.SoundCue.UiMove);
                 return direction;
             }
 
@@ -63,6 +71,7 @@ namespace Pathfinder.Game.Presentation
                 return Vector2Int.zero;
 
             _repeatTimer = RepeatInterval;
+            Audio.GameAudio.Play(Audio.SoundCue.UiMove);
             return direction;
         }
     }

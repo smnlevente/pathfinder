@@ -116,6 +116,7 @@ namespace Pathfinder.Game.Combat
             }
 
             _active.Add(projectile);
+            CombatEvents.RaiseProjectileFired(projectile.Team, projectile.Position);
         }
 
         /// <summary>Removes every projectile, e.g. between levels.</summary>
@@ -205,6 +206,7 @@ namespace Pathfinder.Game.Combat
                         // Armour stops every shot, piercing or not, without damage or on-hit effects.
                         if (DeflectPrefab != null)
                             Object.Instantiate(DeflectPrefab, PlaneMath.ToWorld(hitPoint, VisualHeight), Quaternion.identity);
+                        CombatEvents.RaiseDeflected(hitPoint);
                         projectile.Position = hitPoint;
                         consumed = true;
                         break;
