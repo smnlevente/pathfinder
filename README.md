@@ -1,7 +1,8 @@
 # Project Pathfinder: New Home
 
 A top-down, twin-stick roguelite shooter in neon-lit 3D, built in Unity 6 (6000.0.67f1, URP).
-The design lives in [docs/GDD.md](docs/GDD.md).
+The design lives in [docs/GDD.md](docs/GDD.md). The **[documentation](docs/README.md)** explains how the code is
+built and how to extend it, what every enemy, item and currency does, and the world's lore.
 
 ![Every enemy type, an elite, enemy bullets and Scraps](docs/images/m2-enemies.png)
 

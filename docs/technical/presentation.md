@@ -1,0 +1,113 @@
+# Presentation: UI, visuals, camera and audio
+
+[Docs home](../README.md) › Technical › Presentation
+
+Everything the player sees and hears. The one rule: **presentation reads gameplay state and listens to events, and
+never changes the simulation.** That keeps the game deterministic and makes the views safe to rework.
+
+## UI: uGUI built from code
+
+There are no hand-made UI prefabs. Each screen builds its own uGUI hierarchy once, in code, and refreshes it each
+frame or on change.
+
+| Piece | Role |
+|---|---|
+| `UiKit` | Creates canvases (1920 × 1080 reference, scaled to fit), text, images, panels, layout groups; holds the colour theme and generated sprites (ring, circle, vignette) |
+| `UiRow` | A selectable menu row: accent stripe, bold label, right-aligned note (price or state), wrapping detail line |
+| `UiBar` | A filled bar with a track, for hull, shield, ammo, cooldowns and boss health |
+| `UiPointer` | Mouse hover and click on any element |
+| `MenuInput` | Keyboard and gamepad navigation with key repeat, Submit and Cancel, each with its menu sound; works while paused |
+| `ModalScreens` | Tracks open menus. `AnyOpen` brings the cursor back; `BlocksPause` stops Esc from closing a menu *and* opening the pause menu in the same frame |
+| `SettingsOptions` | The option rows shared by the Hub and the pause menu: language, volumes, screen shake, fullscreen, FPS |
+
+Layout groups size rows and cards to their text, so descriptions wrap instead of being cut off, and long lists scroll.
+Every string goes through `Loc.T`, and menus rebuild when the language changes (`Loc.Changed`).
+
+### The screens
+
+| Screen | Where | What it shows |
+|---|---|---|
+| `HubMenu` | Hub | Start Run (ship, primary, secondary), Pathfinder Lab, Options, Combat Sandbox |
+| `GalaxyMapScreen` | Run | The node graph; walked path in cyan, open lanes white, next nodes pulse |
+| `ChoiceDialog` | Run | Repair station, Shop (Catalog, Upgrades, Services) and Mystery events |
+| `EquipmentChoiceScreen` | Run | A row of item cards, plus the swap step when a category is full |
+| `PauseMenu` | Run, Sandbox | Resume, options, controls, abandon run |
+| `CombatHud` | Run, Sandbox | See below |
+
+### The HUD
+
+`CombatHud` binds to the local pilot:
+
+- **Top left:** hull and shield bars, primary weapon state and ammo gauge, secondary cooldown, dash charges, ship trait
+  and equipment list coloured by rarity.
+- **Top right:** Scraps, Dark Matter and Singularity Cores, the seed code and an optional FPS counter.
+- **Top centre:** galaxy, row and level type; the objective; the boss bar with phase marks, or **one bar per part**
+  for a boss that implements `IMultiPartBoss` (each named inside its bar, with a reboot countdown when a part is down).
+- **Centre:** banners, prompts (including each boss's opening hint), and the crosshair, whose ring shows ammo, reload
+  or charge.
+- **Edges:** a red vignette flash when the hull is hit.
+- **Overlays:** galaxy cleared, victory and run over, with the run summary and banked rewards.
+
+## Visuals
+
+The art is generated primitives with emissive materials, bloom and a consistent colour language
+([readability rules](#readability-rules)).
+
+| Component | Does |
+|---|---|
+| `EntityVisual` | Flashes white on hits, brightens glow parts while an enemy telegraphs (or the ship charges a shot), blinks during post-hit invulnerability, draws the dash trail, spawns the death explosion, hides burrowed enemies |
+| `TelegraphLine` + `ChevronLane` | A lane of chevrons along a charge path that fills in as the wind-up completes (Lancer, Quarry Maw sweeps) |
+| `AreaTelegraph` | A floor outline at an attack's reach with a fill growing out to it, flickering just before it lands; builds cone or circle meshes from the brain's arc (Scorcher, Crusher, Warden reboot ring) |
+| `BeamTelegraph` | A thin, flickering line along a locked beam path that thickens before it fires (Arc Drone) |
+| `ArcBolt` | A jagged lightning bolt that crackles and fades (Arc Drone zap) |
+| `WardenVisual` | A Warden core's spin, its glow going dark when offline, and the Alpha's crackling tether |
+| `SinkVisual` | Lowers a model into the floor with a shudder (burrowing Maw, offline Warden core) |
+| `RingPulse`, `SimpleMotion`, `MuzzleFlash`, `TimedDestroy` | Small one-job effects: expanding rings, spin and pulse, muzzle flashes, self-cleanup |
+
+Each telegraph component reads a small interface implemented by the enemy's brain (`IChargeTelegraph`,
+`IAreaTelegraph`, `IBeamTelegraph`, `ISinkDepth`, `IMultiPartBoss`). To give a new enemy a floor telegraph, implement
+the interface on its brain and add the component in the builder; no visual code changes.
+
+> [!TIP]
+> Renderers that belong to a telegraph start **disabled** in the prefab. `EntityVisual` only flashes and hides the
+> renderers that were enabled when it woke up, so a hit flash never turns a warning white.
+
+## Camera
+
+`CameraRig` follows the local pilots at a 60° pitch with a slight lead toward their aim, and stays inside the arena.
+It shakes on hull hits and big explosions, and other code can call `CameraRig.Kick(amount)` (an eruption, a slam, the
+wormhole pull). Kicks don't add up: the strongest wins. Every shake is scaled by the **Screen Shake** setting, which
+can turn it off.
+
+## Audio
+
+`GameAudio` is the sound director: one per scene, safe to call when absent.
+
+- **Cues, not clips.** Gameplay calls `GameAudio.Play(SoundCue.X, position)`, or the director reacts to
+  `CombatEvents` (damage, kills, shots fired, deflects, telegraphs) and player events (fired, dashed, Scraps).
+- **Centred on the ship.** Sounds pan by which side of the local ship they happen on and get quieter with distance
+  (full volume within 6 u, 30% at 32 u). Without a living ship, the camera is the centre.
+- **Each enemy type winds up with its own sound**, chosen from its brain type, with pitch jitter.
+- **Voice limits.** 28 pooled voices; each cue has a minimum interval and a voice cap, and the oldest copy makes way.
+- **Music** crossfades between the Hub, combat and boss tracks over 1 s.
+- **Volumes** multiply the director's own level by the player's master, effects and music settings.
+
+See [Content pipeline](content-pipeline.md#the-sound-library) for the library and the synthesizer.
+
+## Readability rules
+
+Every colour and shape has one meaning, so a crowded screen reads at a glance
+([GDD §12.4](../GDD.md#124-readability-rules)):
+
+| Element | Look |
+|---|---|
+| Enemy bullets | White core, magenta rim, dark outline, faint glow. Round. Nothing else is magenta. |
+| Enemies | Solid crimson bodies with red-orange accent strips over a red floor glow |
+| Attack warnings | Accents flare white-orange; chevron lanes for charges; outlined floor areas that fill in; thin flickering beam lines |
+| Hazards | Alpha-blended orange flames; white-and-orange lightning; an orange tether |
+| Armour and weak points | Grey sparks mean no damage. Yellow always means "shoot here". |
+| Player | Cyan and blue, elongated bolts. Enemies never use cyan. |
+| Pickups | Gold Scraps, indigo Dark Matter |
+
+Overlapping effects use alpha blending rather than additive glow where they can stack (bullets, flames), so dense
+patterns don't blow out into glare.
