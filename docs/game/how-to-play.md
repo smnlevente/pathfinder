@@ -22,6 +22,9 @@ three galaxies in one run. When the ship is lost, the run ends, but what you ban
 Movement and aim are independent: the ship faces where you aim. The dash goes the way you're moving, or the way
 you're aiming if you're standing still.
 
+**Playing together?** Up to four players can share the screen, each with their own controller. See
+[Local co-op](coop.md).
+
 ## A run
 
 ```mermaid

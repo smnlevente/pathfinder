@@ -73,11 +73,26 @@ namespace Pathfinder.Game.Player
         public float SecondaryDamageMultiplier => Stats.Get(StatId.SecondaryDamage, 1f);
         public float CritChance => Stats.Get(StatId.CritChance, 0f);
 
-        /// <summary>Run currency carried by this pilot (GDD §11.1).</summary>
-        public int Scraps { get; private set; }
+        /// <summary>Run currency carried by this pilot (GDD §11.1). Local co-op pilots share theirs (M8).</summary>
+        public int Scraps { get => Wallet.Scraps; private set => Wallet.Scraps = value; }
 
         /// <summary>All Scraps gained this run, spent or not. 10% converts to Dark Matter when the run ends.</summary>
-        public int TotalScrapsGained { get; private set; }
+        public int TotalScrapsGained { get => Wallet.TotalGained; private set => Wallet.TotalGained = value; }
+
+        /// <summary>Where this pilot's Scraps are kept: their own, or one shared with the other local pilots (M8).</summary>
+        public ScrapWallet Wallet { get; private set; } = new ScrapWallet();
+
+        /// <summary>Shares another pilot's wallet from now on; whatever was in this pilot's own is left behind.</summary>
+        public void ShareWallet(ScrapWallet wallet) => Wallet = wallet ?? new ScrapWallet();
+
+        /// <summary>
+        /// How far a teammate has got bringing this downed pilot back, 0 to 1 (M8). Driven by the world's
+        /// <see cref="Combat.ReviveSystem"/>.
+        /// </summary>
+        public float ReviveProgress { get; internal set; }
+
+        /// <summary>Raised when a downed pilot is brought back (M8).</summary>
+        public event Action<PlayerShip> Revived;
 
         /// <summary>The pilot pressed Interact during the latest tick. Interactables read it after the players simulate.</summary>
         public bool InteractPressed { get; private set; }
@@ -403,6 +418,23 @@ namespace Pathfinder.Game.Player
 
         /// <summary>Restores hull and returns the amount healed. Authority only.</summary>
         public float Heal(float amount) => Authority.IsAuthority ? _vitals.Heal(amount) : 0f;
+
+        /// <summary>
+        /// Brings a downed co-op pilot back where their wreck lies, with this fraction of their hull and a moment in which
+        /// nothing can hit them (M8). Authority only.
+        /// </summary>
+        public void Revive(float hullFraction)
+        {
+            if (IsAlive || !Authority.IsAuthority || _vitals == null)
+                return;
+            _vitals.Revive(_vitals.MaxHull * hullFraction);
+            ReviveProgress = 0f;
+            Velocity = Vector2.zero;
+            _pullTarget = null;
+            _slowRemaining = 0f;
+            GrantIntangibility(CoopRules.ReviveGrace);
+            Revived?.Invoke(this);
+        }
 
         /// <summary>Takes hull past the shield, never below 1 (a Mystery event's cost). Returns the hull lost. Authority only.</summary>
         public float DrainHull(float amount) => Authority.IsAuthority ? _vitals.DrainHull(amount) : 0f;

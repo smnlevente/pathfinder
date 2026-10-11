@@ -227,19 +227,29 @@ namespace Pathfinder.Game.Run
         /// </summary>
         void OfferUpgrade(string title, Rarity minimum)
         {
-            var pilot = FirstLivingPilot();
-            if (pilot == null)
+            var first = FirstLivingPilot();
+            if (first == null)
                 return;
 
             UpgradesOffered++;
+            OfferUpgradeInTurn(PilotOrder.StartingWith(first), 0, title, minimum); // each co-op pilot picks their own (M8)
+        }
+
+        void OfferUpgradeInTurn(List<PlayerShip> pilots, int index, string title, Rarity minimum)
+        {
+            if (index >= pilots.Count)
+                return;
+            var pilot = pilots[index];
             float repair = pilot.Vitals.MaxHull * config.SkipRepairFraction;
             var offer = EquipmentOffers.Roll(content, pilot, config.UpgradeChoices, Tier, minimum, _lootRandom);
             if (offer.Count == 0)
             {
                 pilot.Heal(repair);
+                OfferUpgradeInTurn(pilots, index + 1, title, minimum);
                 return;
             }
-            equipmentChoice.Show(title, offer, pilot, Loc.T("choice.skip_repair", ("amount", Mathf.RoundToInt(repair))), () => pilot.Heal(repair), null);
+            equipmentChoice.Show(title, offer, pilot, Loc.T("choice.skip_repair", ("amount", Mathf.RoundToInt(repair))), () => pilot.Heal(repair),
+                _ => OfferUpgradeInTurn(pilots, index + 1, title, minimum));
         }
 
         // ---------------------------------------------------------------- guardians
@@ -292,8 +302,7 @@ namespace Pathfinder.Game.Run
             GameAudio.Play(SoundCue.BossDefeated);
             foreach (var player in CombatRegistry.Players)
             {
-                if (!player.IsAlive)
-                    continue;
+                player.Revive(CoopRules.ReviveHullFraction); // a downed co-op pilot is back (M8)
                 player.Heal(player.Vitals.MaxHull * runConfig.BossHealFraction);
                 player.RefreshPerLevelEffects();
             }
@@ -362,9 +371,7 @@ namespace Pathfinder.Game.Run
             if (BankedRewards.HasValue)
                 return;
 
-            int scraps = 0;
-            foreach (var player in CombatRegistry.Players)
-                scraps += player.TotalScrapsGained;
+            int scraps = RunDirector.ScrapsCollected();
 
             int seconds = Mathf.FloorToInt(Clock);
             IsNewBest = seconds > _previousBest;
@@ -389,6 +396,7 @@ namespace Pathfinder.Game.Run
                 minutes = (Time.realtimeSinceStartup - _startTime) / 60f,
                 survivedSeconds = Clock,
                 killedBy = won ? string.Empty : _lastHitBy ?? "abandoned",
+                pilots = CombatRegistry.Players.Count,
             });
         }
 

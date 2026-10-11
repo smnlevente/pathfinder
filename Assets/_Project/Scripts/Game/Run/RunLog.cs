@@ -25,6 +25,7 @@ namespace Pathfinder.Game.Run
             public float minutes;
             public float survivedSeconds; // Survival: seconds on its clock
             public string killedBy;
+            public int pilots; // local co-op players (M8)
         }
 
         /// <summary>The log file, in the same folder as the meta save (so tests that redirect the save redirect this too).</summary>

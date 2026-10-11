@@ -163,7 +163,7 @@ Rules for code:
 
 ## Co-op readiness
 
-Co-op isn't built yet, but these rules keep it possible ([§14.4](../GDD.md#144-co-op-readiness)):
+Local co-op is built (M8, see below), and these rules keep online co-op possible ([§14.4](../GDD.md#144-co-op-readiness)):
 
 | Rule | In the code |
 |---|---|
@@ -173,7 +173,23 @@ Co-op isn't built yet, but these rules keep it possible ([§14.4](../GDD.md#144-
 | Events, not reaching in | Presentation subscribes to `CombatEvents` and entity events instead of being called by gameplay. |
 | Stable IDs | Content by string ID; spawned entities get a runtime `EntityId` from the registry. |
 | No global time tricks | Pausing goes through `GameClock.Pause(holder)`, never `Time.timeScale`. Co-op will ignore single-player pauses. |
-| Per-player UI | The HUD binds to the local pilot. |
+| Per-player UI | The HUD binds to each local pilot: a panel, a readout on the ship and a crosshair each. |
+
+### Local co-op (M8)
+
+- **Who's playing:** `LocalPlayers` (static, kept across scenes) holds up to four slots. Player 1 has no device of
+  their own and plays with whatever nobody else claimed. Players 2–4 each claim a `Gamepad` and remember their
+  `PilotLoadout`. `LocalPlayers.DevicesFor(index)` is the device list a player's controls listen to.
+- **Input:** each `LocalInputCommandSource` instantiates its own copy of the project's input actions and sets
+  `InputActionAsset.devices`, so two pilots never read each other's sticks. Menus do the same on demand:
+  `MenuInput.RestrictTo(devices)` (see `PilotLabels.Devices(pilot)`). The shared actions still serve Pause, which any
+  device can press.
+- **Spawning:** `PlayerSpawner` spawns one ship per slot, side by side (`CoopRules.EntryOffset`). Players 2+ share
+  player 1's `ScrapWallet`, and each gets a `PilotMarker` ring.
+- **Rules:** `CoopRules` holds the numbers: revive time, radius and hull, scaling, colours. `ReviveSystem` runs in
+  the world's tick. `CombatWorld.SpawnEnemy` and `WaveDirector` scale by `CombatRegistry.Players.Count`.
+- **In turn:** `PilotOrder.StartingWith(pilot)` is the order for things each pilot gets: equipment picks, Survival
+  upgrades.
 
 ## Patterns you'll see everywhere
 

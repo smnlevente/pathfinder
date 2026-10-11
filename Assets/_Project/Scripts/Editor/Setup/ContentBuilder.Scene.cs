@@ -68,7 +68,7 @@ namespace Pathfinder.Editor.Setup
             // handles from the build steps above. Capture paths first and reload afterwards.
             var assets = new ScenePaths
             {
-                Player = AssetPathOf(actors.Player), Telegraph = AssetPathOf(art.SpawnTelegraph), Scrap = AssetPathOf(art.ScrapVisual), Deflect = AssetPathOf(art.Deflect),
+                Player = AssetPathOf(actors.Player), PilotRing = AssetPathOf(art.PilotRing), Telegraph = AssetPathOf(art.SpawnTelegraph), Scrap = AssetPathOf(art.ScrapVisual), Deflect = AssetPathOf(art.Deflect),
                 Floor = AssetPathOf(art.Floor), Wall = AssetPathOf(art.Wall), Ship = AssetPathOf(data.Ship), Waves = AssetPathOf(data.Waves),
                 RunConfig = AssetPathOf(runConfig), SurvivalConfig = AssetPathOf(survivalConfig), Database = AssetPathOf(equipment.Database), Audio = AssetPathOf(audio), Icons = AssetPathOf(icons),
                 Primaries = Array.ConvertAll(data.Primaries, p => AssetPathOf(p)),
@@ -86,7 +86,7 @@ namespace Pathfinder.Editor.Setup
 
         sealed class ScenePaths
         {
-            public string Player, Telegraph, Scrap, Deflect, Floor, Wall, Ship, Waves, RunConfig, SurvivalConfig, Database, Audio, Icons;
+            public string Player, PilotRing, Telegraph, Scrap, Deflect, Floor, Wall, Ship, Waves, RunConfig, SurvivalConfig, Database, Audio, Icons;
             public string[] Primaries, Secondaries;
         }
 
@@ -113,7 +113,8 @@ namespace Pathfinder.Editor.Setup
             var database = Load<ContentDatabase>(assets.Database);
             var spawner = FindOrCreate<PlayerSpawner>("Player Spawner");
             SetFields(spawner, ("world", world), ("shipPrefab", Load<PlayerShip>(assets.Player)), ("ship", Load<ShipDefinition>(assets.Ship)),
-                ("primaryWeapon", primaries[0]), ("secondaryWeapon", secondaries[0]), ("useRunLoadout", usesHubLoadout), ("content", database));
+                ("primaryWeapon", primaries[0]), ("secondaryWeapon", secondaries[0]), ("useRunLoadout", usesHubLoadout), ("content", database),
+                ("pilotRingPrefab", Load<GameObject>(assets.PilotRing)));
 
             // M2 replaced the M1 test spawner with the wave director. Its script no longer exists.
             var oldSpawner = GameObject.Find("Wave Spawner");

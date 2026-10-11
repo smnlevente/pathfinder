@@ -66,8 +66,13 @@ namespace Pathfinder.Game.Presentation
         Text _titleText, _bodyText;
         LayoutElement _listLayout;
 
+        Player.PlayerShip _owner;
+
         public bool IsOpen { get; private set; }
         public string Title => _title;
+
+        /// <summary>The pilot the dialog is for, if any (M8).</summary>
+        public Player.PlayerShip Owner => _owner;
         public IReadOnlyList<Option> Options => _options;
 
         /// <summary>The rows as built, in option order. For tests and screenshots.</summary>
@@ -82,8 +87,16 @@ namespace Pathfinder.Game.Presentation
             _canvas.gameObject.SetActive(false);
         }
 
-        public void Show(string title, Func<string> body, Func<IReadOnlyList<Option>> buildOptions)
+        void OnDestroy() => _input?.Dispose();
+
+        /// <summary>
+        /// Opens the dialog. With an <paramref name="owner"/> in local co-op (M8), e.g. the pilot at the Shop, only their
+        /// controller works it and their name heads it.
+        /// </summary>
+        public void Show(string title, Func<string> body, Func<IReadOnlyList<Option>> buildOptions, Player.PlayerShip owner = null)
         {
+            _owner = owner;
+            _input.RestrictTo(PilotLabels.Devices(owner));
             _title = title;
             _body = body;
             _buildOptions = buildOptions;
@@ -131,7 +144,7 @@ namespace Pathfinder.Game.Presentation
         {
             _options = _buildOptions?.Invoke() ?? Array.Empty<Option>();
             _selected = Mathf.Clamp(_selected, 0, Mathf.Max(0, _options.Count - 1));
-            _titleText.text = _title;
+            _titleText.text = PilotLabels.Prefix(_owner) + _title;
             UpdateBody();
             RebuildRows();
         }
@@ -165,7 +178,7 @@ namespace Pathfinder.Game.Presentation
                 return;
             for (int i = 0; i < _rows.Count; i++)
                 _rows[i].SetState(i == _selected, _options[i].Enabled);
-            EquipmentPreview.Show(this, _selected < _options.Count ? _options[_selected].PreviewItem : null);
+            EquipmentPreview.Show(this, _selected < _options.Count ? _options[_selected].PreviewItem : null, pilot: _owner);
             if (_scrollToSelection)
                 ScrollToSelection();
         }

@@ -21,6 +21,7 @@ namespace Pathfinder.Editor.Setup
 
             // Each shooter's own shot (playtest 7).
             public GameObject GunnerShot, SpinnerShot, MawShot, WardenShot, MatriarchShot, SpitterShot;
+            public GameObject PilotRing;
 
             // Galaxy 2: flames (a hazard orange), floor telegraphs, lightning and the Wardens' tether.
             public Material Flame, FlameCore, HazardArea, SlamArea, Beam, BoltCore, BoltGlow, Tether;

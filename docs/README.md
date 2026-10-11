@@ -59,6 +59,7 @@ flowchart LR
 | [Enemies](game/enemies.md) | All the enemies (and the Matriarch's Broodlings), elites, spawning and scaling, how to beat each |
 | [Bosses](game/bosses.md) | The Quarry Maw, the Binary Wardens and the Hive Matriarch |
 | [Economy & meta](game/economy.md) | Scraps, Dark Matter, Singularity Cores, the Shop, the Pathfinder Lab |
+| [Local co-op](game/coop.md) | Up to four players on one screen: joining, reviving, sharing, scaling |
 
 ### Lore
 

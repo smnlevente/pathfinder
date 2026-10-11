@@ -72,6 +72,7 @@ namespace Pathfinder.Editor.Setup
 
             EnsureScenes();
             var art = BuildArt();
+            art.PilotRing = BuildPilotRing();
             var data = BuildDefinitions();
             var actors = BuildActors(art, data);
             LinkDefinitions(art, actors, data);

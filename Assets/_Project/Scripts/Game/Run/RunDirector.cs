@@ -146,11 +146,11 @@ namespace Pathfinder.Game.Run
                     return;
                 }
 
-                // Every galaxy starts at full hull (M7).
+                // Every galaxy starts at full hull (M7), downed co-op pilots too (M8).
                 foreach (var player in CombatRegistry.Players)
                 {
-                    if (player.IsAlive)
-                        player.Heal(player.Vitals.MaxHull);
+                    player.Revive(CoopRules.ReviveHullFraction);
+                    player.Heal(player.Vitals.MaxHull);
                 }
                 _phaseTimer = GalaxyClearedDelay;
                 SetPhase(Phase.GalaxyCleared);
@@ -175,9 +175,7 @@ namespace Pathfinder.Game.Run
             if (BankedRewards.HasValue)
                 return;
 
-            int scraps = 0;
-            foreach (var player in CombatRegistry.Players)
-                scraps += player.TotalScrapsGained;
+            int scraps = ScrapsCollected();
 
             BankedRewards = MetaProgression.Current.BankRun(Run.DarkMatter, Run.SingularityCores, scraps, won, Run.GalaxyIndex + 1);
             MetaProgression.Save();
@@ -200,7 +198,21 @@ namespace Pathfinder.Game.Run
                 scrapsCollected = scraps,
                 minutes = PlayMinutes,
                 killedBy = won ? string.Empty : _lastHitBy ?? "abandoned",
+                pilots = CombatRegistry.Players.Count,
             });
+        }
+
+        /// <summary>All Scraps the pilots collected this run. Local co-op pilots share a wallet (M8), counted once.</summary>
+        public static int ScrapsCollected()
+        {
+            int scraps = 0;
+            var counted = new System.Collections.Generic.HashSet<ScrapWallet>();
+            foreach (var player in CombatRegistry.Players)
+            {
+                if (counted.Add(player.Wallet))
+                    scraps += player.TotalScrapsGained;
+            }
+            return scraps;
         }
 
         /// <summary>Remembers what last hurt a pilot, for the run log's "killed by".</summary>
@@ -223,7 +235,7 @@ namespace Pathfinder.Game.Run
             GameClock.Pause(this);
             SetPhase(Phase.Map);
             // Between levels is where a run is saved, so it can be continued after quitting (M7).
-            RunSaveFile.Save(Run, FirstLivingLocalPilot(), PlayMinutes);
+            RunSaveFile.Save(Run, LocalPilots(), PlayMinutes);
         }
 
         float PlayMinutes => RunSession.MinutesBefore + (Time.realtimeSinceStartup - _startTime) / 60f;
@@ -237,6 +249,19 @@ namespace Pathfinder.Game.Run
                 Audio.GameAudio.PlayMusic(phase is Phase.Victory or Phase.Defeat ? Audio.MusicTrack.None
                     : Run != null ? Audio.SoundLibrary.ForGalaxy(Run.GalaxyIndex) : Audio.MusicTrack.Combat);
             PhaseChanged?.Invoke(this);
+        }
+
+        /// <summary>The local pilots, player 1 first, downed or not.</summary>
+        static System.Collections.Generic.List<PlayerShip> LocalPilots()
+        {
+            var pilots = new System.Collections.Generic.List<PlayerShip>();
+            foreach (var player in CombatRegistry.Players)
+            {
+                if (player.IsLocal)
+                    pilots.Add(player);
+            }
+            pilots.Sort((a, b) => a.PlayerIndex.CompareTo(b.PlayerIndex));
+            return pilots;
         }
 
         static PlayerShip FirstLivingLocalPilot()

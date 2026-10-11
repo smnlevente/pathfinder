@@ -48,6 +48,7 @@ namespace Pathfinder.Game.Presentation
         {
             _input = new MenuInput();
             _pause = InputSystem.actions?.FindActionMap("Gameplay")?.FindAction("Pause");
+            _pause?.Enable();
             Build();
             _canvas.gameObject.SetActive(false);
         }

@@ -31,7 +31,7 @@ A **top-down, twin-stick roguelite shooter** in neon-lit 3D. You pilot a ship th
 - **Genre:** Roguelite twin-stick shooter
 - **Perspective:** Top-down 3D. Gameplay happens on a flat plane; the camera looks down at about 60°.
 - **Platforms:** PC (Steam) first. Consoles come after launch; the game is gamepad-first in design.
-- **Players:** Single-player at launch of the slice. **Online co-op for up to 4 players** is a post-slice goal. It is out of scope for now, but the architecture is planned for it from day one ([§14.4](#144-co-op-readiness)).
+- **Players:** 1 to 4. **Local co-op for up to 4 players on one screen** is built (M8, [§14.4](#144-co-op-readiness)). **Online co-op** is a post-slice goal, and the architecture has been planned for it from day one.
 - **Run length:** about 30–40 minutes for a full winning run (3 galaxies)
 - **Team:** Solo developer. The first goal is a vertical slice.
 
@@ -741,6 +741,18 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 
 **Co-op design questions (post-slice):** shared or individual Scraps and loot, how the group picks the next map node (vote or host decides), downed and revive mechanics, enemy HP and budget scaling per player, and how meta currencies are awarded.
 
+#### Local co-op (built in M8)
+Up to four players on one screen, each with their own controller, in runs and in Survival. It answers the design questions above for local play:
+
+- **Joining:** player 1 plays with every device nobody else claimed (keyboard and mouse, or a gamepad). The others join on the Hub's loadout page with a gamepad of their own, and each picks their own ship and weapons (`LocalPlayers`). Each pilot's `LocalInputCommandSource` listens only to that player's devices.
+- **One shared camera** frames every ship, wrecks included, and pulls back as they spread out, as far as the whole arena. There is no split screen. Each pilot has a colour (cyan, gold, violet, pink): a ring under the ship, a tag on their readout, their own HUD panel and crosshair. P2's ship diagram is bottom right.
+- **Downed and revive:** a ship whose hull runs out stays as a dark wreck. A living teammate within **2.5 u** for **2 s** brings the pilot back with **15% hull** and **2 s** of intangibility (`ReviveSystem`). Away from teammates, the progress drains at half the rate. A pilot still down comes back at the next level with 15%; a fallen boss or Survival guardian brings everyone back and heals them. The run is lost only when every pilot is down.
+- **Loot:** **one shared Scraps wallet** (`ScrapWallet`). Completion bonuses are paid once. **Equipment is per player**: caches, boss rewards and event finds offer a pick to every pilot in turn, starting with whoever opened it. A pick answers only to its player's controller and is headed with their name. The Shop and repair station open for whoever presses Interact there; a repair station serves each pilot once.
+- **Map and pause:** player 1 picks the next node. Any player can pause, and it pauses everyone. Menus still pause the game in local co-op.
+- **Scaling per extra pilot:** enemy health **+65%** (×1.65 for two), wave budget **+50%** (×1.5 for two). Bosses and guardians are scaled; arena hazards aren't.
+- **Saving:** the run file (version 2) keeps every pilot. Version 1 files still load.
+- **Meta:** the run banks into the one local profile. The shared wallet's Scraps count once.
+
 ### 14.5 Testing
 - EditMode tests for map generation rules ([§9.2](#92-generation-rules)), the stat and modifier math, and economy calculations.
 - **Determinism tests:** the same seed must always produce an identical galaxy map and level content, with golden values checked into the tests. Changing the order in which levels are played must not change any level's content.
@@ -756,7 +768,7 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 | 1 | Should the base dash have i-frames? | **Yes:** full i-frames for the dash duration. Phase Dash extends them ([§5.2](#52-dash), [§8.2](#82-dash-modules)). |
 | 2 | Second faction | **The Remnant** (rival humans), as a placeholder |
 | 3 | Narrative depth (Hub dialogue, scientist cast) | **Post-slice** |
-| 4 | Co-op | **Out of scope for now, but the architecture plans for it** ([§14.4](#144-co-op-readiness)) |
+| 4 | Co-op | **Local co-op built (M8)**; online co-op later, on the same architecture ([§14.4](#144-co-op-readiness)) |
 | 5 | Currency and galaxy names | The working names in this doc |
 | 6 | Art sourcing | Decide after M5. The slice uses primitives and emissive placeholders. |
 | 7 | Post-game mode | **Pathfinder Protocols** (difficulty modifiers), post-launch |
@@ -765,9 +777,9 @@ Co-op (up to 4 players, online, host-authoritative) ships after the slice. Retro
 **Still open:**
 | # | Question | Default until decided |
 |---|---|---|
-| 9 | Co-op player count (2 or up to 4?) | Plan for 4 |
-| 10 | Netcode library | Netcode for GameObjects; decide before co-op work starts |
-| 11 | Co-op loot, map voting and revive rules | Post-slice design task |
+| 9 | Co-op player count (2 or up to 4?) | **Up to 4**, built for local co-op (M8) |
+| 10 | Netcode library | Netcode for GameObjects; decide before online co-op work starts |
+| 11 | Co-op loot, map voting and revive rules | **Local co-op answers built in M8** ([§14.4](#144-co-op-readiness)); online co-op may differ |
 
 ---
 

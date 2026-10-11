@@ -14,12 +14,16 @@ namespace Pathfinder.Game.Presentation
 
         public static EquipmentDefinition Item { get; private set; }
 
+        /// <summary>The pilot the menu is for, whose ship diagram should light up (M8, local co-op); null for whoever.</summary>
+        public static Player.PlayerShip Pilot { get; private set; }
+
         /// <summary>The slot, within the item's category, that a swap would replace, or -1.</summary>
         public static int ReplaceIndex { get; private set; } = -1;
 
-        public static void Show(object owner, EquipmentDefinition item, int replaceIndex = -1)
+        public static void Show(object owner, EquipmentDefinition item, int replaceIndex = -1, Player.PlayerShip pilot = null)
         {
             s_owner = owner;
+            Pilot = pilot;
             Item = item;
             ReplaceIndex = item != null ? replaceIndex : -1;
         }
@@ -30,6 +34,7 @@ namespace Pathfinder.Game.Presentation
             if (s_owner != owner)
                 return;
             s_owner = null;
+            Pilot = null;
             Item = null;
             ReplaceIndex = -1;
         }
@@ -38,6 +43,7 @@ namespace Pathfinder.Game.Presentation
         static void ResetStatics()
         {
             s_owner = null;
+            Pilot = null;
             Item = null;
             ReplaceIndex = -1;
         }

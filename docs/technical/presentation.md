@@ -39,7 +39,14 @@ Every string goes through `Loc.T`, and menus rebuild when the language changes (
 
 ### The HUD
 
-`CombatHud` binds to the local pilot:
+`CombatHud` binds to each local pilot. With one pilot it looks as below; in co-op (M8) each pilot gets their own
+`PilotPanel` (P1 top left, P2 top right, P3 and P4 below them, compact, tagged in the pilot's colour), their own
+`ShipReadout` on their ship (over a wreck: a call for help and the revive ring), their own crosshair (only player 1
+aims with the mouse), and P2's `ShipSlotsView` sits bottom right. `EquipmentPreview.Pilot` says whose diagram a menu's
+preview belongs to. Menus that are for one pilot (`EquipmentChoiceScreen`, the Shop and repair `ChoiceDialog`) head
+their title with `PilotLabels.Prefix(pilot)` and listen only to that pilot's devices.
+
+With one pilot:
 
 - **On the ship:** an ammo/reload ring around it (charge for the Quantum Charger, the Precision Loader's gold window
   while reloading) and shield and hull bars under it. It's anchored at the ship's viewport position, so it lines up at
@@ -78,6 +85,7 @@ The art is generated primitives with emissive materials, bloom and a consistent 
 | `ArcBolt` | A jagged lightning bolt that crackles and fades (Arc Drone zap) |
 | `ImpactTelegraph` | Where something is about to hit the floor (the Quarry Maw's eruption, a Matriarch spore pod): a crisp outline drawn as geometry, a fill growing out to it and a ring closing in to meet it, flashing once the spot locks; optionally the projectile arcing in |
 | `SporeCloud` | A spore cloud: a translucent area with a crisp, breathing edge, churning fog and spores drifting up; pops in, fades out over its last moments |
+| `PilotMarker` | A ring on the floor in the pilot's colour under each ship, shown in co-op; dims under a wreck, with an arc that fills as a teammate revives them (M8) |
 | `ArenaTheme` | Dresses the arena in a galaxy's look (`GalaxyThemeDefinition`): the floor grid's colour, the walls and the background, through property blocks |
 | `RingLine` | A constant-width circle drawn as a line, so it stays thin as it grows (the Matriarch's bloom pulse) |
 | `WardenVisual` | A Warden core's spin, its glow going dark when offline, and the Alpha's crackling tether |
@@ -94,7 +102,10 @@ the interface on its brain and add the component in the builder; no visual code 
 
 ## Camera
 
-`CameraRig` follows the local pilots at a 60° pitch with a slight lead toward their aim, and stays inside the arena.
+`CameraRig` follows the local pilot at a 60° pitch with a slight lead toward their aim, and stays inside the arena.
+With several local co-op pilots (M8) it frames the middle of all of them, wrecks included, and pulls back far enough
+to see them all (`DistanceToFit`, using the field of view, the aspect and the pitch), up to the distance that shows
+the whole arena. The zoom eases with its own smoothing, and the arena clamp widens as it pulls back.
 When a ship is placed at a level's entry (`PlayerShip.Placements` changes) it **cuts** to it instead of sliding.
 It shakes on hull hits and big explosions, and other code can call `CameraRig.Kick(amount)` (an eruption, a slam, the
 wormhole pull, which rumbles only while the pull is playing, never behind a paused menu). Kicks don't add up: the

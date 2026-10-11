@@ -20,7 +20,9 @@ namespace Pathfinder.Game.Presentation
     /// overlays; a crosshair whose ring shows ammo, reload or charge; and a red edge flash when the hull is hit. A small
     /// readout follows the ship itself, where the pilot is looking: an ammo/reload ring around it and hull and shield
     /// bars under it (playtest 6: nobody watches the cursor or the corners). The corner panels sit in a centred 16:9
-    /// area, so they stay in view on ultrawide screens. Built in uGUI below the menus, which cover it when open.
+    /// area, so they stay in view on ultrawide screens. In local co-op (M8) every pilot has their own panel, readout and
+    /// crosshair in their colour; player 2's ship diagram sits bottom right. Built in uGUI below the menus, which cover it
+    /// when open.
     /// </summary>
     public sealed class CombatHud : MonoBehaviour
     {
@@ -32,11 +34,11 @@ namespace Pathfinder.Game.Presentation
         [SerializeField, Tooltip("Optional. In the Survival scene: the clock, what comes next, and the guardian.")] SurvivalController survival;
         [SerializeField, Tooltip("Optional: currencies as pictures and numbers instead of words (playtest 7).")] Content.GameIcons icons;
 
-        static readonly Color HullColor = new Color(0.95f, 0.35f, 0.3f);
-        static readonly Color ShieldColor = new Color(0.3f, 0.85f, 1f);
-        static readonly Color DashColor = new Color(0.4f, 1f, 0.9f);
-        static readonly Color WeaponColor = new Color(0.55f, 0.85f, 1f);
-        static readonly Color WarningColor = new Color(1f, 0.6f, 0.2f);
+        internal static readonly Color HullColor = new Color(0.95f, 0.35f, 0.3f);
+        internal static readonly Color ShieldColor = new Color(0.3f, 0.85f, 1f);
+        internal static readonly Color DashColor = new Color(0.4f, 1f, 0.9f);
+        internal static readonly Color WeaponColor = new Color(0.55f, 0.85f, 1f);
+        internal static readonly Color WarningColor = new Color(1f, 0.6f, 0.2f);
         static readonly Color ScrapsColor = new Color(1f, 0.8f, 0.3f);
         static readonly Color DarkMatterColor = new Color(0.65f, 0.55f, 1f);
         static readonly Color CoresColor = new Color(1f, 0.55f, 0.85f);
@@ -47,28 +49,31 @@ namespace Pathfinder.Game.Presentation
         const float VignetteFade = 2.5f;
         const float GamepadReticleDistance = 150f;
 
-        UiBar _hull, _shield, _primary, _secondary, _boss, _shipHull, _shipShield;
+        const int MaxPilots = CoopRules.MaxPilots;
+
+        UiBar _boss;
         readonly UiBar[] _bossParts = new UiBar[2];
         readonly Text[] _bossPartLabels = new Text[2];
-        readonly UiBar[] _dash = new UiBar[MaxDashPips];
-        Text _hullText, _primaryText, _secondaryText, _loadoutText;
         Text _scraps, _darkMatter, _cores, _seed, _header, _objective, _bossName, _banner, _prompt, _debug;
         GameObject _runCurrencies, _scrapsRoot;
-        ShipSlotsView _slots;
-        GameObject _slotsPanel;
+        readonly PilotPanel[] _panels = new PilotPanel[MaxPilots];
+        readonly ShipReadout[] _readouts = new ShipReadout[MaxPilots];
+        readonly RectTransform[] _reticles = new RectTransform[MaxPilots];
+        readonly Image[] _reticleFills = new Image[MaxPilots];
+        readonly Image[] _reticleTracks = new Image[MaxPilots];
+        readonly ShipSlotsView[] _slotViews = new ShipSlotsView[2];
+        readonly GameObject[] _slotPanels = new GameObject[2];
+        readonly Text[] _slotTags = new Text[2];
         BossIntroCard _bossIntro;
         Text _overlayTitle, _overlayHint;
-        GameObject _playerPanel, _bossPanel, _overlay;
+        GameObject _bossPanel, _overlay;
         Image _vignette;
-        RectTransform _canvasRect, _reticle, _safeArea, _shipReadout;
-        Image _reticleFill, _shipRing, _sweetSpot;
-        CanvasGroup _shipGroup;
-        float _shipAlpha, _lastHitTime = -10f;
+        RectTransform _canvasRect, _safeArea;
         bool _gamepadAiming;
         float _vignetteAlpha;
         float _fps;
-        PlayerShip _subscribed;
-        readonly StringBuilder _builder = new StringBuilder();
+        readonly System.Collections.Generic.List<PlayerShip> _locals = new System.Collections.Generic.List<PlayerShip>();
+        readonly System.Collections.Generic.List<PlayerShip> _subscribed = new System.Collections.Generic.List<PlayerShip>();
 
         void Awake()
         {
@@ -85,21 +90,28 @@ namespace Pathfinder.Game.Presentation
         {
             _fps = Mathf.Lerp(_fps, 1f / Mathf.Max(Time.unscaledDeltaTime, 1e-4f), 0.05f);
 
-            var player = LocalPlayer();
-            Subscribe(player);
-            _playerPanel.SetActive(player != null && player.Vitals != null);
-            _slotsPanel.SetActive(_playerPanel.activeSelf);
-            if (_playerPanel.activeSelf)
+            CollectLocalPilots();
+            Subscribe(_locals);
+            bool coop = _locals.Count > 1;
+            var first = _locals.Count > 0 ? _locals[0] : null;
+            for (int i = 0; i < MaxPilots; i++)
             {
-                RefreshPlayer(player);
-                _slots.Refresh(player, EquipmentPreview.Item, EquipmentPreview.ReplaceIndex);
+                var pilot = i < _locals.Count ? _locals[i] : null;
+                bool shown = pilot != null && pilot.Vitals != null;
+                _panels[i].Root.SetActive(shown);
+                if (shown)
+                    _panels[i].Refresh(pilot, coop);
             }
+            RefreshSlots(coop);
 
-            RefreshStatus(player);
+            RefreshStatus(first);
             RefreshOverlay();
             _bossIntro.Update();
-            RefreshReticle(player);
-            RefreshShipReadout(player);
+            bool flying = !_overlay.activeSelf && !ModalScreens.AnyOpen;
+            RefreshReticles(flying);
+            var view = Camera.main;
+            for (int i = 0; i < MaxPilots; i++)
+                _readouts[i].Refresh(i < _locals.Count ? _locals[i] : null, flying, coop, view);
 
             _vignetteAlpha = Mathf.Max(0f, _vignetteAlpha - VignetteFade * Time.unscaledDeltaTime);
             _vignette.color = new Color(1f, 0.1f, 0.08f, _vignetteAlpha);
@@ -108,58 +120,42 @@ namespace Pathfinder.Game.Presentation
 
         // ---------------------------------------------------------------- refresh
 
-        void RefreshPlayer(PlayerShip player)
+        /// <summary>
+        /// Bottom left, player 1's ship and its slots; bottom right, player 2's in co-op (M8). While player 3 or 4 picks an
+        /// item, theirs borrows a corner. The diagram of the pilot a menu is for lights up where the item would go.
+        /// </summary>
+        void RefreshSlots(bool coop)
         {
-            var vitals = player.Vitals;
-            _hull.Set(vitals.Hull / vitals.MaxHull);
-            _shield.Rect.gameObject.SetActive(vitals.MaxShield > 0f);
-            _shield.Set(vitals.MaxShield > 0f ? vitals.Shield / vitals.MaxShield : 0f);
-            _hullText.text = Loc.T("hud.hull", ("hull", Mathf.CeilToInt(vitals.Hull)), ("max", Mathf.RoundToInt(vitals.MaxHull)),
-                ("shield", Mathf.CeilToInt(vitals.Shield)), ("god", player.GodMode ? Loc.T("hud.god") : string.Empty));
-
-            // Primary: name, state, and a gauge for ammo, reload or charge.
-            var status = player.Primary.Status;
-            _primaryText.text = $"{player.PrimaryWeapon.DisplayName.ToUpperInvariant()}   {status.Label}";
-            _primary.Set(status.Fill, status.Warning ? WarningColor : WeaponColor);
-
-            bool hasSecondary = player.SecondaryWeapon != null;
-            _secondaryText.gameObject.SetActive(hasSecondary);
-            _secondary.Rect.gameObject.SetActive(hasSecondary);
-            if (hasSecondary)
+            var chooser = EquipmentPreview.Pilot;
+            for (int i = 0; i < _slotViews.Length; i++)
             {
-                _secondaryText.text = SecondaryLabel(player);
-                // The gauge fills as the next charge comes back; full only when every charge is (playtest 5).
-                var cooldown = player.SecondaryCooldown;
-                bool full = cooldown.Charges >= cooldown.MaxCharges;
-                _secondary.Set(full ? 1f : cooldown.RechargeProgress, cooldown.IsReady ? WeaponColor : WarningColor);
-            }
-
-            var dash = player.Dash;
-            for (int i = 0; i < MaxDashPips; i++)
-            {
-                bool shown = i < dash.MaxCharges;
-                _dash[i].Rect.gameObject.SetActive(shown);
-                if (shown)
-                    _dash[i].Set(i < dash.Charges ? 1f : i == dash.Charges ? dash.RechargeProgress : 0f);
-            }
-
-            // Ship trait; the equipped items are on the ship diagram (playtest 7). An item without a picture is listed here by name.
-            _builder.Clear();
-            if (!string.IsNullOrEmpty(player.Definition.TraitTitle))
-                _builder.Append(player.Definition.DisplayName.ToUpperInvariant()).Append("   ·   ").Append(player.Definition.TraitTitle).Append('\n');
-            foreach (var entry in player.Equipment.All)
-            {
-                if (entry.Item.Icon != null)
+                var pilot = i < _locals.Count && (i == 0 || coop) ? _locals[i] : null;
+                if (chooser != null && chooser.PlayerIndex >= _slotViews.Length && chooser.PlayerIndex % _slotViews.Length == i)
+                    pilot = chooser;
+                bool shown = pilot != null && pilot.Vitals != null;
+                _slotPanels[i].SetActive(shown);
+                if (!shown)
                     continue;
-                _builder.Append("<color=#").Append(UiKit.Hex(EquipmentChoiceScreen.RarityColor(entry.Item.Rarity))).Append('>')
-                    .Append(entry.Item.DisplayName).Append(' ').Append(EquipmentChoiceScreen.Roman(entry.Level)).Append("</color>\n");
+                bool previewing = chooser == null || chooser == pilot;
+                _slotViews[i].Refresh(pilot, previewing ? EquipmentPreview.Item : null, previewing ? EquipmentPreview.ReplaceIndex : -1);
+                _slotTags[i].gameObject.SetActive(coop);
+                _slotTags[i].text = CoopRules.Tag(pilot.PlayerIndex);
+                _slotTags[i].color = CoopRules.PilotColor(pilot.PlayerIndex);
             }
-            _loadoutText.text = _builder.ToString();
-            _scraps.text = icons != null ? player.Scraps.ToString() : Loc.T("hud.scraps", ("amount", player.Scraps));
         }
 
-        /// <summary>The ship diagram with its equipment slots, for tests.</summary>
-        public ShipSlotsView Slots => _slots;
+        /// <summary>Each pilot's corner panel (M8). For tests.</summary>
+        public System.Collections.Generic.IReadOnlyList<PilotPanel> PilotPanels => _panels;
+
+        /// <summary>Each pilot's readout on their ship (M8). For tests.</summary>
+        public System.Collections.Generic.IReadOnlyList<ShipReadout> Readouts => _readouts;
+
+        /// <summary>Player 2's ship diagram, bottom right in co-op (M8). For tests.</summary>
+        public ShipSlotsView SecondSlots => _slotViews[1];
+        public bool SecondSlotsShown => _slotPanels[1].activeSelf;
+
+        /// <summary>The ship diagram with its equipment slots, for tests.</summary>        /// <summary>The ship diagram with its equipment slots, for tests.</summary>
+        public ShipSlotsView Slots => _slotViews[0];
 
         /// <summary>
         /// "SEEKER SWARM   READY". With several charges it also counts them and shows when the next one returns:
@@ -182,6 +178,8 @@ namespace Pathfinder.Game.Presentation
         void RefreshStatus(PlayerShip player)
         {
             _scrapsRoot.SetActive(player != null);
+            if (player != null) // co-op pilots share one wallet (M8)
+                _scraps.text = icons != null ? player.Scraps.ToString() : Loc.T("hud.scraps", ("amount", player.Scraps));
             _seed.text = world != null
                 ? Loc.T("hud.seed", ("seed", RunSeed.ToCode(world.Seed)), ("fps", Settings.GameSettings.ShowFps ? Loc.T("hud.fps", ("fps", _fps)) : string.Empty))
                 : string.Empty;
@@ -300,16 +298,11 @@ namespace Pathfinder.Game.Presentation
 
         /// <summary>
         /// The crosshair follows the mouse, or sits along the aim for a gamepad. Its ring shows the primary's ammo,
-        /// reload or charge (GDD §12.2). It replaces the system cursor while flying; menus bring the cursor back.
+        /// reload or charge (GDD §12.2). It replaces the system cursor while flying; menus bring the cursor back. In co-op
+        /// (M8) each pilot has one in their colour; only player 1 can aim with the mouse.
         /// </summary>
-        void RefreshReticle(PlayerShip player)
+        void RefreshReticles(bool flyingAllowed)
         {
-            bool flying = player != null && player.IsAlive && !_overlay.activeSelf && !ModalScreens.AnyOpen;
-            _reticle.gameObject.SetActive(flying);
-            Cursor.visible = !flying;
-            if (!flying)
-                return;
-
             var mouse = Mouse.current;
             var gamepad = Gamepad.current;
             if (gamepad != null && gamepad.rightStick.ReadValue().sqrMagnitude > 0.04f)
@@ -317,74 +310,51 @@ namespace Pathfinder.Game.Presentation
             else if (mouse != null && mouse.delta.ReadValue().sqrMagnitude > 0.5f)
                 _gamepadAiming = false;
 
-            Vector2 screen;
-            if (!_gamepadAiming && mouse != null)
+            bool coop = _locals.Count > 1;
+            bool anyFlying = false;
+            var camera = Camera.main;
+            for (int i = 0; i < MaxPilots; i++)
             {
-                screen = mouse.position.ReadValue();
-            }
-            else
-            {
-                var camera = Camera.main;
-                if (camera == null)
-                    return;
-                Vector2 ship = camera.WorldToScreenPoint(player.transform.position);
-                float scale = Screen.height / UiKit.ReferenceSize.y;
-                screen = ship + player.AimDirection * (GamepadReticleDistance * scale);
-            }
+                var player = i < _locals.Count ? _locals[i] : null;
+                bool flying = flyingAllowed && player != null && player.IsAlive;
+                _reticles[i].gameObject.SetActive(flying);
+                if (!flying)
+                    continue;
+                anyFlying = true;
 
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvasRect, screen, null, out var local))
-                _reticle.anchoredPosition = local;
+                // The pilot's own controls know how they aim; a scripted pilot (tests) follows the last device used.
+                bool usesMouse = player.CommandSource is LocalInputCommandSource input ? input.UsesMouse : i == 0 && !_gamepadAiming && mouse != null;
+                Vector2 screen;
+                if (usesMouse && mouse != null)
+                {
+                    screen = mouse.position.ReadValue();
+                }
+                else
+                {
+                    if (camera == null)
+                        continue;
+                    Vector2 ship = camera.WorldToScreenPoint(player.transform.position);
+                    float scale = Screen.height / UiKit.ReferenceSize.y;
+                    screen = ship + player.AimDirection * (GamepadReticleDistance * scale);
+                }
 
-            var status = player.Primary.Status;
-            _reticleFill.fillAmount = status.Fill;
-            _reticleFill.color = status.Warning ? WarningColor : WeaponColor;
+                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvasRect, screen, null, out var local))
+                    _reticles[i].anchoredPosition = local;
+
+                var status = player.Primary.Status;
+                _reticleFills[i].fillAmount = status.Fill;
+                _reticleFills[i].color = status.Warning ? WarningColor : WeaponColor;
+                var color = CoopRules.PilotColor(player.PlayerIndex);
+                _reticleTracks[i].color = coop ? new Color(color.r, color.g, color.b, 0.45f) : new Color(1f, 1f, 1f, 0.18f);
+            }
+            Cursor.visible = !anyFlying;
         }
 
-        /// <summary>
-        /// The readout on the ship: the ammo ring (reload or charge progress while those run) and hull and shield bars. It
-        /// stays faint while all is well and brightens when it matters: reloading, low ammo or hull, or just hit.
-        /// </summary>
-        void RefreshShipReadout(PlayerShip player)
-        {
-            bool shown = player != null && player.IsAlive && !_overlay.activeSelf && !ModalScreens.AnyOpen && Camera.main != null;
-            _shipReadout.gameObject.SetActive(shown);
-            if (!shown)
-                return;
-
-            // Centred on the ship's body, which floats half a unit above its ground point. Anchored at the ship's
-            // normalised viewport position, so it lines up at any resolution or aspect.
-            Vector2 viewport = Camera.main.WorldToViewportPoint(player.transform.position + Vector3.up * 0.5f);
-            _shipReadout.anchorMin = _shipReadout.anchorMax = viewport;
-            _shipReadout.anchoredPosition = Vector2.zero;
-
-            var status = player.Primary.Status;
-            _shipRing.fillAmount = status.Fill;
-            _shipRing.color = status.Warning ? WarningColor : WeaponColor;
-            var window = player.ReloadWindow;
-            _sweetSpot.enabled = window.HasValue;
-            if (window.HasValue)
-            {
-                // The sweet spot of an active reload, on the ring where the reload progress will pass it.
-                _sweetSpot.fillAmount = window.Value.y - window.Value.x;
-                _sweetSpot.rectTransform.localEulerAngles = new Vector3(0f, 0f, window.Value.x * 360f);
-            }
-
-            var vitals = player.Vitals;
-            float hull = vitals.Hull / vitals.MaxHull;
-            _shipHull.Set(hull);
-            _shipShield.Rect.gameObject.SetActive(vitals.MaxShield > 0f);
-            _shipShield.Set(vitals.MaxShield > 0f ? vitals.Shield / vitals.MaxShield : 0f);
-
-            bool matters = status.Warning || status.Charge > 0f || status.Fill < 0.3f || hull < 0.35f || Time.unscaledTime - _lastHitTime < 1.5f;
-            _shipAlpha = Mathf.MoveTowards(_shipAlpha, matters ? 1f : 0.45f, Time.unscaledDeltaTime * 4f);
-            _shipGroup.alpha = _shipAlpha;
-        }
-
-        /// <summary>For tests: the ship readout is showing, and its ammo ring's fill.</summary>
-        public bool ShipReadoutShown => _shipReadout != null && _shipReadout.gameObject.activeSelf;
-        public float ShipAmmoFill => _shipRing != null ? _shipRing.fillAmount : 0f;
-        public float ShipHullFill => _shipHull != null ? _shipHull.Fill : 0f;
-        public bool SweetSpotShown => _sweetSpot != null && _sweetSpot.enabled;
+        /// <summary>For tests: player 1's ship readout is showing, and its ammo ring's fill.</summary>
+        public bool ShipReadoutShown => _readouts[0].Shown;
+        public float ShipAmmoFill => _readouts[0].AmmoFill;
+        public float ShipHullFill => _readouts[0].HullFill;
+        public bool SweetSpotShown => _readouts[0].SweetSpotShown;
         public RectTransform SafeArea => _safeArea;
 
         string RunSummary()
@@ -413,21 +383,28 @@ namespace Pathfinder.Game.Presentation
 
         // ---------------------------------------------------------------- hull-hit flash
 
-        void Subscribe(PlayerShip player)
+        /// <summary>Every local pilot's hull hits flash the screen's edge.</summary>
+        void Subscribe(System.Collections.Generic.List<PlayerShip> players)
         {
-            if (player == _subscribed)
-                return;
-            if (_subscribed != null)
-                _subscribed.Damaged -= OnPlayerDamaged;
-            _subscribed = player;
-            if (_subscribed != null)
-                _subscribed.Damaged += OnPlayerDamaged;
+            for (int i = _subscribed.Count - 1; i >= 0; i--)
+            {
+                if (_subscribed[i] != null && players.Contains(_subscribed[i]))
+                    continue;
+                if (_subscribed[i] != null)
+                    _subscribed[i].Damaged -= OnPlayerDamaged;
+                _subscribed.RemoveAt(i);
+            }
+            foreach (var player in players)
+            {
+                if (_subscribed.Contains(player))
+                    continue;
+                player.Damaged += OnPlayerDamaged;
+                _subscribed.Add(player);
+            }
         }
 
         void OnPlayerDamaged(CombatEntity entity, DamageInfo info, DamageResult result)
         {
-            if (result.TotalDamage > 0f)
-                _lastHitTime = Time.unscaledTime;
             if (result.HullDamage > 0f)
                 _vignetteAlpha = Mathf.Clamp(0.35f + result.HullDamage / 40f, 0.35f, 0.8f);
         }
@@ -436,21 +413,26 @@ namespace Pathfinder.Game.Presentation
         {
             BossIntro.Requested -= OnBossIntro;
             _bossIntro?.Stop();
-            Subscribe(null);
+            _locals.Clear();
+            Subscribe(_locals);
+            foreach (var readout in _readouts)
+                readout?.Release();
             Cursor.visible = true;
         }
 
-        static PlayerShip LocalPlayer()
+        /// <summary>The local pilots, player 1 first.</summary>
+        void CollectLocalPilots()
         {
+            _locals.Clear();
             foreach (var player in CombatRegistry.Players)
             {
                 if (player.IsLocal)
-                    return player;
+                    _locals.Add(player);
             }
-            return null;
+            _locals.Sort((a, b) => a.PlayerIndex.CompareTo(b.PlayerIndex));
         }
 
-        // ---------------------------------------------------------------- view
+        // ---------------------------------------------------------------- view        // ---------------------------------------------------------------- view
 
         void Build()
         {
@@ -461,57 +443,38 @@ namespace Pathfinder.Game.Presentation
             _vignette = UiKit.Image(root, "Hull Hit", Color.clear, UiKit.Vignette);
             UiKit.Stretch(_vignette.rectTransform);
 
-            // On the ship: an ammo/reload ring around it, hull and shield bars under it. Under every other panel.
-            _shipReadout = UiKit.Node("Ship Readout", root);
-            _shipReadout.anchorMin = _shipReadout.anchorMax = new Vector2(0.5f, 0.5f);
-            _shipReadout.sizeDelta = new Vector2(190f, 190f);
-            _shipGroup = _shipReadout.gameObject.AddComponent<CanvasGroup>();
-            _shipGroup.interactable = _shipGroup.blocksRaycasts = false;
-            var track = UiKit.Image(_shipReadout, "Ammo Track", new Color(1f, 1f, 1f, 0.12f), UiKit.Ring);
-            UiKit.Place(track.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(164f, 164f));
-            _sweetSpot = RingFill(_shipReadout, "Sweet Spot", UiKit.Gold, 178f);
-            _sweetSpot.enabled = false;
-            _shipRing = RingFill(_shipReadout, "Ammo", WeaponColor, 164f);
-            _shipShield = new UiBar(_shipReadout, "Shield", ShieldColor);
-            UiKit.Place(_shipShield.Rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -94f), new Vector2(90f, 5f));
-            _shipHull = new UiBar(_shipReadout, "Hull", HullColor);
-            UiKit.Place(_shipHull.Rect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -103f), new Vector2(90f, 8f));
+            // On each ship: an ammo/reload ring around it, hull and shield bars under it. Under every other panel.
+            for (int i = 0; i < MaxPilots; i++)
+                _readouts[i] = new ShipReadout(root, i == 0 ? "Ship Readout" : $"Ship Readout P{i + 1}");
 
             // The corner panels live in a centred 16:9 area, so they stay near the action on ultrawide screens.
             _safeArea = UiKit.Node("Safe Area 16x9", root);
             _safeArea.gameObject.AddComponent<SafeAreaFitter>();
 
-            // Top left: the pilot.
-            _playerPanel = UiKit.Node("Pilot", _safeArea).gameObject;
-            var panel = (RectTransform)_playerPanel.transform;
-            UiKit.Place(panel, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -26f), new Vector2(560f, 520f));
+            // The pilots: player 1 top left, player 2 top right below the currencies, players 3 and 4 below them (M8).
+            _panels[0] = new PilotPanel(_safeArea, "Pilot", right: false, top: -26f);
+            _panels[1] = new PilotPanel(_safeArea, "Pilot P2", right: true, top: -140f);
+            _panels[2] = new PilotPanel(_safeArea, "Pilot P3", right: false, top: -200f);
+            _panels[3] = new PilotPanel(_safeArea, "Pilot P4", right: true, top: -310f);
 
-            _shield = Bar(panel, "Shield", ShieldColor, 0f, 380f, 8f);
-            _hull = Bar(panel, "Hull", HullColor, 12f, 380f, 30f);
-            _hullText = UiKit.Text(_hull.Rect, "Label", string.Empty, 18, Color.white, TextAnchor.MiddleLeft, FontStyle.Bold);
-            UiKit.Stretch(_hullText.rectTransform).offsetMin = new Vector2(12f, 0f);
-            AddShadow(_hullText);
-
-            _primaryText = Label(panel, "Primary", 50f, 18, WeaponColor);
-            _primary = Bar(panel, "Primary Gauge", WeaponColor, 76f, 380f, 6f);
-            _secondaryText = Label(panel, "Secondary", 88f, 18, WeaponColor);
-            _secondary = Bar(panel, "Secondary Gauge", WeaponColor, 114f, 380f, 6f);
-            for (int i = 0; i < MaxDashPips; i++)
-            {
-                _dash[i] = new UiBar(panel, $"Dash {i + 1}", DashColor);
-                UiKit.Place(_dash[i].Rect, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(i * 52f, -128f), new Vector2(46f, 10f));
-            }
-            _loadoutText = Label(panel, "Loadout", 150f, 18, UiKit.TextBody);
-            _loadoutText.rectTransform.sizeDelta = new Vector2(560f, 360f);
-            // Bottom left: the ship and its equipment slots (playtest 7). On its own canvas above the Shop and the choice
-            // cards, so it stays lit while you shop and shows where the item you're pointing at would go.
+            // Bottom left: the ship and its equipment slots (playtest 7); player 2's bottom right in co-op. On their own
+            // canvas above the Shop and the choice cards, so they stay lit while you shop and show where the item you're
+            // pointing at would go.
             var slotsCanvas = UiKit.Canvas("HUD Ship Slots", transform, sortingOrder: 35);
             var slotsArea = UiKit.Node("Safe Area 16x9", slotsCanvas.transform);
             slotsArea.gameObject.AddComponent<SafeAreaFitter>();
-            var slotsRoot = UiKit.Node("Ship Slots", slotsArea);
-            UiKit.Place(slotsRoot, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(36f, 46f), new Vector2(420f, 340f));
-            _slotsPanel = slotsRoot.gameObject;
-            _slots = new ShipSlotsView(slotsRoot);
+            for (int i = 0; i < _slotViews.Length; i++)
+            {
+                var corner = new Vector2(i == 0 ? 0f : 1f, 0f);
+                var slotsRoot = UiKit.Node(i == 0 ? "Ship Slots" : "Ship Slots P2", slotsArea);
+                UiKit.Place(slotsRoot, corner, corner, new Vector2(i == 0 ? 36f : -36f, 46f), new Vector2(420f, 340f));
+                _slotPanels[i] = slotsRoot.gameObject;
+                _slotViews[i] = new ShipSlotsView(slotsRoot);
+                _slotTags[i] = UiKit.Text(slotsRoot, "Player", string.Empty, 26, Color.white, TextAnchor.UpperCenter, FontStyle.Bold);
+                UiKit.Place(_slotTags[i].rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 24f), new Vector2(120f, 34f));
+                AddShadow(_slotTags[i]);
+                _slotTags[i].gameObject.SetActive(false);
+            }
 
             _bossIntro = new BossIntroCard(transform, icons != null ? icons.Boss : null);
 
@@ -571,19 +534,26 @@ namespace Pathfinder.Game.Presentation
             _debug = UiKit.Text(_safeArea, "Dev Keys", string.Empty, 16, UiKit.TextDim, TextAnchor.MiddleLeft);
             UiKit.Place(_debug.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(40f, 16f), new Vector2(1840f, 28f));
 
-            // Crosshair: a centre dot inside a dim track and the ammo ring.
-            _reticle = UiKit.Node("Crosshair", root);
-            _reticle.anchorMin = _reticle.anchorMax = new Vector2(0.5f, 0.5f);
-            _reticle.sizeDelta = new Vector2(56f, 56f);
-            UiKit.Stretch(UiKit.Image(_reticle, "Track", new Color(1f, 1f, 1f, 0.18f), UiKit.Ring).rectTransform);
-            _reticleFill = UiKit.Image(_reticle, "Ammo", WeaponColor, UiKit.Ring);
-            UiKit.Stretch(_reticleFill.rectTransform);
-            _reticleFill.type = Image.Type.Filled;
-            _reticleFill.fillMethod = Image.FillMethod.Radial360;
-            _reticleFill.fillOrigin = (int)Image.Origin360.Top;
-            _reticleFill.fillClockwise = false;
-            var dot = UiKit.Image(_reticle, "Dot", Color.white, UiKit.Circle);
-            UiKit.Place(dot.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(7f, 7f));
+            // Crosshairs, one per pilot: a centre dot inside a dim track and the ammo ring.
+            for (int i = 0; i < MaxPilots; i++)
+            {
+                var reticle = UiKit.Node(i == 0 ? "Crosshair" : $"Crosshair P{i + 1}", root);
+                reticle.anchorMin = reticle.anchorMax = new Vector2(0.5f, 0.5f);
+                reticle.sizeDelta = new Vector2(56f, 56f);
+                _reticleTracks[i] = UiKit.Image(reticle, "Track", new Color(1f, 1f, 1f, 0.18f), UiKit.Ring);
+                UiKit.Stretch(_reticleTracks[i].rectTransform);
+                var fill = UiKit.Image(reticle, "Ammo", WeaponColor, UiKit.Ring);
+                UiKit.Stretch(fill.rectTransform);
+                fill.type = Image.Type.Filled;
+                fill.fillMethod = Image.FillMethod.Radial360;
+                fill.fillOrigin = (int)Image.Origin360.Top;
+                fill.fillClockwise = false;
+                var dot = UiKit.Image(reticle, "Dot", Color.white, UiKit.Circle);
+                UiKit.Place(dot.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(7f, 7f));
+                _reticles[i] = reticle;
+                _reticleFills[i] = fill;
+                reticle.gameObject.SetActive(false);
+            }
 
             // Full-screen overlays: paused, galaxy cleared, run over.
             var overlay = UiKit.Image(root, "Overlay", new Color(0f, 0f, 0f, 0.65f));
@@ -597,7 +567,7 @@ namespace Pathfinder.Game.Presentation
         }
 
         /// <summary>A ring that fills counter-clockwise from the top, like the crosshair's.</summary>
-        static Image RingFill(RectTransform parent, string name, Color color, float size)
+        internal static Image RingFill(RectTransform parent, string name, Color color, float size)
         {
             var ring = UiKit.Image(parent, name, color, UiKit.Ring);
             UiKit.Place(ring.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size, size));
@@ -663,7 +633,7 @@ namespace Pathfinder.Game.Presentation
         }
 
         /// <summary>A dark drop shadow keeps HUD text readable over bright explosions.</summary>
-        static void AddShadow(Text text)
+        internal static void AddShadow(Text text)
         {
             var shadow = text.gameObject.AddComponent<Shadow>();
             shadow.effectColor = new Color(0f, 0f, 0f, 0.8f);

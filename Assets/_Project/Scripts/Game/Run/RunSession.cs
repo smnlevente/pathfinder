@@ -12,8 +12,11 @@ namespace Pathfinder.Game.Run
     {
         public static RunState Current { get; private set; }
 
-        /// <summary>A continued run's pilot, waiting to be put back once the ship spawns. See <see cref="RunSaveFile"/>.</summary>
-        public static RunSaveFile.Pilot PendingPilot { get; private set; }
+        /// <summary>A continued run's pilots, player 1 first, each waiting to be put back once their ship spawns. See <see cref="RunSaveFile"/>.</summary>
+        static RunSaveFile.Pilot[] s_pendingPilots = new RunSaveFile.Pilot[0];
+
+        /// <summary>Whether a continued run still has pilots to put back.</summary>
+        public static bool HasPendingPilots => System.Array.Exists(s_pendingPilots, pilot => pilot != null);
 
         /// <summary>Play time before this session, for a continued run's log.</summary>
         public static float MinutesBefore { get; private set; }
@@ -22,16 +25,19 @@ namespace Pathfinder.Game.Run
         public static RunState Resume(RunSaveFile.Data data)
         {
             Current = RunSaveFile.ToRunState(data);
-            PendingPilot = data.pilot;
+            s_pendingPilots = data.pilots != null && data.pilots.Count > 0 ? data.pilots.ToArray()
+                : data.pilot != null ? new[] { data.pilot } : new RunSaveFile.Pilot[0];
             MinutesBefore = data.minutes;
             return Current;
         }
 
-        /// <summary>Hands over the pending pilot once, to the spawner.</summary>
-        public static RunSaveFile.Pilot TakePendingPilot()
+        /// <summary>Hands over a pending pilot once, to the spawner. Players beyond those saved start fresh.</summary>
+        public static RunSaveFile.Pilot TakePendingPilot(int index = 0)
         {
-            var pilot = PendingPilot;
-            PendingPilot = null;
+            if (index < 0 || index >= s_pendingPilots.Length)
+                return null;
+            var pilot = s_pendingPilots[index];
+            s_pendingPilots[index] = null;
             return pilot;
         }
 
@@ -39,7 +45,7 @@ namespace Pathfinder.Game.Run
         public static RunState Begin(Seed? seed = null, PilotLoadout loadout = default)
         {
             Current = new RunState(seed ?? RunSeed.Generate()) { Loadout = loadout };
-            PendingPilot = null;
+            s_pendingPilots = new RunSaveFile.Pilot[0];
             MinutesBefore = 0f;
             return Current;
         }
@@ -47,7 +53,7 @@ namespace Pathfinder.Game.Run
         public static void Clear()
         {
             Current = null;
-            PendingPilot = null;
+            s_pendingPilots = new RunSaveFile.Pilot[0];
             MinutesBefore = 0f;
         }
 

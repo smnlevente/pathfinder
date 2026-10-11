@@ -15,11 +15,12 @@ namespace Pathfinder.Game.Run
     /// The run in progress, saved as readable JSON next to the profile so it can be continued after quitting (M7, GDD §14.2).
     /// It's written each time the galaxy map comes up, so it always holds a whole number of levels: quitting mid-level picks
     /// up from the map before that level. It's deleted when the run ends. No encryption: it's a single-player game, and a
-    /// readable file is easy to debug. A file with an unknown version, or one that doesn't parse, is ignored.
+    /// readable file is easy to debug. A file with an unknown version, or one that doesn't parse, is ignored. Version 2
+    /// (M8) keeps every local co-op pilot; a version 1 file, with its one pilot, still loads.
     /// </summary>
     public static class RunSaveFile
     {
-        public const int Version = 1;
+        public const int Version = 2;
 
         [Serializable]
         public sealed class Data
@@ -35,7 +36,12 @@ namespace Pathfinder.Game.Run
             public List<string> seenEvents = new List<string>();
             public bool repairUsed;
             public float minutes;
+
+            /// <summary>Version 1's single pilot. Version 2 writes the first pilot here too, and every pilot in <see cref="pilots"/>.</summary>
             public Pilot pilot = new Pilot();
+
+            /// <summary>Every local pilot, player 1 first (M8).</summary>
+            public List<Pilot> pilots = new List<Pilot>();
         }
 
         [Serializable]
@@ -79,9 +85,14 @@ namespace Pathfinder.Game.Run
 
         public static bool Exists => TryLoad(out _);
 
-        public static void Save(RunState run, PlayerShip pilot, float minutes)
+        /// <summary>Saves the run with one pilot.</summary>
+        public static void Save(RunState run, PlayerShip pilot, float minutes) =>
+            Save(run, pilot != null ? new[] { pilot } : null, minutes);
+
+        /// <summary>Saves the run with its local pilots, player 1 first. Downed co-op pilots are saved too.</summary>
+        public static void Save(RunState run, IReadOnlyList<PlayerShip> pilots, float minutes)
         {
-            if (run == null || pilot == null || run.IsOver)
+            if (run == null || pilots == null || pilots.Count == 0 || pilots[0] == null || run.IsOver)
                 return;
 
             var snapshot = run.Snapshot();
@@ -100,20 +111,13 @@ namespace Pathfinder.Game.Run
                 seenEvents = new List<string>(snapshot.SeenEvents),
                 repairUsed = snapshot.RepairUsed,
                 minutes = minutes,
-                pilot = new Pilot
-                {
-                    ship = pilot.Definition.Id,
-                    primary = pilot.PrimaryWeapon != null ? pilot.PrimaryWeapon.Id : string.Empty,
-                    secondary = pilot.SecondaryWeapon != null ? pilot.SecondaryWeapon.Id : string.Empty,
-                    hull = pilot.Vitals.Hull,
-                    scraps = pilot.Scraps,
-                    scrapsCollected = pilot.TotalScrapsGained,
-                },
             };
-            foreach (var entry in pilot.Equipment.All)
-                data.pilot.equipment.Add(new Item { id = entry.Item.Id, level = entry.Level });
-            foreach (var modifier in pilot.RunModifiers)
-                data.pilot.runModifiers.Add(new Modifier { stat = modifier.Stat.ToString(), flat = modifier.Flat, percent = modifier.Percent });
+            foreach (var pilot in pilots)
+            {
+                if (pilot != null)
+                    data.pilots.Add(SavePilot(pilot));
+            }
+            data.pilot = data.pilots[0];
 
             try
             {
@@ -123,6 +127,24 @@ namespace Pathfinder.Game.Run
             {
                 Debug.LogWarning($"[RunSave] Could not write {FilePath}: {e.Message}");
             }
+        }
+
+        static Pilot SavePilot(PlayerShip pilot)
+        {
+            var saved = new Pilot
+            {
+                ship = pilot.Definition.Id,
+                primary = pilot.PrimaryWeapon != null ? pilot.PrimaryWeapon.Id : string.Empty,
+                secondary = pilot.SecondaryWeapon != null ? pilot.SecondaryWeapon.Id : string.Empty,
+                hull = pilot.Vitals.Hull, // 0 for a downed co-op pilot: they come back as if revived
+                scraps = pilot.Scraps,
+                scrapsCollected = pilot.TotalScrapsGained,
+            };
+            foreach (var entry in pilot.Equipment.All)
+                saved.equipment.Add(new Item { id = entry.Item.Id, level = entry.Level });
+            foreach (var modifier in pilot.RunModifiers)
+                saved.runModifiers.Add(new Modifier { stat = modifier.Stat.ToString(), flat = modifier.Flat, percent = modifier.Percent });
+            return saved;
         }
 
         public static bool TryLoad(out Data data)
@@ -139,11 +161,15 @@ namespace Pathfinder.Game.Run
                 Debug.LogWarning($"[RunSave] Ignoring {FilePath}: {e.Message}");
                 data = null;
             }
-            if (data == null || data.version != Version || !RunSeed.TryParse(data.seed, out _))
+            if (data == null || data.version < 1 || data.version > Version || !RunSeed.TryParse(data.seed, out _))
             {
                 data = null;
                 return false;
             }
+            // Version 1 had a single pilot.
+            data.pilots ??= new List<Pilot>();
+            if (data.pilots.Count == 0 && data.pilot != null)
+                data.pilots.Add(data.pilot);
             return true;
         }
 
@@ -171,7 +197,9 @@ namespace Pathfinder.Game.Run
                 Delete();
                 return;
             }
-            MetaProgression.Current.BankRun(data.darkMatter, data.singularityCores, data.pilot.scrapsCollected, won: false, data.galaxy + 1);
+            // Co-op pilots share one wallet (M8), so the first pilot's count is everyone's.
+            int collected = data.pilots.Count > 0 ? data.pilots[0].scrapsCollected : data.pilot.scrapsCollected;
+            MetaProgression.Current.BankRun(data.darkMatter, data.singularityCores, collected, won: false, data.galaxy + 1);
             MetaProgression.Save();
             Delete();
         }
@@ -223,7 +251,8 @@ namespace Pathfinder.Game.Run
                     pilot.UpgradeEquipment(definition);
             }
             pilot.RestoreScraps(saved.scraps, saved.scrapsCollected);
-            pilot.RestoreHull(saved.hull);
+            // A pilot saved while downed comes back as if revived.
+            pilot.RestoreHull(saved.hull > 0f ? saved.hull : pilot.Vitals.MaxHull * CoopRules.ReviveHullFraction);
         }
     }
 }

@@ -43,7 +43,8 @@ namespace Pathfinder.Tests.PlayMode
             public ShipCommand ReadCommand(PlayerShip ship) => _script(_world.Tick);
         }
 
-        protected IEnumerator LoadRun(bool keepDirector = false, ulong seed = 1234UL)
+        /// <summary>Loads the Sandbox with its pilots: one, unless local co-op players have joined (M8).</summary>
+        protected IEnumerator LoadRun(bool keepDirector = false, ulong seed = 1234UL, int pilots = 1)
         {
             GameClock.ResumeAll();
             CombatWorld.NextSeedOverride = new Seed(seed);
@@ -54,11 +55,12 @@ namespace Pathfinder.Tests.PlayMode
             Director = Object.FindAnyObjectByType<WaveDirector>();
             _loadouts = Object.FindAnyObjectByType<DebugHotkeys>();
             Assert.IsNotNull(World, "Run scene has no CombatWorld.");
-            Assert.AreEqual(1, CombatRegistry.Players.Count, "Expected exactly one spawned player.");
+            Assert.AreEqual(pilots, CombatRegistry.Players.Count, pilots == 1 ? "Expected exactly one spawned player." : $"Expected {pilots} pilots.");
 
             Director.enabled = keepDirector;
             Player = CombatRegistry.Players[0];
-            Player.CommandSource = null;
+            foreach (var pilot in CombatRegistry.Players)
+                pilot.CommandSource = null;
         }
 
         protected void Script(Func<int, ShipCommand> script) => Player.CommandSource = new ScriptedCommands(World, script);

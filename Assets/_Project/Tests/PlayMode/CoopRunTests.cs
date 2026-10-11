@@ -1,0 +1,283 @@
+using System;
+using System.Collections;
+using System.Linq;
+using NUnit.Framework;
+using Pathfinder.Core.Combat;
+using Pathfinder.Core.Random;
+using Pathfinder.Core.Run;
+using Pathfinder.Game.Combat;
+using Pathfinder.Game.Player;
+using Pathfinder.Game.Presentation;
+using Pathfinder.Game.Run;
+using Pathfinder.Game.Simulation;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
+using Object = UnityEngine.Object;
+
+namespace Pathfinder.Tests.PlayMode
+{
+    /// <summary>A local co-op run (M8): two pilots through levels, a boss, the repair station and a save.</summary>
+    public class CoopRunTests
+    {
+        RunDirector _director;
+        LevelController _level;
+        Gamepad _pad;
+        string _savePath;
+
+        RunState Run => _director.Run;
+        static PlayerShip Pilot(int index) => CombatRegistry.Players.First(p => p.PlayerIndex == index);
+
+        [SetUp]
+        public void JoinAndUseTemporarySave()
+        {
+            _savePath = System.IO.Path.Combine(Application.temporaryCachePath, $"meta-test-{Guid.NewGuid():N}.json");
+            Pathfinder.Game.Meta.MetaProgression.SavePath = _savePath;
+            _pad = InputSystem.AddDevice<Gamepad>();
+            Assert.AreEqual(1, LocalPlayers.Join(_pad));
+        }
+
+        [TearDown]
+        public void LeaveAndDeleteSave()
+        {
+            LocalPlayers.Reset();
+            if (_pad != null && _pad.added)
+                InputSystem.RemoveDevice(_pad);
+            string run = RunSaveFile.FilePath;
+            Pathfinder.Game.Meta.MetaProgression.SavePath = null;
+            foreach (string path in new[] { _savePath, run })
+            {
+                if (System.IO.File.Exists(path))
+                    System.IO.File.Delete(path);
+            }
+        }
+
+        IEnumerator LoadRun(ulong seed, bool resume = false)
+        {
+            GameClock.ResumeAll();
+            if (!resume)
+                RunSession.Clear();
+            CombatWorld.NextSeedOverride = resume ? RunSession.Current.Seed : new Seed(seed);
+            yield return SceneManager.LoadSceneAsync("Run", LoadSceneMode.Single);
+            yield return null;
+
+            _director = Object.FindAnyObjectByType<RunDirector>();
+            _level = _director.Level;
+            Assert.AreEqual(2, CombatRegistry.Players.Count, "Both players fly.");
+            foreach (var pilot in CombatRegistry.Players)
+            {
+                pilot.CommandSource = null;
+                pilot.GodMode = false;
+            }
+        }
+
+        static IEnumerator WaitTicks(int ticks)
+        {
+            for (int i = 0; i < ticks; i++)
+                yield return new WaitForFixedUpdate();
+        }
+
+        static IEnumerator WaitUntil(Func<bool> condition, float seconds)
+        {
+            float deadline = Time.realtimeSinceStartup + seconds;
+            while (!condition() && Time.realtimeSinceStartup < deadline)
+                yield return null;
+        }
+
+        static void Kill(CombatEntity entity) =>
+            entity.ApplyDamage(new DamageInfo(1_000_000f, entity.Team.Opponent(), 0, entity.Position, Vector2.up));
+
+        [UnityTest]
+        public IEnumerator ABoss_BringsEveryoneBack_AndEachPilotPicksTheirReward()
+        {
+            yield return LoadRun(17);
+            _director.StartTestLevel(MapNodeType.Boss);
+            yield return WaitTicks(3);
+            var one = Pilot(0);
+            var two = Pilot(1);
+            Assert.Greater(Mathf.Abs(one.Position.x - two.Position.x), 2f, "They arrive side by side.");
+            Assert.AreEqual(5500f * CoopRules.EnemyHealthScale(2), _level.Boss.Vitals.MaxHull, 1f, "The boss is tougher for two.");
+
+            Kill(two);
+            yield return WaitTicks(2);
+            Assert.IsFalse(two.IsAlive);
+
+            var brain = _level.Boss.GetComponent<Pathfinder.Game.Enemies.QuarryMawBrain>();
+            var weakPoint = brain.Segments.First(s => s.IsWeakPoint);
+            weakPoint.Armoured = false;
+            weakPoint.ApplyDamage(new DamageInfo(1_000_000f, Team.Player, 0, weakPoint.Position, Vector2.up));
+            yield return WaitTicks(5);
+            Assert.IsTrue(two.IsAlive, "A downed pilot is back when the boss falls.");
+            Assert.AreEqual(two.Vitals.MaxHull, two.Vitals.Hull, 0.5f, "And patched up with everyone.");
+
+            var reward = Object.FindAnyObjectByType<EquipmentChoiceScreen>();
+            yield return WaitUntil(() => reward.IsOpen, 3f);
+            Assert.IsTrue(reward.IsOpen);
+            Assert.AreSame(one, reward.Pilot, "Player 1 picks first.");
+            var first = reward.Options[0];
+            reward.Choose(0);
+            if (reward.IsSwapping)
+                reward.Swap(0);
+            Assert.IsTrue(reward.IsOpen, "Then it's player 2's turn.");
+            Assert.AreSame(two, reward.Pilot);
+            reward.Skip();
+            Assert.IsFalse(reward.IsOpen);
+            Assert.IsNotNull(one.Equipment.Find(first), "Player 1's pick went to player 1.");
+            Assert.IsTrue(one.IsPulled && two.IsPulled, "Then the wormhole takes them both.");
+        }
+
+        [UnityTest]
+        public IEnumerator ARepairStation_ServesEachPilotOnce()
+        {
+            yield return LoadRun(21);
+            _director.StartTestLevel(MapNodeType.Repair, row: 2);
+            var one = Pilot(0);
+            var two = Pilot(1);
+            float before = one.Vitals.MaxHull;
+            _level.ApplyRepair(one, LevelController.RepairChoice.Reinforce);
+            _level.ApplyRepair(one, LevelController.RepairChoice.Reinforce);
+            Assert.AreEqual(before + 15f, one.Vitals.MaxHull, 0.01f, "Once for player 1.");
+            float twoBefore = two.Vitals.MaxHull;
+            _level.ApplyRepair(two, LevelController.RepairChoice.Reinforce);
+            Assert.AreEqual(twoBefore + 15f, two.Vitals.MaxHull, 0.01f, "And once for player 2.");
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator ADownedPilot_ComesBackForTheNextLevel()
+        {
+            yield return LoadRun(21);
+            _director.StartTestLevel(MapNodeType.Scraps);
+            yield return WaitTicks(2);
+            var two = Pilot(1);
+            Kill(two);
+            yield return WaitTicks(2);
+            Assert.IsFalse(two.IsAlive);
+            Assert.AreEqual(RunDirector.Phase.Level, _director.State, "The run goes on.");
+
+            _level.DebugTakeExit();
+            yield return WaitUntil(() => _director.State == RunDirector.Phase.Map, 3f);
+            Assert.IsTrue(_director.ChooseNode(Run.AvailableNodes[0]));
+            yield return WaitTicks(2);
+            Assert.IsTrue(two.IsAlive, "Back for the next level.");
+            Assert.AreEqual(two.Vitals.MaxHull * CoopRules.ReviveHullFraction, two.Vitals.Hull, 0.5f, "With the revive's bit of hull.");
+        }
+
+        [UnityTest]
+        public IEnumerator TheSave_KeepsBothPilots_AndContinuingPutsThemBack()
+        {
+            yield return LoadRun(33);
+            var one = Pilot(0);
+            var two = Pilot(1);
+            var item = _level.RollEquipment(1, Pathfinder.Core.Equipment.Rarity.Common, two, new Pcg32(5UL, 1UL)).First();
+            two.Equip(item);
+            two.AddScraps(40);
+
+            // The run saves whenever the map comes up.
+            _director.StartTestLevel(MapNodeType.Repair);
+            _level.DebugTakeExit();
+            yield return WaitUntil(() => _director.State == RunDirector.Phase.Map, 3f);
+            Assert.IsTrue(RunSaveFile.TryLoad(out var data));
+            Assert.AreEqual(RunSaveFile.Version, data.version);
+            Assert.AreEqual(2, data.pilots.Count, "Both pilots are saved.");
+            Assert.AreEqual(item.Id, data.pilots[1].equipment.Single().id, "With their own equipment.");
+            Assert.AreEqual(40, data.pilots[0].scraps, "The shared wallet.");
+
+            RunSession.Resume(data);
+            yield return LoadRun(0, resume: true);
+            Assert.IsNotNull(Pilot(1).Equipment.Find(item), "Continuing puts player 2's equipment back on player 2.");
+            Assert.IsNull(Pilot(0).Equipment.Find(item));
+            Assert.AreEqual(40, Pilot(0).Scraps);
+            Assert.AreSame(Pilot(0).Wallet, Pilot(1).Wallet);
+        }
+
+        [UnityTest]
+        public IEnumerator TheHub_LetsAPlayerJoin_PickTheirOwnShip_AndLaunchesWithBoth()
+        {
+            LocalPlayers.Reset(); // start alone: this player joins in the Hub
+            GameClock.ResumeAll();
+            RunSession.Clear();
+            yield return SceneManager.LoadSceneAsync(Pathfinder.Game.Boot.SceneNames.Hub, LoadSceneMode.Single);
+            yield return null;
+            var menu = Object.FindAnyObjectByType<HubMenu>();
+            menu.OpenLoadout(survival: false);
+            CollectionAssert.DoesNotContain(menu.LoadoutRows, "pilot", "Alone, there's no one else's loadout to pick.");
+            Assert.AreEqual("launch", menu.LoadoutRows[3], "Launch stays where it was.");
+
+            Assert.AreEqual(1, menu.AddPlayer(_pad), "Player 2 joins with their controller.");
+            Assert.AreEqual(1, menu.EditingPlayer, "And picks their loadout next.");
+            CollectionAssert.IsSubsetOf(new[] { "pilot", "ship", "primary", "secondary", "launch", "remove" }, menu.LoadoutRows);
+            menu.Change("ship", 1);
+
+            menu.StartRun();
+            float deadline = Time.realtimeSinceStartup + 5f;
+            while ((SceneManager.GetActiveScene().name != "Run" || CombatRegistry.Players.Count < 2) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            Assert.AreEqual(2, CombatRegistry.Players.Count, "Both players fly.");
+            Assert.AreEqual(RunSession.Current.Loadout.ShipId, Pilot(0).Definition.Id, "Player 1 flies their pick.");
+            Assert.AreEqual(LocalPlayers.LoadoutFor(1).ShipId, Pilot(1).Definition.Id, "Player 2 flies theirs.");
+            Assert.AreNotEqual(Pilot(0).Definition.Id, Pilot(1).Definition.Id, "Each their own.");
+        }
+
+        /// <summary>The Hub's loadout page with a second player, for visual review.</summary>
+        [UnityTest, Category("Screenshot")]
+        public IEnumerator CaptureHubCoop()
+        {
+            string directory = Screenshots.Directory();
+            LocalPlayers.Reset();
+            GameClock.ResumeAll();
+            RunSession.Clear();
+            yield return SceneManager.LoadSceneAsync(Pathfinder.Game.Boot.SceneNames.Hub, LoadSceneMode.Single);
+            yield return null;
+            var menu = Object.FindAnyObjectByType<HubMenu>();
+            menu.OpenLoadout(survival: false);
+            menu.AddPlayer(_pad);
+            yield return null;
+            yield return null;
+            Screenshots.CaptureWithUi(System.IO.Path.Combine(directory, "coop_hub_loadout.png"));
+        }
+
+        [UnityTest]
+        public IEnumerator TheHub_LetsAPlayerLeave()
+        {
+            GameClock.ResumeAll();
+            RunSession.Clear();
+            yield return SceneManager.LoadSceneAsync(Pathfinder.Game.Boot.SceneNames.Hub, LoadSceneMode.Single);
+            yield return null;
+            var menu = Object.FindAnyObjectByType<HubMenu>();
+            menu.OpenLoadout(survival: false);
+            CollectionAssert.Contains(menu.LoadoutRows, "pilot", "Player 2 joined earlier this session.");
+            menu.Change("pilot", 1);
+            Assert.AreEqual(1, menu.EditingPlayer);
+            menu.RemovePlayer(1);
+            Assert.AreEqual(1, LocalPlayers.Count);
+            CollectionAssert.DoesNotContain(menu.LoadoutRows, "pilot");
+        }
+
+        [UnityTest]
+        public IEnumerator Survival_FliesWithBothPilots()
+        {
+            GameClock.ResumeAll();
+            RunSession.Clear();
+            CombatWorld.NextSeedOverride = new Seed(31UL);
+            yield return SceneManager.LoadSceneAsync(Pathfinder.Game.Boot.SceneNames.Survival, LoadSceneMode.Single);
+            yield return null;
+            Assert.AreEqual(2, CombatRegistry.Players.Count, "Survival is co-op too.");
+            Assert.AreSame(Pilot(0).Wallet, Pilot(1).Wallet);
+        }
+
+        [UnityTest]
+        public IEnumerator AVersionOneSave_StillLoads()
+        {
+            yield return null;
+            var data = new RunSaveFile.Data { version = 1, seed = RunSeed.ToCode(new Seed(44UL)) };
+            data.pilot.ship = "ship.stormbringer";
+            data.pilots = null;
+            System.IO.File.WriteAllText(RunSaveFile.FilePath, JsonUtility.ToJson(data));
+            Assert.IsTrue(RunSaveFile.TryLoad(out var loaded), "A save from before co-op still continues.");
+            Assert.AreEqual(1, loaded.pilots.Count);
+            Assert.AreEqual("ship.stormbringer", loaded.pilots[0].ship);
+        }
+    }
+}

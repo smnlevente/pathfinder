@@ -92,6 +92,7 @@ namespace Pathfinder.Game.Run
         Vector2 _stationPosition;
         ObjectiveMarker _stationMarker;
         bool _stationUsed;
+        readonly HashSet<int> _repairedPilots = new HashSet<int>(); // pilots who used this level's repair station (M8)
         Enemy _cacheCarrier;
         Vector2? _cachePosition;
         GameObject _cacheView;
@@ -174,12 +175,16 @@ namespace Pathfinder.Game.Run
             world.BeginLevel(context.Seed, RunConfig.ForGalaxy(config.GalaxyEnemyHealth, context.GalaxyIndex), scrapsDrop);
             ShowGalaxy(context.GalaxyIndex);
 
+            int pilots = CombatRegistry.Players.Count;
             foreach (var player in CombatRegistry.Players)
             {
-                player.PlaceForLevel(config.PlayerEntry);
+                // A co-op pilot who went down comes back for the next level, as if revived (M8). Pilots arrive side by side.
+                player.Revive(CoopRules.ReviveHullFraction);
+                var entry = config.PlayerEntry + CoopRules.EntryOffset(player.PlayerIndex, pilots);
+                player.PlaceForLevel(entry);
                 // The ship arrives through a wormhole: a flash where it lands, and the camera cuts to it (playtest 5).
                 if (config.ArrivalEffect != null)
-                    Instantiate(config.ArrivalEffect, PlaneMath.ToWorld(config.PlayerEntry, 0.5f), Quaternion.identity);
+                    Instantiate(config.ArrivalEffect, PlaneMath.ToWorld(entry, 0.5f), Quaternion.identity);
             }
             Audio.GameAudio.Play(Audio.SoundCue.WarpIn);
 
@@ -275,6 +280,7 @@ namespace Pathfinder.Game.Run
             _exit = null;
             _stationMarker = null;
             _stationUsed = false;
+            _repairedPilots.Clear();
             _cacheCarrier = null;
             _cachePosition = null;
             _cacheView = null;
@@ -368,11 +374,7 @@ namespace Pathfinder.Game.Run
         void OnScrapsWavesCleared(WaveDirector source)
         {
             int bonus = Mathf.RoundToInt(RunConfig.ForGalaxy(config.ScrapsCompletionBonus, Context.GalaxyIndex) * RewardMultiplier);
-            foreach (var player in CombatRegistry.Players)
-            {
-                if (player.IsAlive)
-                    player.AddScraps(bonus);
-            }
+            AddBonusScraps(bonus);
             ShowBanner(Loc.T("banner.level_clear", ("bonus", bonus)));
             world.Pickups.Vacuum = true;
             OpenExit();
@@ -416,7 +418,7 @@ namespace Pathfinder.Game.Run
 
             // Mystery and ambush caches guarantee Rare or better (GDD §10.5).
             var minimum = Context.FromMystery ? Rarity.Rare : Rarity.Common;
-            OfferEquipment(Loc.T("choice.cache"), collector, minimum, took => TryCompleteEquipment());
+            OfferEquipmentInTurn(Loc.T("choice.cache"), collector, minimum, took => TryCompleteEquipment());
         }
 
         void OnEquipmentWavesCleared(WaveDirector source) => TryCompleteEquipment();
@@ -445,6 +447,23 @@ namespace Pathfinder.Game.Run
                 return;
             }
             equipmentChoice.Show(title, offer, pilot, config.SkipScraps, onClosed);
+        }
+
+        /// <summary>
+        /// A choice of equipment for every pilot in turn, <paramref name="first"/> first (M8: in local co-op each player picks
+        /// their own). <paramref name="onClosed"/> runs once the last pick is made, with true if anyone took an item.
+        /// </summary>
+        void OfferEquipmentInTurn(string title, PlayerShip first, Rarity minimum, Action<bool> onClosed)
+        {
+            var pilots = PilotOrder.StartingWith(first);
+            void Next(int index, bool anyTook)
+            {
+                if (index >= pilots.Count)
+                    onClosed?.Invoke(anyTook);
+                else
+                    OfferEquipment(title, pilots[index], minimum, took => Next(index + 1, anyTook || took));
+            }
+            Next(0, false);
         }
 
         public List<EquipmentDefinition> RollEquipment(int count, Rarity minimum, PlayerShip pilot, IRandom random) =>
@@ -546,10 +565,17 @@ namespace Pathfinder.Game.Run
             if (dialog.IsOpen)
                 return;
 
-            var pilot = NearestPilotWithin(_stationPosition, StationRadius);
-            bool usable = Context.Type == MapNodeType.Shop || !_stationUsed;
-            if (pilot != null && usable && pilot.InteractPressed)
-                OpenStation(pilot);
+            // Whoever is at the station and presses Interact uses it; at a repair station, each pilot once (M8).
+            foreach (var pilot in CombatRegistry.Players)
+            {
+                if (!pilot.IsAlive || !pilot.InteractPressed || Vector2.Distance(pilot.Position, _stationPosition) > StationRadius)
+                    continue;
+                if (Context.Type == MapNodeType.Shop || !_repairedPilots.Contains(pilot.PlayerIndex))
+                {
+                    OpenStation(pilot);
+                    return;
+                }
+            }
         }
 
         void OpenStation(PlayerShip pilot)
@@ -563,7 +589,9 @@ namespace Pathfinder.Game.Run
         /// <summary>Repair station: restore 40% hull, or +15 max hull for the run. One use.</summary>
         void OpenRepair(PlayerShip pilot)
         {
-            dialog.Show(Loc.T("repair.title"), () => Loc.T("repair.body", ("hull", Mathf.CeilToInt(pilot.Vitals.Hull)), ("max", Mathf.RoundToInt(pilot.Vitals.MaxHull))), () =>
+            dialog.Show(Loc.T("repair.title"), () => Loc.T("repair.body", ("hull", Mathf.CeilToInt(pilot.Vitals.Hull)), ("max", Mathf.RoundToInt(pilot.Vitals.MaxHull))), BuildRepairOptions, pilot);
+
+            IReadOnlyList<ChoiceDialog.Option> BuildRepairOptions()
             {
                 float repair = pilot.Vitals.MaxHull * config.RepairFraction;
                 return new[]
@@ -584,7 +612,7 @@ namespace Pathfinder.Game.Run
                     },
                     new ChoiceDialog.Option { Label = Loc.T("common.leave"), OnChoose = () => false },
                 };
-            });
+            }
         }
 
         public enum RepairChoice { Repair, Reinforce }
@@ -609,7 +637,7 @@ namespace Pathfinder.Game.Run
         /// <summary>Applies a repair station choice. Also called directly by tests.</summary>
         public void ApplyRepair(PlayerShip pilot, RepairChoice choice)
         {
-            if (Context.Type != MapNodeType.Repair || _stationUsed)
+            if (Context.Type != MapNodeType.Repair || _stationUsed || !_repairedPilots.Add(pilot.PlayerIndex))
                 return;
 
             if (choice == RepairChoice.Repair)
@@ -617,8 +645,9 @@ namespace Pathfinder.Game.Run
             else
                 pilot.Reinforce(config.ReinforceHull);
 
-            _stationUsed = true;
-            if (_stationMarker != null)
+            // Spent once every pilot has used it: one each in local co-op (M8).
+            _stationUsed = _repairedPilots.Count >= CombatRegistry.Players.Count;
+            if (_stationUsed && _stationMarker != null)
                 _stationMarker.SetSpent();
             ShowBanner(Loc.T(choice == RepairChoice.Repair ? "banner.repaired" : "banner.reinforced"));
         }
@@ -701,7 +730,7 @@ namespace Pathfinder.Game.Run
                 SetPrice(options[options.Count - 1], RerollPrice);
                 options.Add(new ChoiceDialog.Option { Label = Loc.T("common.leave"), OnChoose = () => false });
                 return options;
-            });
+            }, pilot);
         }
 
         void RollCatalog()
@@ -842,8 +871,8 @@ namespace Pathfinder.Game.Run
             _run?.AddSingularityCores(cores);
             foreach (var player in CombatRegistry.Players)
             {
-                if (player.IsAlive)
-                    player.Heal(player.Vitals.MaxHull * config.BossHealFraction);
+                player.Revive(CoopRules.ReviveHullFraction); // a downed co-op pilot is back for the reward (M8)
+                player.Heal(player.Vitals.MaxHull * config.BossHealFraction);
             }
             ShowBanner(Loc.T(cores == 1 ? "banner.boss_defeated.one" : "banner.boss_defeated.many", ("cores", cores)));
             OpenExit();
@@ -858,7 +887,7 @@ namespace Pathfinder.Game.Run
         {
             var pilot = FirstLivingPilot();
             if (pilot != null)
-                OfferEquipment(Loc.T("choice.boss_reward"), pilot, Rarity.Rare, _ => PullIntoWormhole());
+                OfferEquipmentInTurn(Loc.T("choice.boss_reward"), pilot, Rarity.Rare, _ => PullIntoWormhole());
         }
 
         void PullIntoWormhole()
@@ -954,7 +983,7 @@ namespace Pathfinder.Game.Run
                     OnChoose = () =>
                     {
                         if (result.EquipmentOffer.HasValue)
-                            OfferEquipment(Loc.T("choice.found"), pilot, result.EquipmentOffer.Value, _ => FinishEvent(result));
+                            OfferEquipmentInTurn(Loc.T("choice.found"), pilot, result.EquipmentOffer.Value, _ => FinishEvent(result));
                         else
                             FinishEvent(result);
                         return false;
@@ -983,11 +1012,7 @@ namespace Pathfinder.Game.Run
             director.Completed -= OnEventAmbushCleared;
             _ambushRunning = false;
             int bonus = Mathf.RoundToInt(RunConfig.ForGalaxy(config.ScrapsCompletionBonus, Context.GalaxyIndex) * RewardMultiplier);
-            foreach (var player in CombatRegistry.Players)
-            {
-                if (player.IsAlive)
-                    player.AddScraps(bonus);
-            }
+            AddBonusScraps(bonus);
             ShowBanner(Loc.T("banner.ambush_survived", ("bonus", bonus)));
             world.Pickups.Vacuum = true;
             OpenExit();
@@ -1010,6 +1035,14 @@ namespace Pathfinder.Game.Run
         }
 
         bool AnyPilotWithin(Vector2 point, float radius) => NearestPilotWithin(point, radius) != null;
+
+        /// <summary>A completion bonus, paid once: local co-op pilots share their Scraps (M8).</summary>
+        static void AddBonusScraps(int bonus)
+        {
+            var pilot = FirstLivingPilot();
+            if (pilot != null)
+                pilot.AddScraps(bonus);
+        }
 
         static PlayerShip NearestPilotWithin(Vector2 point, float radius)
         {

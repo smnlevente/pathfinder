@@ -25,6 +25,7 @@ sequenceDiagram
     else running
         W->>P: Simulate: read ShipCommand, move, fire, dash
         W->>E: Simulate: brain.Think, steer, separate, contact damage
+        W->>W: revives: teammates near a wreck fill its progress (co-op)
         W->>S: Simulate: sweep projectiles, home, hit, pull pickups
         W->>W: Tick++, check all players down, raise Ticked
         D->>W: spawn enemies whose telegraph finished
@@ -173,6 +174,19 @@ effects, as `(base + Σ flat) × (1 + Σ percent)`. The sheet is rebuilt from sc
 
 Equipment effects hook into the ship's events: shot fired, primary hit, kill, dash start and end, bullet phased
 through, lethal hit and level start. See [Extending the game](extending.md#add-an-equipment-item).
+
+### Local co-op pilots (M8)
+
+- A **downed** co-op ship is just a dead `PlayerShip` that stays registered: it isn't simulated, enemies and pickups
+  ignore it (they only look at living players), and its `EntityVisual` keeps it on screen as a dark wreck.
+- `ReviveSystem` (owned by `CombatWorld`, run after the entities each tick while the fight isn't over) fills a
+  wreck's `ReviveProgress` while a living teammate is within `CoopRules.ReviveRadius`, and drains it otherwise. At 1
+  it calls `PlayerShip.Revive(fraction)`: hull back, intangible for a moment, and the `Revived` event. The level
+  controller, the run director and Survival also revive pilots between levels and when a boss or guardian falls.
+- Scraps live in a `ScrapWallet`. Co-op pilots share player 1's, so `PlayerShip.Scraps` reads the same for all of
+  them. Count collected Scraps once per wallet (`RunDirector.ScrapsCollected`).
+- **Scaling:** `CombatWorld.SpawnEnemy` multiplies health by `CoopRules.EnemyHealthScale(players)` (hazards excepted),
+  and `WaveDirector` multiplies each wave's budget by `CoopRules.WaveBudgetScale(players)`.
 
 ## Enemies
 

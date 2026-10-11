@@ -8,7 +8,8 @@ namespace Pathfinder.Game.Player
     /// <summary>
     /// Turns local keyboard/mouse or gamepad input into <see cref="ShipCommand"/>s. Presses are caught every
     /// frame and held until the next simulation tick consumes them, so a quick tap is never lost between
-    /// fixed updates.
+    /// fixed updates. Each pilot has their own copy of the controls, listening only to their devices (M8, local co-op):
+    /// player 1 alone uses everything; with company, player 1 keeps what nobody else claimed.
     /// </summary>
     public sealed class LocalInputCommandSource : MonoBehaviour, IShipCommandSource
     {
@@ -22,18 +23,36 @@ namespace Pathfinder.Game.Player
         AimMode _aimMode = AimMode.Pointer;
         Vector2 _stickAim;
         Camera _camera;
+        InputActionAsset _actions;
+        int _playerIndex, _devicesVersion = -1;
+        bool _usesMouse = true;
+
+        /// <summary>Which local player this ship belongs to, so it listens to their devices only.</summary>
+        public int PlayerIndex => _playerIndex;
+
+        /// <summary>Whether this pilot aims with the mouse (player 1) rather than a stick.</summary>
+        public bool UsesMouse => _usesMouse && _aimMode == AimMode.Pointer;
+
+        public void Bind(int playerIndex)
+        {
+            _playerIndex = playerIndex;
+            ApplyDevices();
+        }
 
         void OnEnable()
         {
-            var actions = InputSystem.actions;
-            if (actions == null)
+            var shared = InputSystem.actions;
+            if (shared == null)
             {
                 Debug.LogError("[LocalInput] No project-wide input actions are assigned (Project Settings > Input System Package).", this);
                 enabled = false;
                 return;
             }
 
-            var map = actions.FindActionMap(GameplayMap, throwIfNotFound: true);
+            // A copy of the project's controls, so this pilot can listen to their own devices (M8).
+            _actions = Instantiate(shared);
+            _actions.name = $"{shared.name} ({name})";
+            var map = _actions.FindActionMap(GameplayMap, throwIfNotFound: true);
             _move = map.FindAction("Move", true);
             _aim = map.FindAction("Aim", true);
             _aimPoint = map.FindAction("AimPoint", true);
@@ -43,15 +62,44 @@ namespace Pathfinder.Game.Player
             _reload = map.FindAction("Reload", true);
             _interact = map.FindAction("Interact", true);
             map.Enable();
+            ApplyDevices();
+            InputSystem.onDeviceChange += OnDeviceChange;
+        }
 
+        void OnDisable()
+        {
+            InputSystem.onDeviceChange -= OnDeviceChange;
+            if (_actions != null)
+            {
+                _actions.Disable();
+                Destroy(_actions);
+                _actions = null;
+            }
+        }
+
+        void OnDeviceChange(InputDevice device, InputDeviceChange change) => _devicesVersion = -1;
+
+        /// <summary>Listens to this pilot's devices: see <see cref="LocalPlayers.DevicesFor"/>.</summary>
+        void ApplyDevices()
+        {
+            if (_actions == null)
+                return;
+            var devices = LocalPlayers.DevicesFor(_playerIndex);
+            _actions.devices = devices;
+            _devicesVersion = LocalPlayers.Version;
+
+            _usesMouse = Mouse.current != null && (devices == null || System.Array.IndexOf(devices, Mouse.current) >= 0);
             // Without a mouse, keep the ship's current aim until the right stick is used.
-            _aimMode = Mouse.current != null ? AimMode.Pointer : AimMode.Stick;
+            _aimMode = _usesMouse ? AimMode.Pointer : AimMode.Stick;
         }
 
         bool _pausedLastFrame;
 
         void Update()
         {
+            if (_devicesVersion != LocalPlayers.Version)
+                ApplyDevices();
+
             bool pausedLastFrame = _pausedLastFrame;
             _pausedLastFrame = GameClock.Paused;
             if (GameClock.Paused || pausedLastFrame)
@@ -73,7 +121,7 @@ namespace Pathfinder.Game.Player
                 _aimMode = AimMode.Stick;
                 _stickAim = stick.normalized;
             }
-            else if (Mouse.current != null && (Mouse.current.delta.ReadValue().sqrMagnitude > 1f || Mouse.current.leftButton.wasPressedThisFrame))
+            else if (_usesMouse && Mouse.current != null && (Mouse.current.delta.ReadValue().sqrMagnitude > 1f || Mouse.current.leftButton.wasPressedThisFrame))
             {
                 _aimMode = AimMode.Pointer;
             }

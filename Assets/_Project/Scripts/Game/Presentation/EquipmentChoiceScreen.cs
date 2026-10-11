@@ -49,6 +49,9 @@ namespace Pathfinder.Game.Presentation
         readonly List<UiRow> _swapRows = new List<UiRow>();
 
         public bool IsOpen { get; private set; }
+
+        /// <summary>Whose pick it is (M8: in local co-op each player picks their own).</summary>
+        public PlayerShip Pilot => _ship;
         public IReadOnlyList<EquipmentDefinition> Options => _options;
         public bool IsSwapping => IsOpen && _step == Step.Swap;
 
@@ -58,6 +61,8 @@ namespace Pathfinder.Game.Presentation
             Build();
             _canvas.gameObject.SetActive(false);
         }
+
+        void OnDestroy() => _input?.Dispose();
 
         /// <summary>Offers a choice of items. <paramref name="onClosed"/> receives true if an item was taken.</summary>
         public void Show(string title, IReadOnlyList<EquipmentDefinition> options, PlayerShip ship, int skipScraps, Action<bool> onClosed) =>
@@ -141,6 +146,8 @@ namespace Pathfinder.Game.Presentation
 
         void Open()
         {
+            // In local co-op, the pilot whose pick it is chooses, with their own controller (M8).
+            _input.RestrictTo(PilotLabels.Devices(_ship));
             IsOpen = true;
             GameClock.Pause(this);
             ModalScreens.SetOpen(this, true);
@@ -249,7 +256,7 @@ namespace Pathfinder.Game.Presentation
             _selected = 0;
             _pickRoot.gameObject.SetActive(true);
             _swapRoot.gameObject.SetActive(false);
-            _pickTitle.text = _title;
+            _pickTitle.text = PilotLabels.Prefix(_ship) + _title;
 
             for (int i = _cards.childCount - 1; i >= 0; i--)
                 Destroy(_cards.GetChild(i).gameObject);
@@ -354,7 +361,7 @@ namespace Pathfinder.Game.Presentation
             _selected = 0;
             _pickRoot.gameObject.SetActive(false);
             _swapRoot.gameObject.SetActive(true);
-            _swapTitle.text = Loc.T("choice.replace", ("category", CategoryName(item.Category).ToUpperInvariant()));
+            _swapTitle.text = PilotLabels.Prefix(_ship) + Loc.T("choice.replace", ("category", CategoryName(item.Category).ToUpperInvariant()));
             _swapSubtitle.text = $"{UiKit.Colored(item.DisplayName, RarityColor(item.Rarity))}: {item.Describe(1)}\n" +
                 UiKit.Colored(Loc.T("choice.replaced_lost"), UiKit.TextDim);
 
@@ -400,14 +407,14 @@ namespace Pathfinder.Game.Presentation
                     _cardViews[i].Take.color = selected ? new Color(0.16f, 0.45f, 0.58f, 1f) : new Color(0.1f, 0.16f, 0.22f, 1f);
                 }
                 _skipRow.SetState(_selected == _options.Count, true);
-                EquipmentPreview.Show(this, _selected < _options.Count ? _options[_selected] : null);
+                EquipmentPreview.Show(this, _selected < _options.Count ? _options[_selected] : null, pilot: _ship);
             }
             else
             {
                 for (int i = 0; i < _swapRows.Count; i++)
                     _swapRows[i].SetState(i == _selected, true);
                 bool replacing = _selected < _swapRows.Count - 1; // the last row is Back / Cancel
-                EquipmentPreview.Show(this, _pending, replacing ? _selected : -1);
+                EquipmentPreview.Show(this, _pending, replacing ? _selected : -1, _ship);
             }
         }
 

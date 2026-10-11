@@ -5,9 +5,11 @@ using Pathfinder.Game.Combat;
 using Pathfinder.Game.Content;
 using Pathfinder.Game.Localization;
 using Pathfinder.Game.Meta;
+using Pathfinder.Game.Player;
 using Pathfinder.Game.Presentation.Ui;
 using Pathfinder.Game.Run;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -16,7 +18,8 @@ namespace Pathfinder.Game.Presentation
     /// <summary>
     /// The Hub (GDD §11.2, §12.1): start a run or Survival (GDD §3.2) after choosing a ship and loadout (GDD §5.4), or spend
     /// Dark Matter and Singularity Cores in the Pathfinder Lab. Locked weapons are skipped in the loadout until bought.
-    /// Mouse, keyboard and gamepad all work.
+    /// Mouse, keyboard and gamepad all work. Local co-op (M8): on the loadout page, more players join with a controller of
+    /// their own, and each picks their ship and weapons.
     /// </summary>
     public sealed class HubMenu : MonoBehaviour
     {
@@ -30,8 +33,26 @@ namespace Pathfinder.Game.Presentation
         MenuInput _input;
         Page _page;
         int _selected;
-        int _ship, _primary, _secondary;
         bool _survival; // the loadout page launches Survival rather than a run
+
+        // Each local player's loadout, as indices into the content lists (M8). The page edits one player's at a time.
+        readonly int[] _ships = new int[CoopRules.MaxPilots];
+        readonly int[] _primaries = new int[CoopRules.MaxPilots];
+        readonly int[] _secondaries = new int[CoopRules.MaxPilots];
+        readonly List<string> _loadoutKeys = new List<string>(); // the loadout page's rows
+        int _editing;
+        bool _waitingForJoin;
+        InputDevice _joinExcluded;
+        int _joinStartFrame;
+
+        /// <summary>Which local player's loadout the page shows (M8). For tests.</summary>
+        public int EditingPlayer => _editing;
+
+        /// <summary>Whether the page is waiting for a new player to press a button on their controller. For tests.</summary>
+        public bool WaitingForPlayer => _waitingForJoin;
+
+        /// <summary>The loadout page's rows by name ("pilot", "ship", "launch", "add"…). For tests.</summary>
+        public IReadOnlyList<string> LoadoutRows => _loadoutKeys;
 
         Text _title, _subtitle, _meta, _pageTitle, _hint, _credits;
 
@@ -69,6 +90,15 @@ namespace Pathfinder.Game.Presentation
 
         void Update()
         {
+            if (_waitingForJoin)
+            {
+                TickJoin();
+                _meta.text = MetaLine();
+                for (int i = 0; i < _rows.Count; i++)
+                    _rows[i].SetState(i == _selected, _enabled[i]);
+                return;
+            }
+
             var step = _input.ReadStep();
             if (step.y != 0 && _rows.Count > 0)
             {
@@ -76,7 +106,7 @@ namespace Pathfinder.Game.Presentation
                 _scroll.ScrollTo(_rows[_selected].Rect); // keep the selection in view on a long page
             }
 
-            if (_page == Page.Loadout && step.x != 0 && _selected < 3)
+            if (_page == Page.Loadout && step.x != 0 && IsCycleRow(_selected))
                 Cycle(_selected, step.x);
             else if (_page == Page.Options && step.x != 0 && _selected < SettingsOptions.All.Count)
                 ChangeOption(_selected, option => option.Change(step.x, false));
@@ -94,18 +124,36 @@ namespace Pathfinder.Game.Presentation
 
         void Activate(int index)
         {
+            if (_waitingForJoin)
+            {
+                _waitingForJoin = false;
+                ShowPage(_page, keepSelection: true);
+                return;
+            }
             switch (_page)
             {
                 case Page.Main:
                     ChooseMain(index);
                     break;
                 case Page.Loadout:
-                    if (index == 3 && _survival)
-                        StartSurvival();
-                    else if (index == 3)
-                        StartRun();
-                    else
-                        Cycle(index, 1);
+                    switch (LoadoutKey(index))
+                    {
+                        case "launch":
+                            if (_survival)
+                                StartSurvival();
+                            else
+                                StartRun();
+                            break;
+                        case "add":
+                            BeginJoin();
+                            break;
+                        case "remove":
+                            RemovePlayer(_editing);
+                            break;
+                        default:
+                            Cycle(index, 1);
+                            break;
+                    }
                     break;
                 case Page.Options:
                     if (index < SettingsOptions.All.Count)
@@ -181,22 +229,138 @@ namespace Pathfinder.Game.Presentation
         public void OpenLoadout(bool survival)
         {
             _survival = survival;
-            _primary = NextAvailable(content.PrimaryWeapons, _primary, 0);
-            _secondary = NextAvailable(content.SecondaryWeapons, _secondary, 0);
+            _editing = 0;
+            _waitingForJoin = false;
+            // Each player starts from what they flew last time this session (M8), within what's unlocked.
+            for (int i = 0; i < LocalPlayers.Count; i++)
+            {
+                var loadout = LocalPlayers.LoadoutFor(i);
+                if (!loadout.IsEmpty)
+                {
+                    _ships[i] = IndexOf(content.Ships, loadout.ShipId, _ships[i]);
+                    _primaries[i] = IndexOf(content.PrimaryWeapons, loadout.PrimaryId, _primaries[i]);
+                    _secondaries[i] = IndexOf(content.SecondaryWeapons, loadout.SecondaryId, _secondaries[i]);
+                }
+                _ships[i] = NextAvailable(content.Ships, _ships[i], 0);
+                _primaries[i] = NextAvailable(content.PrimaryWeapons, _primaries[i], 0);
+                _secondaries[i] = NextAvailable(content.SecondaryWeapons, _secondaries[i], 0);
+            }
             ShowPage(Page.Loadout);
-            _selected = 3;
+            _selected = Mathf.Max(0, _loadoutKeys.IndexOf("launch"));
         }
+
+        /// <summary>Steps a loadout row ("pilot", "ship", "primary", "secondary") left or right. For tests and debug tools.</summary>
+        public void Change(string row, int step)
+        {
+            int index = _loadoutKeys.IndexOf(row);
+            if (_page == Page.Loadout && IsCycleRow(index))
+                Cycle(index, step);
+        }
+
+        string LoadoutKey(int row) => row >= 0 && row < _loadoutKeys.Count ? _loadoutKeys[row] : string.Empty;
+
+        bool IsCycleRow(int row) => LoadoutKey(row) is "pilot" or "ship" or "primary" or "secondary";
 
         void Cycle(int row, int step)
         {
-            switch (row)
+            switch (LoadoutKey(row))
             {
-                case 0: _ship = NextAvailable(content.Ships, _ship, step); break;
-                case 1: _primary = NextAvailable(content.PrimaryWeapons, _primary, step); break;
-                case 2: _secondary = NextAvailable(content.SecondaryWeapons, _secondary, step); break;
+                case "pilot": _editing = Wrap(_editing + (step < 0 ? -1 : 1), LocalPlayers.Count); break;
+                case "ship": _ships[_editing] = NextAvailable(content.Ships, _ships[_editing], step); break;
+                case "primary": _primaries[_editing] = NextAvailable(content.PrimaryWeapons, _primaries[_editing], step); break;
+                case "secondary": _secondaries[_editing] = NextAvailable(content.SecondaryWeapons, _secondaries[_editing], step); break;
             }
             ShowPage(Page.Loadout, keepSelection: true);
         }
+
+        static int IndexOf<T>(T[] items, string id, int fallback) where T : ContentDefinition
+        {
+            for (int i = 0; i < items.Length; i++)
+            {
+                if (items[i] != null && items[i].Id == id)
+                    return i;
+            }
+            return fallback;
+        }
+
+        // ---------------------------------------------------------------- local co-op (M8)
+
+        /// <summary>
+        /// Waits for a new player to press a button on a controller nobody has claimed yet. The controller that chose
+        /// "add a player" is player 1's, so it can't join again.
+        /// </summary>
+        void BeginJoin()
+        {
+            if (LocalPlayers.Count >= CoopRules.MaxPilots)
+                return;
+            _waitingForJoin = true;
+            _joinExcluded = _input.SubmitDevice as Gamepad;
+            _joinStartFrame = Time.frameCount;
+            ShowPage(Page.Loadout, keepSelection: true);
+        }
+
+        void TickJoin()
+        {
+            if (Time.frameCount == _joinStartFrame)
+                return;
+            foreach (var gamepad in Gamepad.all)
+            {
+                if (gamepad != _joinExcluded && !LocalPlayers.IsClaimed(gamepad) && AnyButtonPressed(gamepad))
+                {
+                    AddPlayer(gamepad);
+                    return;
+                }
+            }
+            if (_input.Cancelled)
+            {
+                _waitingForJoin = false;
+                ShowPage(Page.Loadout, keepSelection: true);
+            }
+        }
+
+        static bool AnyButtonPressed(Gamepad gamepad) =>
+            gamepad.buttonSouth.wasPressedThisFrame || gamepad.buttonEast.wasPressedThisFrame || gamepad.buttonWest.wasPressedThisFrame
+            || gamepad.buttonNorth.wasPressedThisFrame || gamepad.startButton.wasPressedThisFrame || gamepad.selectButton.wasPressedThisFrame
+            || gamepad.leftShoulder.wasPressedThisFrame || gamepad.rightShoulder.wasPressedThisFrame;
+
+        /// <summary>A new player joins with this controller and starts with player 1's loadout. Returns their index, or -1.</summary>
+        public int AddPlayer(InputDevice device)
+        {
+            _waitingForJoin = false;
+            int index = LocalPlayers.Join(device);
+            if (index > 0)
+            {
+                _ships[index] = _ships[0];
+                _primaries[index] = _primaries[0];
+                _secondaries[index] = _secondaries[0];
+                _editing = index;
+                Audio.GameAudio.Play(Audio.SoundCue.UiConfirm);
+            }
+            ShowPage(Page.Loadout, keepSelection: true);
+            if (index > 0)
+                _selected = Mathf.Max(0, _loadoutKeys.IndexOf("pilot"));
+            return index;
+        }
+
+        /// <summary>A player other than player 1 leaves; those after them move up.</summary>
+        public void RemovePlayer(int index)
+        {
+            if (index <= 0 || index >= LocalPlayers.Count)
+                return;
+            LocalPlayers.Leave(index);
+            for (int i = index; i < CoopRules.MaxPilots - 1; i++)
+            {
+                _ships[i] = _ships[i + 1];
+                _primaries[i] = _primaries[i + 1];
+                _secondaries[i] = _secondaries[i + 1];
+            }
+            _editing = 0;
+            ShowPage(Page.Loadout, keepSelection: true);
+            _selected = Mathf.Max(0, _loadoutKeys.IndexOf("launch"));
+        }
+
+        PilotLoadout LoadoutOf(int player) =>
+            new PilotLoadout(content.Ships[_ships[player]].Id, content.PrimaryWeapons[_primaries[player]].Id, content.SecondaryWeapons[_secondaries[player]].Id);
 
         /// <summary>Steps through the list, skipping content that is still locked (GDD §11.2).</summary>
         int NextAvailable<T>(T[] items, int current, int step) where T : ContentDefinition
@@ -227,9 +391,11 @@ namespace Pathfinder.Game.Presentation
 
         void Launch(string scene)
         {
-            // The run seed also seeds the arena, so the whole run replays from a single code.
-            var loadout = new PilotLoadout(content.Ships[_ship].Id, content.PrimaryWeapons[_primary].Id, content.SecondaryWeapons[_secondary].Id);
-            var run = RunSession.Begin(loadout: loadout);
+            // The run seed also seeds the arena, so the whole run replays from a single code. Every local player's pick is
+            // kept for the spawner, and for next time (M8); player 1's is the run's own.
+            for (int i = 0; i < LocalPlayers.Count; i++)
+                LocalPlayers.SetLoadout(i, LoadoutOf(i));
+            var run = RunSession.Begin(loadout: LoadoutOf(0));
             CombatWorld.NextSeedOverride = run.Seed;
             SceneManager.LoadScene(scene);
         }
@@ -304,17 +470,45 @@ namespace Pathfinder.Game.Presentation
                 case Page.Loadout:
                 {
                     _pageTitle.text = Loc.T(_survival ? "hub.loadout.survival" : "hub.loadout");
-                    var ship = content.Ships[_ship];
-                    var primary = content.PrimaryWeapons[_primary];
-                    var secondary = content.SecondaryWeapons[_secondary];
+                    _editing = Mathf.Clamp(_editing, 0, LocalPlayers.Count - 1);
+                    _loadoutKeys.Clear();
+                    bool coop = LocalPlayers.IsCoop;
+                    var pilotColor = CoopRules.PilotColor(_editing);
+                    if (coop)
+                    {
+                        // Whose loadout the rows below show (M8): step through the players.
+                        _loadoutKeys.Add("pilot");
+                        AddRow(Loc.T("hub.coop.pilot", ("player", PilotLabels.Name(_editing))), null,
+                            Loc.T("hub.coop.pilot.detail", ("count", LocalPlayers.Count)), pilotColor);
+                    }
+                    var ship = content.Ships[_ships[_editing]];
+                    var primary = content.PrimaryWeapons[_primaries[_editing]];
+                    var secondary = content.SecondaryWeapons[_secondaries[_editing]];
+                    _loadoutKeys.Add("ship");
                     AddRow(Loc.T("hub.loadout.ship", ("name", ship.DisplayName)), null, Loc.T("hub.loadout.ship.detail",
                         ("hull", ship.MaxHull), ("shield", ship.MaxShield), ("speed", ship.MoveSpeed), ("trait", ship.TraitTitle), ("description", ship.TraitText)))
                         .SetIcon(ship.Icon, Color.Lerp(new Color(0.55f, 0.65f, 0.9f), Color.white, 0.2f) * ship.HullTint, 56f);
+                    _loadoutKeys.Add("primary");
                     AddRow(Loc.T("hub.loadout.primary", ("name", primary.DisplayName)), null, PrimarySummary(primary)).SetIcon(primary.Icon, WeaponColor, 56f);
+                    _loadoutKeys.Add("secondary");
                     AddRow(Loc.T("hub.loadout.secondary", ("name", secondary.DisplayName)), null, Loc.T("hub.loadout.secondary.detail", ("seconds", secondary.Cooldown)))
                         .SetIcon(secondary.Icon, WeaponColor, 56f);
-                    AddRow(Loc.T(_survival ? "hub.loadout.launch_survival" : "hub.loadout.launch"), null, null, UiKit.Accent);
-                    _hint.text = Loc.T("hub.loadout.hint");
+                    _loadoutKeys.Add("launch");
+                    AddRow(Loc.T(_survival ? "hub.loadout.launch_survival" : "hub.loadout.launch"), null,
+                        coop ? Loc.T("hub.coop.launch.detail", ("count", LocalPlayers.Count)) : null, UiKit.Accent);
+                    if (LocalPlayers.Count < CoopRules.MaxPilots)
+                    {
+                        _loadoutKeys.Add("add");
+                        AddRow(Loc.T(_waitingForJoin ? "hub.coop.waiting" : "hub.coop.add", ("player", PilotLabels.Name(LocalPlayers.Count))), null,
+                            Loc.T(_waitingForJoin ? "hub.coop.waiting.detail" : FreeControllers() > 0 ? "hub.coop.add.detail" : "hub.coop.add.no_controller"),
+                            _waitingForJoin ? CoopRules.PilotColor(LocalPlayers.Count) : (Color?)null);
+                    }
+                    if (coop && _editing > 0)
+                    {
+                        _loadoutKeys.Add("remove");
+                        AddRow(Loc.T("hub.coop.remove", ("player", PilotLabels.Name(_editing))), null, null, UiKit.Bad);
+                    }
+                    _hint.text = Loc.T(_waitingForJoin ? "hub.coop.waiting.hint" : "hub.loadout.hint");
                     break;
                 }
 
@@ -391,8 +585,22 @@ namespace Pathfinder.Game.Presentation
         string ContinueDetail(RunSaveFile.Data save)
         {
             var ship = content.FindShip(save.pilot.ship);
-            return Loc.T("hub.continue.detail", ("galaxy", save.galaxy + 1), ("galaxyName", Loc.T($"galaxy.{Mathf.Clamp(save.galaxy, 0, 2)}")),
+            string detail = Loc.T("hub.continue.detail", ("galaxy", save.galaxy + 1), ("galaxyName", Loc.T($"galaxy.{Mathf.Clamp(save.galaxy, 0, 2)}")),
                 ("levels", save.levelsCleared), ("ship", ship != null ? ship.DisplayName : save.pilot.ship));
+            // A co-op run (M8) says how many flew it: players who haven't joined this time start fresh, or sit it out.
+            return save.pilots.Count > 1 ? detail + "\n" + Loc.T("hub.continue.players", ("count", save.pilots.Count), ("joined", LocalPlayers.Count)) : detail;
+        }
+
+        /// <summary>Controllers connected that no player has claimed yet.</summary>
+        static int FreeControllers()
+        {
+            int free = 0;
+            foreach (var gamepad in Gamepad.all)
+            {
+                if (!LocalPlayers.IsClaimed(gamepad))
+                    free++;
+            }
+            return free;
         }
 
         static string SurvivalDetail()

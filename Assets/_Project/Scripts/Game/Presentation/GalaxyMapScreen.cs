@@ -60,6 +60,8 @@ namespace Pathfinder.Game.Presentation
             _canvas.gameObject.SetActive(false);
         }
 
+        void OnDestroy() => _input?.Dispose();
+
         void Update()
         {
             bool open = IsOpen;
@@ -69,7 +71,11 @@ namespace Pathfinder.Game.Presentation
                 _canvas.gameObject.SetActive(open);
                 ModalScreens.SetOpen(this, open, blocksPause: false); // the map is a good moment to pause
                 if (open)
+                {
+                    // In local co-op, player 1 picks the next node (M8).
+                    _input.RestrictTo(Player.LocalPlayers.IsCoop ? Player.LocalPlayers.DevicesFor(0) : null);
                     Rebuild();
+                }
             }
             if (!open)
                 return;

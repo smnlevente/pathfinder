@@ -219,7 +219,9 @@ namespace Pathfinder.Game.Enemies
             Wave++;
             _waveTimer = 0f;
             int budget = FixedBudget > 0 ? FixedBudget : config.Budget(Wave, galaxyIndex, row);
-            CurrentBudget = Mathf.Max(1, Mathf.RoundToInt(budget * BudgetMultiplier));
+            // Bigger waves for each extra local co-op pilot (M8).
+            float coop = Player.CoopRules.WaveBudgetScale(CombatRegistry.Players.Count);
+            CurrentBudget = Mathf.Max(1, Mathf.RoundToInt(budget * BudgetMultiplier * coop));
             float eliteChance = config.Elites.Length == 0 ? 0f : FixedEliteChance >= 0f ? FixedEliteChance : config.EliteChance(Wave, galaxyIndex, row);
 
             var orders = WaveComposer.Compose(_entries, CurrentBudget, Wave, eliteChance, config.EliteCostMultiplier, _random);

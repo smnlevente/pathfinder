@@ -41,6 +41,9 @@ namespace Pathfinder.Game.Combat
         /// <summary>Clouds enemies leave on the floor (M7).</summary>
         public CloudSystem Clouds { get; private set; }
 
+        /// <summary>Local co-op revives (M8).</summary>
+        public ReviveSystem Revives { get; } = new ReviveSystem();
+
         /// <summary>Number of simulation ticks completed.</summary>
         public int Tick { get; private set; }
 
@@ -113,6 +116,8 @@ namespace Pathfinder.Game.Combat
                     entity.Simulate(deltaTime, this);
             }
 
+            if (!IsOver)
+                Revives.Simulate(deltaTime);
             Projectiles.Simulate(deltaTime, this);
             Pickups.Simulate(deltaTime, this);
             Clouds.Simulate(deltaTime);
@@ -143,8 +148,10 @@ namespace Pathfinder.Game.Combat
         {
             var seed = _levelSeed.Derive(SeedLabels.Enemy).Derive(_enemySpawnCount++);
             var enemy = Instantiate(definition.Prefab, PlaneMath.ToWorld(position), Quaternion.identity);
+            // Tougher for each extra local co-op pilot (M8); arena hazards are scenery and stay as they are.
+            float coop = definition.IsHazard ? 1f : CoopRules.EnemyHealthScale(CombatRegistry.Players.Count);
             enemy.Initialize(this, definition, seed.CreateRandom(SeedLabels.Ai), seed.CreateRandom(SeedLabels.Loot), elite, dropsLoot,
-                EnemyHealthMultiplier * extraHealthMultiplier);
+                EnemyHealthMultiplier * extraHealthMultiplier * coop);
             return enemy;
         }
 

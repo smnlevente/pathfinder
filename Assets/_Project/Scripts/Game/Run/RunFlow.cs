@@ -30,6 +30,9 @@ namespace Pathfinder.Game.Run
             var map = InputSystem.actions?.FindActionMap("Gameplay");
             _pause = map?.FindAction("Pause");
             _restart = map?.FindAction("Interact");
+            // Any player's device pauses (M8): these read the shared controls, which listen to every device.
+            _pause?.Enable();
+            _restart?.Enable();
         }
 
         void Update()

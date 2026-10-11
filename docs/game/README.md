@@ -15,6 +15,7 @@ What everything in the game does, as it plays today. Every number is a starting 
 | [Enemies](enemies.md) | All the enemies (and the Matriarch's Broodlings), elites, spawning and scaling, and how to beat each |
 | [Bosses](bosses.md) | The Quarry Maw, the Binary Wardens and the Hive Matriarch, phase by phase |
 | [Economy & meta](economy.md) | Scraps, Dark Matter, Singularity Cores, the Shop and the Pathfinder Lab |
+| [Local co-op](coop.md) | Up to four players on one screen: joining, reviving, sharing, and how enemies scale |
 
 > [!NOTE]
 > **Built** means playable now. **Planned** means designed in the GDD but not in the game yet. Pages mark planned

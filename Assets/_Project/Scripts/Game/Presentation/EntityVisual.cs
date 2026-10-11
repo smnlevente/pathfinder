@@ -10,11 +10,13 @@ namespace Pathfinder.Game.Presentation
     /// <summary>
     /// Feedback for an entity's model. It flashes on hits, glows while an enemy telegraphs or the ship charges a
     /// shot, blinks during post-hit invulnerability, draws the dash trail, and spawns death and secondary-weapon
-    /// effects. It only reads gameplay state and events and never changes them.
+    /// effects. A downed local co-op pilot's ship stays as a dark wreck, brightening as a teammate revives it (M8). It only
+    /// reads gameplay state and events and never changes them.
     /// </summary>
     public sealed class EntityVisual : MonoBehaviour
     {
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        static readonly Color WreckColor = new Color(0.16f, 0.16f, 0.19f);
 
         [SerializeField] CombatEntity entity;
         [SerializeField, Tooltip("Emissive parts that brighten while telegraphing an attack or charging a shot.")] Renderer[] glowRenderers = new Renderer[0];
@@ -32,6 +34,7 @@ namespace Pathfinder.Game.Presentation
         MaterialPropertyBlock _block;
         float _flashRemaining;
         bool _usingBlock;
+        bool _wrecked;
 
         void Awake()
         {
@@ -69,7 +72,10 @@ namespace Pathfinder.Game.Presentation
             SubscribeFlash();
             entity.Died += OnDied;
             if (entity is PlayerShip ship)
+            {
                 ship.SecondaryActivated += OnSecondaryActivated;
+                ship.Revived += OnRevived;
+            }
         }
 
         void OnDisable()
@@ -79,7 +85,10 @@ namespace Pathfinder.Game.Presentation
             _subscribedFlash = null;
             entity.Died -= OnDied;
             if (entity is PlayerShip ship)
+            {
                 ship.SecondaryActivated -= OnSecondaryActivated;
+                ship.Revived -= OnRevived;
+            }
         }
 
         void OnSecondaryActivated(PlayerShip ship, SecondaryWeaponDefinition weapon)
@@ -99,6 +108,17 @@ namespace Pathfinder.Game.Presentation
             if (deathEffect != null)
                 Instantiate(deathEffect, transform.position + Vector3.up * 0.5f, Quaternion.identity);
 
+            // In local co-op a downed ship stays where it fell, dark, for a teammate to revive (M8).
+            if (source is PlayerShip && CombatRegistry.Players.Count > 1)
+            {
+                _wrecked = true;
+                _flashRemaining = 0f;
+                if (dashTrail != null)
+                    dashTrail.emitting = false;
+                ApplyToAll(WreckColor);
+                return;
+            }
+
             if (hideOnDeath)
             {
                 foreach (var renderer in _renderers)
@@ -108,11 +128,29 @@ namespace Pathfinder.Game.Presentation
             }
         }
 
+        void OnRevived(PlayerShip ship)
+        {
+            Audio.GameAudio.Play(Audio.SoundCue.CoreReboot, transform.position); // back online
+            _wrecked = false;
+            foreach (var renderer in _renderers)
+                renderer.enabled = true;
+            ClearBlocks();
+        }
+
         void LateUpdate()
         {
             SubscribeFlash(); // a boss segment gets its owner after spawning
             if (!entity.IsAlive)
+            {
+                // A wreck being revived lights up, pulsing faster as it comes back.
+                if (_wrecked && entity is PlayerShip downed)
+                {
+                    float progress = downed.ReviveProgress;
+                    float pulse = progress > 0f ? 0.5f + 0.5f * Mathf.Sin(Time.time * (6f + 14f * progress)) : 0f;
+                    ApplyToAll(Color.Lerp(WreckColor, Color.white * 1.6f, progress * (0.4f + 0.6f * pulse)));
+                }
                 return;
+            }
 
             var player = entity as PlayerShip;
             if (dashTrail != null)

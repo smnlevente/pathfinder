@@ -58,6 +58,7 @@ scene for each test.
 | Bosses | `BossTests` (the Quarry Maw), `WardenTests` (the Binary Wardens), `MatriarchTests` (the Hive Matriarch) |
 | Equipment | `EquipmentTests` |
 | Run flow | `RunTests`, `MysteryEventTests`, `EconomyAndWaveTests`, `SurvivalTests` |
+| Local co-op | `CoopTests` (the Sandbox with two pilots), `CoopRunTests` (a co-op run, the Hub, Survival, the save) |
 | Meta and menus | `MetaTests`, `HubTests`, `PauseMenuTests`, `AudioTests` |
 | Determinism | `DeterminismAndScreenshotTests` (the same seed gives the same fight, tick for tick) |
 | Balance probes | `BalanceTests` (what levels pay), `Balance_TimeToKill` in the boss tests |
@@ -89,7 +90,7 @@ public class MortarTests : SandboxTestBase
 
 | Helper | Does |
 |---|---|
-| `LoadRun(keepDirector, seed)` | Loads the Sandbox with a seed; the wave director stays off unless asked |
+| `LoadRun(keepDirector, seed, pilots)` | Loads the Sandbox with a seed; the wave director stays off unless asked. For co-op, join virtual gamepads first (`InputSystem.AddDevice<Gamepad>()`, `LocalPlayers.Join(pad)`) and pass how many pilots to expect; reset `LocalPlayers` and remove the pads in `[TearDown]` |
 | `Spawn(id, offset, eliteId)` | Spawns an enemy from the wave pool or the content database next to the pilot |
 | `Script(tick => new ShipCommand { ... })` | Flies the ship: move, aim, fire, dash, per tick |
 | `Once(command)` | A command for a single tick (a dash, a secondary) |
