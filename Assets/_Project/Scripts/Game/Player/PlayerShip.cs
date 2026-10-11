@@ -411,6 +411,7 @@ namespace Pathfinder.Game.Player
             Velocity = Vector2.zero;
             AimDirection = Vector2.up;
             Heading = 0f;
+            SecondaryCooldown?.Refill(); // every level starts with the secondary ready (M7)
             RefreshPerLevelEffects();
         }
 

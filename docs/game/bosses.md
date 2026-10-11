@@ -2,8 +2,12 @@
 
 [Docs home](../README.md) › [Game reference](README.md) › Bosses
 
-Each galaxy ends with a guardian. Beating it pays **Singularity Cores** (1 / 2 / 3 by galaxy), repairs **30% of your
-hull** and offers a **Rare-or-better item**. Then the wormhole pulls you into the next galaxy.
+Each galaxy ends with a guardian. It makes an entrance: the fight holds while the camera turns to it and a card shows its
+name, its title and how to hurt it (press confirm to skip). Beating it pays **Singularity Cores** (1 / 2 / 3 by
+galaxy), **repairs your hull fully** and offers a **Rare-or-better item**. Then the wormhole pulls you into the next
+galaxy.
+
+![The Quarry Maw's entrance card: its name, "Guardian of the Shattered Expanse" and how to hurt it](../images/boss-intro.png)
 ([GDD §7.5](../GDD.md#75-bosses))
 
 | Galaxy | Boss | The trick |

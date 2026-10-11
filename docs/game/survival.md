@@ -31,7 +31,8 @@ flowchart LR
 - **Every five minutes** a guardian arrives, announced 3 seconds ahead. It appears at the top of the arena, or at the
   bottom if you're up there.
 - **The clock stops while a guardian is alive.** The waves don't stop, but they thin out to about a third.
-- When a guardian falls, you get its Singularity Cores (1, 2, then 3), a 30% repair, your Scraps pulled in, Last Stand
+- Each guardian makes an entrance with its name card, as in a run.
+- When a guardian falls, you get its Singularity Cores (1, 2, then 3), a full repair, your Scraps pulled in, Last Stand
   re-armed, and a **Rare-or-better item**. That reward replaces the upgrade due the same minute. The waves then switch
   to the next galaxy's enemies, rarity odds and music.
 - **The Hive Matriarch's fall wins.** Her Swarm and every remaining enemy die with her.
@@ -68,5 +69,5 @@ Survival doesn't count as a run in the Hub's "runs won / played" statistics.
 ## Tuning
 
 Everything above is in `Assets/_Project/Data/Run/SurvivalConfig`. The guardians, their health by galaxy, their cores
-and the 30% repair come from `RunConfig`, shared with the campaign. In a development build, **F6** moves the clock on a
+and the repair come from `RunConfig`, shared with the campaign. In a development build, **F6** moves the clock on a
 minute.

@@ -43,10 +43,11 @@ flowchart LR
 2. **On the galaxy map**, pick a node from the bottom row. Each row narrows toward the **Shop** and the **Boss** at the
    top. Node types are shown, except Mystery (?) nodes. See [Run structure](run-structure.md).
 3. **In a level**, complete the objective (clear the waves, harvest Dark Matter, use the station...), then fly into
-   the **cyan wormhole** at the top to leave. Your hull carries over between levels; your shield refills.
+   the **cyan wormhole** at the top to leave. Your hull carries over between levels; your shield refills and your
+   secondary weapon is ready again.
 4. **Collect Scraps** (gold) from enemies and spend them in the Shop before the boss. Leftover Scraps fly to you when a
    fight is won.
-5. **Beat the boss** to earn Singularity Cores, a 30% repair and a Rare-or-better item. Then the wormhole pulls you
+5. **Beat the boss** to earn Singularity Cores, a full repair and a Rare-or-better item. Then the wormhole pulls you
    into the next galaxy.
 6. **When the run ends**, win or lose, the Dark Matter and Cores you earned are banked, plus 10% of the Scraps you
    collected. Spend them in the **Pathfinder Lab**. See [Economy & meta](economy.md).

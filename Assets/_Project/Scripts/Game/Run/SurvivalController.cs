@@ -256,6 +256,7 @@ namespace Pathfinder.Game.Run
             float health = RunConfig.ForGalaxy(runConfig.GalaxyEnemyHealth, tier) * setup.HealthMultiplier / world.EnemyHealthMultiplier;
             Guardian = world.SpawnEnemy(runConfig.BossFor(tier), GuardianSpawnPoint(), setup.Elite, dropsLoot: true, extraHealthMultiplier: health);
             Guardian.Died += OnGuardianDied;
+            BossIntro.Play(Guardian);
             State = Phase.Guardian;
             _guardianTime = 0f;
         }

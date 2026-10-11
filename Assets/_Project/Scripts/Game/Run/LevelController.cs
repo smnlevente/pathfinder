@@ -805,6 +805,7 @@ namespace Pathfinder.Game.Run
             var boss = config.Boss;
             Boss = world.SpawnEnemy(config.BossFor(Context.GalaxyIndex), new Vector2(0f, 8f), boss.Elite, dropsLoot: true, extraHealthMultiplier: boss.HealthMultiplier);
             Boss.Died += OnBossDied;
+            BossIntro.Play(Boss);
 
             for (int i = 0; i < boss.EscortCount && boss.Escort != null; i++)
             {

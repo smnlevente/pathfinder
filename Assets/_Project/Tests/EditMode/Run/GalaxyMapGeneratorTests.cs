@@ -18,16 +18,16 @@ namespace Pathfinder.Tests.Run
         }
 
         [Test]
-        public void Shape_FourPlayableRowsThenShopThenBoss()
+        public void Shape_SixPlayableRowsThenShopThenBoss()
         {
             foreach (var map in Maps())
             {
-                Assert.AreEqual(6, map.RowCount);
-                for (int r = 0; r < 4; r++)
-                    Assert.That(map.Row(r).Count, Is.InRange(2, 4));
-                Assert.AreEqual(1, map.Row(4).Count);
+                Assert.AreEqual(8, map.RowCount);
+                for (int r = 0; r < 6; r++)
+                    Assert.That(map.Row(r).Count, Is.InRange(3, 4));
+                Assert.AreEqual(1, map.Row(6).Count);
                 Assert.AreEqual(MapNodeType.Shop, map.Shop.Type);
-                Assert.AreEqual(1, map.Row(5).Count);
+                Assert.AreEqual(1, map.Row(7).Count);
                 Assert.AreEqual(MapNodeType.Boss, map.Boss.Type);
             }
         }
@@ -44,7 +44,7 @@ namespace Pathfinder.Tests.Run
                     if (node.Type != MapNodeType.Boss)
                         Assert.IsNotEmpty(node.Next, $"{node} is a dead end.");
                 }
-                Assert.AreEqual(map.Row(3).Count, map.Shop.Previous.Count, "Every last-row node leads to the Shop.");
+                Assert.AreEqual(map.Row(5).Count, map.Shop.Previous.Count, "Every last-row node leads to the Shop.");
             }
         }
 
@@ -83,16 +83,16 @@ namespace Pathfinder.Tests.Run
         }
 
         [Test]
-        public void Mystery_AtMostTwo_Repair_AtMostOneAndOnlyInLaterRows()
+        public void Mystery_AtMostThree_Repair_AtMostOneAndOnlyInLaterRows()
         {
             int mapsWithRepair = 0;
             foreach (var map in Maps())
             {
-                Assert.That(map.Nodes.Count(n => n.Type == MapNodeType.Mystery), Is.LessThanOrEqualTo(2));
+                Assert.That(map.Nodes.Count(n => n.Type == MapNodeType.Mystery), Is.LessThanOrEqualTo(3));
 
                 var repairs = map.Nodes.Where(n => n.Type == MapNodeType.Repair).ToList();
                 Assert.That(repairs.Count, Is.LessThanOrEqualTo(1));
-                Assert.That(repairs.All(n => n.Row >= 2 && n.Row <= 3), "Repair is never in the first two rows.");
+                Assert.That(repairs.All(n => n.Row >= 2 && n.Row <= 5), "Repair is never in the first two rows.");
                 if (repairs.Count > 0)
                     mapsWithRepair++;
             }

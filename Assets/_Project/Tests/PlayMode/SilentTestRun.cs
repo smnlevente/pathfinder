@@ -14,7 +14,7 @@ namespace Pathfinder.Tests.PlayMode
     public class SilentTestRun
     {
         float _volume = 1f, _timeScale = 1f;
-        bool _persist, _respondToFocus;
+        bool _persist, _respondToFocus, _bossIntro;
 
         /// <summary>
         /// How fast the game clock runs during the PlayMode tests: <c>PATHFINDER_TEST_SPEED</c>, 4 by default. The simulation
@@ -31,6 +31,9 @@ namespace Pathfinder.Tests.PlayMode
                 ? parsed : 4f;
             _timeScale = Time.timeScale;
             Time.timeScale = Speed;
+            // Bosses arrive without their entrance card, which holds the fight; one test checks the card itself.
+            _bossIntro = Pathfinder.Game.Presentation.BossIntro.Enabled;
+            Pathfinder.Game.Presentation.BossIntro.Enabled = false;
 
             _volume = AudioListener.volume;
             AudioListener.volume = 0f;
@@ -44,6 +47,7 @@ namespace Pathfinder.Tests.PlayMode
         public void Unmute()
         {
             Time.timeScale = _timeScale;
+            Pathfinder.Game.Presentation.BossIntro.Enabled = _bossIntro;
             AudioListener.volume = _volume;
             Pathfinder.Game.Settings.GameSettings.Persist = _persist;
             Pathfinder.Game.Settings.GameSettings.RespondToFocus = _respondToFocus;

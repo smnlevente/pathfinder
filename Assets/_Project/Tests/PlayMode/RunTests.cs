@@ -327,6 +327,7 @@ namespace Pathfinder.Tests.PlayMode
 
             _player.GodMode = true;
             Assert.AreEqual(1, Run.SingularityCores);
+            Assert.AreEqual(_player.Vitals.MaxHull, _player.Vitals.Hull, 0.01f, "A fallen boss repairs the hull fully (M7).");
             Assert.IsTrue(_level.ExitOpen);
 
             // The reward follows a moment later, once the death has played out.
@@ -346,6 +347,56 @@ namespace Pathfinder.Tests.PlayMode
             yield return WaitUntil(() => _director.State == RunDirector.Phase.Map, 5f);
             Assert.AreEqual(1, Run.GalaxyIndex);
             CollectionAssert.AreEqual(Run.Map.EntryNodes, Run.AvailableNodes);
+        }
+
+        /// <summary>M7: every level starts with the secondary weapon fully charged.</summary>
+        [UnityTest]
+        public IEnumerator NewLevel_RefillsTheSecondary()
+        {
+            yield return LoadRun(26);
+            var cooldown = _player.SecondaryCooldown;
+            Assert.IsTrue(cooldown.TryUse(), "The secondary fires.");
+            Assert.Less(cooldown.Charges, cooldown.MaxCharges);
+
+            _director.StartTestLevel(MapNodeType.Scraps);
+            yield return null;
+            Assert.AreEqual(cooldown.MaxCharges, _player.SecondaryCooldown.Charges, "A new level starts with it ready.");
+        }
+
+        /// <summary>M7: a boss makes an entrance. The fight holds while the camera turns to it and its card slides across.</summary>
+        [UnityTest]
+        public IEnumerator Boss_ArrivesWithItsIntroCard()
+        {
+            yield return LoadRun(25);
+            var hud = Object.FindAnyObjectByType<CombatHud>();
+            BossIntro.Enabled = true;
+            try
+            {
+                _director.StartTestLevel(MapNodeType.Boss);
+                yield return null;
+                Assert.IsTrue(hud.BossIntroPlaying, "The boss arrives with its card.");
+                Assert.IsTrue(GameClock.Paused, "The fight holds while it plays.");
+                Assert.IsTrue(CameraRig.Spotlight.HasValue, "The camera turns to the boss.");
+                int tick = _world.Tick;
+                yield return null;
+                Assert.AreEqual(tick, _world.Tick, "Nothing moves during the card.");
+
+                string directory = System.Environment.GetEnvironmentVariable("PATHFINDER_SCREENSHOT_DIR");
+                if (!string.IsNullOrEmpty(directory))
+                {
+                    yield return WaitUntil(() => false, 0.3f); // let it slide in and the camera arrive
+                    Screenshots.CaptureWithUi(System.IO.Path.Combine(Screenshots.Directory(), "boss_intro.png"));
+                }
+
+                yield return WaitUntil(() => !hud.BossIntroPlaying, 6f);
+                Assert.IsFalse(hud.BossIntroPlaying);
+                Assert.IsFalse(GameClock.Paused, "Then the fight begins.");
+                Assert.IsFalse(CameraRig.Spotlight.HasValue, "And the camera returns to the ship.");
+            }
+            finally
+            {
+                BossIntro.Enabled = false;
+            }
         }
 
         [UnityTest]

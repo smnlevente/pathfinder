@@ -74,7 +74,7 @@ namespace Pathfinder.Game.Run
         [field: SerializeField, Tooltip("Each galaxy's guardian: galaxy 1, 2, 3. An empty slot uses the Boss setup's enemy.")]
         public EnemyDefinition[] GalaxyBosses { get; private set; } = new EnemyDefinition[0];
         [field: SerializeField] public int[] SingularityCores { get; private set; } = { 1, 2, 3 };
-        [field: SerializeField, Range(0f, 1f)] public float BossHealFraction { get; private set; } = 0.3f;
+        [field: SerializeField, Range(0f, 1f), Tooltip("Hull restored when a boss falls (M7: all of it).")] public float BossHealFraction { get; private set; } = 1f;
 
         [field: Header("Objects")]
         [field: SerializeField] public GameObject ExitPrefab { get; private set; }

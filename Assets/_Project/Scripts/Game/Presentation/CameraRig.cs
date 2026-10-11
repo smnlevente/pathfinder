@@ -33,7 +33,7 @@ namespace Pathfinder.Game.Presentation
         static CameraRig s_active;
 
         Vector3 _focus;
-        bool _hasFocus;
+        bool _hasFocus, _returning;
         Vector3 _velocity;
         float _shake;
         PlayerShip _subscribed;
@@ -41,6 +41,12 @@ namespace Pathfinder.Game.Presentation
 
         /// <summary>The point the camera looks at, before shake. For tests.</summary>
         public Vector3 Focus => _focus;
+
+        /// <summary>
+        /// Somewhere the camera should look instead of at the pilots, e.g. a boss making its entrance (M7). Null to follow
+        /// the pilots again; the camera glides both ways.
+        /// </summary>
+        public static Vector3? Spotlight { get; set; }
 
         /// <summary>Kicks the camera, e.g. for an eruption. Kicks don't add up: the strongest wins. Safe without a rig.</summary>
         public static void Kick(float amount)
@@ -73,8 +79,13 @@ namespace Pathfinder.Game.Presentation
             if (!TryGetFocus(out var target))
                 return;
 
-            Vector3 desired = ClampToArena(target);
-            _focus = Vector3.SmoothDamp(_focus, desired, ref _velocity, smoothTime);
+            Vector3 desired = ClampToArena(Spotlight ?? target);
+            // Pan slowly to a spotlight and back again; otherwise follow the ship briskly.
+            if (Spotlight.HasValue)
+                _returning = true;
+            else if (_returning && (_focus - desired).sqrMagnitude < 1f)
+                _returning = false;
+            _focus = Vector3.SmoothDamp(_focus, desired, ref _velocity, _returning ? smoothTime * 3f : smoothTime);
 
             var rotation = Quaternion.Euler(pitch, 0f, 0f);
             transform.SetPositionAndRotation(_focus - rotation * Vector3.forward * distance + ShakeOffset(), rotation);

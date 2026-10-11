@@ -104,7 +104,7 @@ Later in production, each tier can draw from a **pool of themes** (for example, 
 - **Upgrades:** every **60 s** on the clock, a choice of 3 items (plus the ship's bonus choices) with the current tier's rarity odds. **Skipping repairs 20% of max hull**, since there's no Shop to spend Scraps in. **[tune]**
 - **Guardians:** at **5:00, 10:00 and 15:00**, the three galaxy bosses arrive in order (Quarry Maw, Binary Wardens, Hive Matriarch), each at its own galaxy's health, after a 3 s warning.
   - **The clock holds while a guardian is alive.** Waves drop to 35% budget, at most every 18 s.
-  - A fallen guardian pays its galaxy's Singularity Cores (1/2/3), heals 30%, re-arms once-per-level items (Last Stand), pulls in the Scraps, and offers a Rare-or-better item. That reward replaces the upgrade due the same minute.
+  - A fallen guardian pays its galaxy's Singularity Cores (1/2/3), restores the hull fully (M7; it was 30%), re-arms once-per-level items (Last Stand), pulls in the Scraps, and offers a Rare-or-better item. That reward replaces the upgrade due the same minute.
   - The waves then move on to the next galaxy's enemies, rarity odds and music.
 - **Pressure follows the clock, not the wave count:** **[tune]**
   - Each wave's budget is 6 × (1 + 0.35 per minute): about 16 at 5:00, 27 at 10:00, 38 at 15:00.
@@ -197,7 +197,7 @@ Primary weapons fire continuously while the trigger is held, have no cooldown, a
 | 5 | **Bot Dispatcher** | Launches homing mini-bots that steer toward the nearest enemy. | 10 | 5/s | 20 | 1.0 s | 250 DM |
 
 ### 6.2 Secondary weapons
-Secondary weapons are cooldown-based burst tools that deal much more damage than the primary or offer utility. **[tune]**
+Secondary weapons are cooldown-based burst tools that deal much more damage than the primary or offer utility. **Every level starts with the secondary fully charged** *(M7)*. **[tune]**
 
 | # | Weapon | Mechanics | Cooldown | Unlock |
 |---|---|---|---|---|
@@ -427,8 +427,8 @@ Each galaxy is a **reversed tree**: several entry nodes at the base converge upw
 `S` = Scraps · `E` = Equipment · `DM` = Dark Matter · `R` = Repair · `?` = Mystery
 
 ### 9.2 Generation rules
-- **Rows:** 4 playable rows, then the Shop (row 5), then the Boss (row 6). A path through one galaxy is therefore **4 levels + Shop + Boss**.
-- **Width:** 2–4 nodes per row.
+- **Rows:** 6 playable rows, then the Shop (row 7), then the Boss (row 8). A path through one galaxy is therefore **6 levels + Shop + Boss** *(M7: longer galaxies with more to choose from; it was 4 rows of 2–4)*.
+- **Width:** 3–4 nodes per row.
 - **Edges:** Each node connects to 1–2 nodes in the next row: its "lane" neighbours. Edges never cross.
 - **Bridges:** About 15% of nodes get an extra diagonal edge to a neighbouring lane. These are the "side branches" from the source doc that let the player switch paths mid-galaxy.
 - **Reachability:** Every node can be reached from at least one entry node, and every node leads to the Shop.
@@ -440,10 +440,10 @@ Each galaxy is a **reversed tree**: several entry nodes at the base converge upw
 | **Equipment** | At least one in row 1. Weighted 35%. |
 | **Scraps** | Weighted 30%. |
 | **Dark Matter** | Weighted 20%. Never in row 1. |
-| **Mystery** | Weighted 15%, max 2 per galaxy, never in row 1. |
-| **Repair** | **Max 1 per galaxy, 60% chance to exist at all.** Only in rows 3–4 (never in the first two rows). |
-| **Shop** | Always the single node in row 5. |
-| **Boss** | Always the single node in row 6. |
+| **Mystery** | Weighted 15%, max 3 per galaxy, never in row 1. |
+| **Repair** | **Max 1 per galaxy, 60% chance to exist at all.** Only in rows 3–6 (never in the first two rows). |
+| **Shop** | Always the single node in row 7. |
+| **Boss** | Always the single node in row 8. |
 
 - No path may contain three consecutive nodes of the same type.
 - Node types are **visible on the map** (except for Mystery), so route planning is informed.
@@ -451,7 +451,7 @@ Each galaxy is a **reversed tree**: several entry nodes at the base converge upw
 **Implemented in M3:**
 - **Edges** are built row by row with a left-to-right "staircase" sweep. Both lane indices only ever increase, so edges never cross, and every node gets at least one edge in each direction. That guarantees reachability and that every path reaches the Shop. A node can have up to 3 outgoing edges when a narrow row feeds a wide one.
 - **Bridges** add an extra diagonal edge to the next lane over, but only when it crosses nothing.
-- **Types** are assigned row by row from the weights. A type is excluded for a node if a parent and grandparent on some path already share it. If row 1 rolls no Equipment, one of its nodes is converted. The single Repair node (60% chance) then replaces a random node in rows 3–4.
+- **Types** are assigned row by row from the weights. A type is excluded for a node if a parent and grandparent on some path already share it. If row 1 rolls no Equipment, one of its nodes is converted. The single Repair node (60% chance) then replaces a random node in rows 3–6.
 - **Seeds:** galaxy *n*'s map comes from `seed → "map" → n`. Level content comes from `seed → "level" → galaxy → node`, so a node plays the same whatever route led to it. Mystery outcomes are seeded per node too.
 - 500-seed EditMode tests check every rule above.
 
@@ -509,7 +509,8 @@ Every level ends by flying into the **exit wormhole**, which opens once the leve
 
 ### 10.7 Boss Level ☠
 - The final node of each galaxy. See [§7.5](#75-bosses) for the bosses.
-- **On victory:** Singularity Cores, a 30% hull repair and an equipment choice, then a **wormhole jump to the next galaxy** in the same run. The player starts at the base of a new galaxy map.
+- **On victory:** Singularity Cores, a **full hull repair** and an equipment choice, then a **wormhole jump to the next galaxy** in the same run. The player starts at the base of a new galaxy map, at full hull *(M7: it was a 30% repair)*.
+- **Entrance** *(M7)*: as a boss arrives the fight holds for about two seconds while the camera turns to it and a card slides across with its name, its title (e.g. "Guardian of the Shattered Expanse") and how to hurt it. Confirm or back skips it. Survival's guardians arrive the same way.
 - **Defeating the Galaxy 3 boss** wins the run: New Home is reached, the ending plays (the first time; it is shorter on later wins), and the player returns to the Hub.
 
 ### 10.8 Implementation notes (M3)
@@ -521,7 +522,7 @@ Every level ends by flying into the **exit wormhole**, which opens once the leve
 - **Repair level:** a green station at the arena centre. Press Interact for the choice; it can be used once. The exit is open from the start.
 - **Shop level:** a gold terminal with a **4-item catalog** (Common 40, Rare 75, Epic 120). It sells upgrades for equipped items (35 for I→II, 60 for II→III), hull repairs (1 Scrap per hull), and rerolls (15, then +10 each). Buying into a full category opens the swap screen, and the pilot pays only if the swap is confirmed.
 - **Mystery:** the HUD announces the revealed type, and rewards are ×1.5. An ambush has a ×1.5 budget and ×2 rewards. An event is a choice dialog in the empty arena; an event ambush is 3 waves at the ambush budget, and beating it pays the Scraps completion bonus at ×2.
-- **Boss level:** **the Quarry Maw** ([§7.5](#75-bosses)) with no escorts. In M3–M4 it was a placeholder elite Carrier. It pays Singularity Cores, a 30% heal and a **Rare-or-better equipment choice**. Galaxy 2 is guarded by **the Binary Wardens** and galaxy 3 by **the Hive Matriarch**. Each galaxy's boss is listed in the run config.
+- **Boss level:** **the Quarry Maw** ([§7.5](#75-bosses)) with no escorts. In M3–M4 it was a placeholder elite Carrier. It pays Singularity Cores, a full heal and a **Rare-or-better equipment choice**. Galaxy 2 is guarded by **the Binary Wardens** and galaxy 3 by **the Hive Matriarch**. Each galaxy's boss is listed in the run config.
 - **Galaxy scaling:** enemy health ×1.0 / ×1.6 / ×2.4 per galaxy, on top of the director's galaxy budget multiplier. All three galaxies use the Shattered Expanse arena and enemy pool until their themes arrive; from galaxy 2 the pool adds the Scorcher, Arc Drone and Crusher.
 
 ---

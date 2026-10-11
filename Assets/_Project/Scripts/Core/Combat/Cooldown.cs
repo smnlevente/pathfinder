@@ -36,6 +36,13 @@ namespace Pathfinder.Core.Combat
             RechargeTime = rechargeTime;
         }
 
+        /// <summary>Restores every charge at once, e.g. at the start of a level.</summary>
+        public void Refill()
+        {
+            Charges = MaxCharges;
+            _recharge = 0f;
+        }
+
         public bool TryUse()
         {
             if (Charges == 0)

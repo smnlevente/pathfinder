@@ -56,6 +56,7 @@ namespace Pathfinder.Game.Presentation
         GameObject _runCurrencies, _scrapsRoot;
         ShipSlotsView _slots;
         GameObject _slotsPanel;
+        BossIntroCard _bossIntro;
         Text _overlayTitle, _overlayHint;
         GameObject _playerPanel, _bossPanel, _overlay;
         Image _vignette;
@@ -69,7 +70,16 @@ namespace Pathfinder.Game.Presentation
         PlayerShip _subscribed;
         readonly StringBuilder _builder = new StringBuilder();
 
-        void Awake() => Build();
+        void Awake()
+        {
+            Build();
+            BossIntro.Requested += OnBossIntro;
+        }
+
+        void OnBossIntro(Enemy boss) => _bossIntro.Play(boss);
+
+        /// <summary>Whether a boss's intro card is showing. For tests.</summary>
+        public bool BossIntroPlaying => _bossIntro.IsPlaying;
 
         void Update()
         {
@@ -87,6 +97,7 @@ namespace Pathfinder.Game.Presentation
 
             RefreshStatus(player);
             RefreshOverlay();
+            _bossIntro.Update();
             RefreshReticle(player);
             RefreshShipReadout(player);
 
@@ -423,6 +434,8 @@ namespace Pathfinder.Game.Presentation
 
         void OnDestroy()
         {
+            BossIntro.Requested -= OnBossIntro;
+            _bossIntro?.Stop();
             Subscribe(null);
             Cursor.visible = true;
         }
@@ -499,6 +512,8 @@ namespace Pathfinder.Game.Presentation
             UiKit.Place(slotsRoot, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(36f, 46f), new Vector2(420f, 340f));
             _slotsPanel = slotsRoot.gameObject;
             _slots = new ShipSlotsView(slotsRoot);
+
+            _bossIntro = new BossIntroCard(transform, icons != null ? icons.Boss : null);
 
             // Top right: currencies and the seed.
             _seed = Corner(_safeArea, "Seed", -18f, 16, UiKit.TextDim);

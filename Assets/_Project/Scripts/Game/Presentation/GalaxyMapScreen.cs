@@ -15,7 +15,7 @@ namespace Pathfinder.Game.Presentation
     /// </summary>
     public sealed class GalaxyMapScreen : MonoBehaviour
     {
-        static readonly Vector2 AreaSize = new Vector2(860f, 780f);
+        static readonly Vector2 AreaSize = new Vector2(860f, 790f);
 
         [SerializeField] RunDirector director;
         [SerializeField, Tooltip("Optional: pictures on the nodes instead of symbols (playtest 7).")] Content.GameIcons icons;
@@ -107,7 +107,7 @@ namespace Pathfinder.Game.Presentation
             UiKit.Place(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -84f), new Vector2(1600f, 30f));
 
             _area = UiKit.Node("Map", root);
-            UiKit.Place(_area, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), AreaSize);
+            UiKit.Place(_area, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -48f), AreaSize); // clear of the title and hint
             _edges = UiKit.Stretch(UiKit.Node("Lanes", _area));
             _nodes = UiKit.Stretch(UiKit.Node("Nodes", _area));
 

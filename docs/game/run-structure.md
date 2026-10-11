@@ -20,9 +20,9 @@ look for now; their own themes and hazards are planned.
 
 ![A generated galaxy map: entry nodes at the bottom converge on the Shop and the Boss](../images/m3-map-graph.png)
 
-- **Four playable rows**, then the **Shop** (row 5), then the **Boss** (row 6). A path through a galaxy is 4 levels,
+- **Six playable rows**, then the **Shop** (row 7), then the **Boss** (row 8). A path through a galaxy is 6 levels,
   the Shop and the Boss.
-- **2 to 4 nodes per row.** Each node links to 1 or 2 nodes in the next row, and lanes never cross. Some nodes get a
+- **3 or 4 nodes per row.** Each node links to 1 or 2 nodes in the next row, and lanes never cross. Some nodes get a
   diagonal bridge to a neighbouring lane, so you can switch paths.
 - **Every node is reachable**, and every path reaches the Shop.
 - **Types are visible**, except Mystery. No path has three of the same type in a row.
@@ -33,15 +33,15 @@ look for now; their own themes and hazards are planned.
 | Equipment ⬢ | 35% | At least one in row 1 |
 | Scraps ⚙ | 30% | |
 | Dark Matter ◆ | 20% | Never in row 1 |
-| Mystery ? | 15% | At most 2 per galaxy, never in row 1 |
-| Repair ✚ | | At most 1 per galaxy, 60% chance to exist, rows 3–4 only |
-| Shop $ | | Always the single node in row 5 |
-| Boss ☠ | | Always the single node in row 6 |
+| Mystery ? | 15% | At most 3 per galaxy, never in row 1 |
+| Repair ✚ | | At most 1 per galaxy, 60% chance to exist, rows 3–6 only |
+| Shop $ | | Always the single node in row 7 |
+| Boss ☠ | | Always the single node in row 8 |
 
 ## Level types
 
 Every level ends by flying into the **exit wormhole**, which opens once the objective is done. Hull damage carries over
-between levels; the shield refills.
+between levels; the shield refills, and your secondary weapon starts every level fully charged.
 
 | Level | Objective | Reward |
 |---|---|---|
@@ -51,7 +51,7 @@ between levels; the shield refills.
 | **Repair** ✚ | No enemies. Use the station once | Restore 40% hull, or +15 max hull for the run |
 | **Mystery** ? | Usually an event (below); otherwise a level with ×1.5 rewards, sometimes an ambush | Varies |
 | **Shop** $ | No enemies. Spend Scraps at the terminal | See [Economy](economy.md#the-shop) |
-| **Boss** ☠ | Defeat the galaxy's guardian | Singularity Cores, a 30% repair, a Rare-or-better item; then the wormhole pulls you onward |
+| **Boss** ☠ | Defeat the galaxy's guardian | Singularity Cores, a full repair, a Rare-or-better item; then the wormhole pulls you onward |
 
 ## Mystery events
 

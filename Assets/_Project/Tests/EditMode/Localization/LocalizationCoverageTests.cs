@@ -115,11 +115,14 @@ namespace Pathfinder.Tests.EditMode.Localization
                     }
                 }
             }
-            // Every galaxy's boss has a hint on how to hurt it.
+            // Every galaxy's boss has a hint on how to hurt it, and a title for its entrance card.
             var run = AssetDatabase.LoadAssetAtPath<Pathfinder.Game.Run.RunConfig>("Assets/_Project/Data/Run/RunConfig.asset");
             Assert.IsNotNull(run);
             for (int galaxy = 0; galaxy < RunState.GalaxyCount; galaxy++)
+            {
                 keys.Add($"{run.BossFor(galaxy).Id}.hint");
+                keys.Add($"{run.BossFor(galaxy).Id}.title"); // the boss's entrance card (M7)
+            }
 
             Assert.Greater(keys.Count, 60);
             AssertKeys(keys, "Content text");

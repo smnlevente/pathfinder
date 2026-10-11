@@ -146,6 +146,12 @@ namespace Pathfinder.Game.Run
                     return;
                 }
 
+                // Every galaxy starts at full hull (M7).
+                foreach (var player in CombatRegistry.Players)
+                {
+                    if (player.IsAlive)
+                        player.Heal(player.Vitals.MaxHull);
+                }
                 _phaseTimer = GalaxyClearedDelay;
                 SetPhase(Phase.GalaxyCleared);
                 return;

@@ -7,8 +7,9 @@ namespace Pathfinder.Core.Run
     /// <summary>Tunable generation rules (GDD §9.2). Row indices are 0-based.</summary>
     public sealed class MapRules
     {
-        public int PlayableRows = 4;
-        public int MinWidth = 2;
+        // M7: longer galaxies with more to choose from (six rows of three or four, up from four rows of two to four).
+        public int PlayableRows = 6;
+        public int MinWidth = 3;
         public int MaxWidth = 4;
 
         /// <summary>Chance per node of an extra diagonal edge to a neighbouring lane, which lets the player switch paths.</summary>
@@ -18,7 +19,7 @@ namespace Pathfinder.Core.Run
         public float ScrapsWeight = 30f;
         public float DarkMatterWeight = 20f;
         public float MysteryWeight = 15f;
-        public int MaxMystery = 2;
+        public int MaxMystery = 3;
 
         public float RepairChance = 0.6f;
 
@@ -31,11 +32,11 @@ namespace Pathfinder.Core.Run
     /// <summary>
     /// Builds a galaxy map that satisfies the GDD §9.2 rules:
     /// <list type="bullet">
-    /// <item>2–4 nodes per playable row, then a single Shop and a single Boss.</item>
+    /// <item>3–4 nodes in each of six playable rows, then a single Shop and a single Boss.</item>
     /// <item>Edges link lane neighbours and never cross. Occasional bridges let the player switch paths.</item>
     /// <item>Every node is reachable from an entry node, and every node leads to the Shop.</item>
     /// <item>Row 1 has at least one Equipment node and never Dark Matter or Mystery.</item>
-    /// <item>At most 2 Mystery nodes and at most 1 Repair node (60% chance), with Repair only in rows 3–4.</item>
+    /// <item>At most 3 Mystery nodes and at most 1 Repair node (60% chance), with Repair only from row 3 on.</item>
     /// <item>No path contains three consecutive nodes of the same type.</item>
     /// </list>
     /// </summary>
