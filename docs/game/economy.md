@@ -27,6 +27,8 @@ flowchart LR
 
 ## The Shop
 
+![The Shop: each item with its icon in its rarity colour, prices as the Scraps cog and a number](../images/ui-shop.png)
+
 Always the node right before the boss. No enemies.
 
 | Service | Price |

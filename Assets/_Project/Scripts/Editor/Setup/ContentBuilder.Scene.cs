@@ -62,7 +62,7 @@ namespace Pathfinder.Editor.Setup
         }
 
         static void PopulateScenes(Art art, Actors actors, Data data, RunArt runArt, RunConfig runConfig, SurvivalConfig survivalConfig, EquipmentContent equipment,
-            SoundLibrary audio)
+            SoundLibrary audio, GameIcons icons)
         {
             // Opening a scene can unload assets that nothing references yet, which invalidates the in-memory
             // handles from the build steps above. Capture paths first and reload afterwards.
@@ -70,7 +70,7 @@ namespace Pathfinder.Editor.Setup
             {
                 Player = AssetPathOf(actors.Player), Telegraph = AssetPathOf(art.SpawnTelegraph), Scrap = AssetPathOf(art.ScrapVisual), Deflect = AssetPathOf(art.Deflect),
                 Floor = AssetPathOf(art.Floor), Wall = AssetPathOf(art.Wall), Ship = AssetPathOf(data.Ship), Waves = AssetPathOf(data.Waves),
-                RunConfig = AssetPathOf(runConfig), SurvivalConfig = AssetPathOf(survivalConfig), Database = AssetPathOf(equipment.Database), Audio = AssetPathOf(audio),
+                RunConfig = AssetPathOf(runConfig), SurvivalConfig = AssetPathOf(survivalConfig), Database = AssetPathOf(equipment.Database), Audio = AssetPathOf(audio), Icons = AssetPathOf(icons),
                 Primaries = Array.ConvertAll(data.Primaries, p => AssetPathOf(p)),
                 Secondaries = Array.ConvertAll(data.Secondaries, s => AssetPathOf(s)),
             };
@@ -86,7 +86,7 @@ namespace Pathfinder.Editor.Setup
 
         sealed class ScenePaths
         {
-            public string Player, Telegraph, Scrap, Deflect, Floor, Wall, Ship, Waves, RunConfig, SurvivalConfig, Database, Audio;
+            public string Player, Telegraph, Scrap, Deflect, Floor, Wall, Ship, Waves, RunConfig, SurvivalConfig, Database, Audio, Icons;
             public string[] Primaries, Secondaries;
         }
 
@@ -143,7 +143,7 @@ namespace Pathfinder.Editor.Setup
                 SetFields(level, ("world", world), ("director", director), ("config", Load<RunConfig>(assets.RunConfig)), ("dialog", dialog),
                     ("equipmentChoice", equipmentChoice), ("content", database));
                 SetFields(runDirector, ("world", world), ("level", level));
-                SetFields(mapScreen, ("director", runDirector));
+                SetFields(mapScreen, ("director", runDirector), ("icons", Load<GameIcons>(assets.Icons)));
                 foreach (var component in new Component[] { runDirector, level, mapScreen })
                     RequireReferences(component);
             }
@@ -160,7 +160,7 @@ namespace Pathfinder.Editor.Setup
             SetFields(flow, ("world", world), ("runDirector", (Object)runDirector), ("survival", (Object)survival));
             SetFields(pause, ("runFlow", flow), ("runDirector", (Object)runDirector), ("survival", (Object)survival));
             SetFields(hud, ("world", world), ("runFlow", flow), ("waveDirector", director), ("debugHotkeys", debug), ("runDirector", (Object)runDirector),
-                ("survival", (Object)survival));
+                ("survival", (Object)survival), ("icons", Load<GameIcons>(assets.Icons)));
             SetFields(debug, ("waveDirector", director), ("primaryWeapons", primaries), ("secondaryWeapons", secondaries), ("level", (Object)level),
                 ("survival", (Object)survival), ("content", database), ("equipmentChoice", equipmentChoice), ("dialog", (Object)dialog));
 

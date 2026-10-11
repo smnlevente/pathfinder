@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: equipment.twin-charge
   displayName: Twin Charge
+  icon: {fileID: 21300000, guid: a97d8ba7f58fb60488875b69e6ca159b, type: 3}
   <Category>k__BackingField: 2
   <Rarity>k__BackingField: 2
   <Weight>k__BackingField: 1

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18791821d6e7f874185a9347a720bda0, type: 3}
+  m_Name: GameIcons
+  m_EditorClassIdentifier: 
+  <Scraps>k__BackingField: {fileID: 21300000, guid: 3cb0335b2f8b9514b80bde9ef475bbe3, type: 3}
+  <DarkMatter>k__BackingField: {fileID: 21300000, guid: 3fa26643c358769469bda0a829ae1440, type: 3}
+  <Cores>k__BackingField: {fileID: 21300000, guid: 7664dfcdc96cfae459ee6738084b827e, type: 3}
+  <Equipment>k__BackingField: {fileID: 21300000, guid: 7fa61a69e9f23114897268bfa20ecad3, type: 3}
+  <Mystery>k__BackingField: {fileID: 21300000, guid: 6de866a8b66d6bf4abd021e43fc39e55, type: 3}
+  <Repair>k__BackingField: {fileID: 21300000, guid: f7664e7ae68dd3b439bcb63679546391, type: 3}
+  <Shop>k__BackingField: {fileID: 21300000, guid: a633da5b08ec91d4ea74653874cb454f, type: 3}
+  <Boss>k__BackingField: {fileID: 21300000, guid: d0a723df6e529b644b4631d58c0445bc, type: 3}
+  <Reinforce>k__BackingField: {fileID: 21300000, guid: 2dbdeba115329a943869ea71849cae6e, type: 3}

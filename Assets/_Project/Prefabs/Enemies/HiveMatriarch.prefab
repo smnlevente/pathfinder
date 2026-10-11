@@ -1119,7 +1119,7 @@ MonoBehaviour:
   spiralInterval: 0.13
   spiralSpeed: 6
   bulletDamage: 10
-  bulletPrefab: {fileID: 7868472397677828734, guid: 4bbdaba0bed532745a92174b94a0dcf1, type: 3}
+  bulletPrefab: {fileID: 583223027079875011, guid: 3bcbca494775b1d4d82243600c8c5267, type: 3}
   bulletImpactPrefab: {fileID: 2969885834400490193, guid: 4ba244fb3f7f22c479935cf8add5bd1a, type: 3}
   roarTime: 1.5
 --- !u!114 &5620833163739340048

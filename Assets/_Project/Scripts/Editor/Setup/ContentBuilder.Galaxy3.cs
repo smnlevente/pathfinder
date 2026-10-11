@@ -224,7 +224,7 @@ namespace Pathfinder.Editor.Setup
 
             var brain = root.AddComponent<MatriarchBrain>();
             SetFields(brain, ("heartMarker", heart), ("broodling", broodling), ("sporeMarkPrefab", markPrefab), ("sporeCloudPrefab", cloudPrefab), ("sporeBurstPrefab", burstPrefab),
-                ("pulsePrefab", pulsePrefab), ("bulletPrefab", art.EnemyBulletVisual), ("bulletImpactPrefab", art.BulletImpact));
+                ("pulsePrefab", pulsePrefab), ("bulletPrefab", art.MatriarchShot), ("bulletImpactPrefab", art.BulletImpact));
             var lane = ChargeLane("ChargeLane", art, root.transform, size: 2f, spacing: 2.1f);
             SetFields(root.AddComponent<TelegraphLine>(), ("source", brain), ("lane", lane.GetComponent<ChevronLane>()));
             return FinishEnemyWithExclusions(root, definition, radius, art, new[] { halo, lane.GetComponentInChildren<Renderer>(true) }, glow.ToArray());

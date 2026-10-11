@@ -7,6 +7,8 @@ you lose it when the run ends. ([GDD §8](../GDD.md#8-equipment-in-run-build-sys
 
 ## How it works
 
+![An equipment choice: each card leads with the item's icon in its rarity colour](../images/ui-choice.png)
+
 | Category | Slots | Affects |
 |---|---|---|
 | **Dash module** | 1 | How the dash behaves |

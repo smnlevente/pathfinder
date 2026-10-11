@@ -18,6 +18,7 @@ namespace Pathfinder.Game.Presentation
     public sealed class EquipmentChoiceScreen : MonoBehaviour
     {
         const float CardWidth = 390f;
+        const float IconSize = 120f;
 
         enum Step { Pick, Swap }
 
@@ -288,6 +289,17 @@ namespace Pathfinder.Game.Presentation
                 : outcome == EquipOutcome.NeedsSwap ? Loc.T("choice.slots_full", ("category", CategoryName(item.Category).ToUpperInvariant()))
                 : Loc.T("choice.new");
 
+            // A big picture first (playtest 7: fewer words, more pictures), on a soft badge in the item's rarity colour.
+            if (item.Icon != null)
+            {
+                var badgeHolder = UiKit.Node("Badge", background.transform);
+                UiKit.Layout(badgeHolder, preferredHeight: IconSize + 8f);
+                var badge = UiKit.Image(badgeHolder, "Circle", WithAlpha(RarityColor(item.Rarity), 0.22f), UiKit.Circle);
+                Centre(badge.rectTransform, IconSize + 8f);
+                var icon = UiKit.Image(badge.transform, "Icon", Color.Lerp(RarityColor(item.Rarity), Color.white, 0.35f), item.Icon);
+                icon.preserveAspect = true;
+                Centre(icon.rectTransform, IconSize * 0.72f);
+            }
             UiKit.Text(background.transform, "Name", item.DisplayName, 30, UiKit.TextBright, TextAnchor.UpperLeft, FontStyle.Bold);
             UiKit.Text(background.transform, "Kind", Loc.T("choice.kind", ("rarity", RarityName(item.Rarity).ToUpperInvariant()), ("category", CategoryName(item.Category).ToUpperInvariant())),
                 18, RarityColor(item.Rarity), TextAnchor.UpperLeft, FontStyle.Bold);
@@ -304,6 +316,15 @@ namespace Pathfinder.Game.Presentation
             pointer.Entered += () => _selected = index;
             pointer.Clicked += () => Choose(index);
             return new Card { Background = background, Frame = frame, Take = take };
+        }
+
+        static Color WithAlpha(Color color, float alpha) => new Color(color.r, color.g, color.b, alpha);
+
+        static void Centre(RectTransform rect, float size)
+        {
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(size, size);
+            rect.anchoredPosition = Vector2.zero;
         }
 
         void EnterSwap(EquipmentDefinition item)
@@ -330,6 +351,8 @@ namespace Pathfinder.Game.Presentation
                     ? new UiRow(_swapList, Loc.T(_allowSkip ? "common.back" : "common.cancel"))
                     : new UiRow(_swapList, $"{equipped[i].Item.DisplayName} {Roman(equipped[i].Level)}", null,
                         equipped[i].Item.Describe(equipped[i].Level), RarityColor(equipped[i].Item.Rarity));
+                if (!back)
+                    row.SetIcon(equipped[i].Item.Icon, RarityColor(equipped[i].Item.Rarity));
                 int index = i;
                 row.Pointer.Entered += () => _selected = index;
                 row.Pointer.Clicked += () =>

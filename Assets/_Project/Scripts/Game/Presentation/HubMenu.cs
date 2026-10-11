@@ -32,7 +32,10 @@ namespace Pathfinder.Game.Presentation
         int _ship, _primary, _secondary;
         bool _survival; // the loadout page launches Survival rather than a run
 
-        Text _title, _subtitle, _meta, _pageTitle, _hint;
+        Text _title, _subtitle, _meta, _pageTitle, _hint, _credits;
+
+        static readonly Color WeaponColor = new Color(0.55f, 0.85f, 1f);
+        static readonly Color DarkMatterColor = new Color(0.65f, 0.55f, 1f);
         RectTransform _list, _panel;
         UiScrollList _scroll;
 
@@ -224,6 +227,9 @@ namespace Pathfinder.Game.Presentation
             UiKit.Place(subtitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -186f), new Vector2(1600f, 44f));
             _meta = UiKit.Text(root, "Profile", string.Empty, 20, UiKit.TextBody, TextAnchor.MiddleCenter);
             UiKit.Place(_meta.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -242f), new Vector2(1600f, 30f));
+            // The icons' licence (CC BY 3.0) asks for credit where they're used.
+            _credits = UiKit.Text(root, "Credits", string.Empty, 14, UiKit.TextDim, TextAnchor.MiddleCenter);
+            UiKit.Place(_credits.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(1600f, 20f));
 
             var panel = UiKit.Image(root, "Panel", UiKit.Panel);
             UiKit.Place(panel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -300f), new Vector2(900f, 0f));
@@ -251,6 +257,7 @@ namespace Pathfinder.Game.Presentation
             _enabled.Clear();
             _title.text = Loc.T("hub.title");
             _subtitle.text = Loc.T("hub.subtitle");
+            _credits.text = Loc.T("hub.credits");
 
             switch (page)
             {
@@ -269,8 +276,9 @@ namespace Pathfinder.Game.Presentation
                     var secondary = content.SecondaryWeapons[_secondary];
                     AddRow(Loc.T("hub.loadout.ship", ("name", ship.DisplayName)), null, Loc.T("hub.loadout.ship.detail",
                         ("hull", ship.MaxHull), ("shield", ship.MaxShield), ("speed", ship.MoveSpeed), ("trait", ship.TraitTitle), ("description", ship.TraitText)));
-                    AddRow(Loc.T("hub.loadout.primary", ("name", primary.DisplayName)), null, PrimarySummary(primary));
-                    AddRow(Loc.T("hub.loadout.secondary", ("name", secondary.DisplayName)), null, Loc.T("hub.loadout.secondary.detail", ("seconds", secondary.Cooldown)));
+                    AddRow(Loc.T("hub.loadout.primary", ("name", primary.DisplayName)), null, PrimarySummary(primary)).SetIcon(primary.Icon, WeaponColor, 56f);
+                    AddRow(Loc.T("hub.loadout.secondary", ("name", secondary.DisplayName)), null, Loc.T("hub.loadout.secondary.detail", ("seconds", secondary.Cooldown)))
+                        .SetIcon(secondary.Icon, WeaponColor, 56f);
                     AddRow(Loc.T(_survival ? "hub.loadout.launch_survival" : "hub.loadout.launch"), null, null, UiKit.Accent);
                     _hint.text = Loc.T("hub.loadout.hint");
                     break;
@@ -299,11 +307,17 @@ namespace Pathfinder.Game.Presentation
                         int tier = upgrade.Effect == MetaUpgradeDefinition.EffectKind.Unlock ? (meta.IsUnlocked(upgrade.Id) ? 1 : 0) : meta.Tier(upgrade.Id);
                         bool maxed = tier >= upgrade.MaxTiers;
                         int cost = upgrade.CostOfTier(tier);
-                        string costKey = upgrade.Currency == Core.Meta.MetaCurrency.DarkMatter ? "hub.lab.cost.darkmatter" : "hub.lab.cost.cores";
+                        bool darkMatter = upgrade.Currency == Core.Meta.MetaCurrency.DarkMatter;
+                        string costKey = darkMatter ? "hub.lab.cost.darkmatter" : "hub.lab.cost.cores";
                         string level = upgrade.MaxTiers > 1 ? Loc.T("hub.lab.tier", ("tier", tier), ("max", upgrade.MaxTiers)) : string.Empty;
-                        AddRow(upgrade.DisplayName + level, maxed ? Loc.T("hub.lab.owned") : Loc.T(costKey, ("cost", cost)), upgrade.Describe(),
-                            enabled: !maxed && meta.Balance(upgrade.Currency) >= cost,
-                            noteColor: upgrade.Currency == Core.Meta.MetaCurrency.DarkMatter ? new Color(0.65f, 0.55f, 1f) : UiKit.Gold);
+                        var currencyIcon = content.Icons != null ? (darkMatter ? content.Icons.DarkMatter : content.Icons.Cores) : null;
+                        var color = darkMatter ? DarkMatterColor : UiKit.Gold;
+                        // A cost reads as a picture of the currency and a number (playtest 7: fewer words).
+                        string note = maxed ? Loc.T("hub.lab.owned") : currencyIcon != null ? cost.ToString() : Loc.T(costKey, ("cost", cost));
+                        var row = AddRow(upgrade.DisplayName + level, note, upgrade.Describe(), enabled: !maxed && meta.Balance(upgrade.Currency) >= cost, noteColor: color);
+                        row.SetIcon(upgrade.Icon, color, 56f);
+                        if (!maxed)
+                            row.SetNoteIcon(currencyIcon, color);
                     }
                     AddRow(Loc.T("common.back"));
                     _hint.text = Loc.T("hub.lab.hint");
@@ -318,8 +332,12 @@ namespace Pathfinder.Game.Presentation
                 _scroll.ScrollTo(_rows[_selected].Rect);
         }
 
-        void AddRow(string label, string note = null, string detail = null, Color? accent = null, bool enabled = true, Color? noteColor = null) =>
-            Register(new UiRow(_list, label, note, detail, accent, noteColor), enabled);
+        UiRow AddRow(string label, string note = null, string detail = null, Color? accent = null, bool enabled = true, Color? noteColor = null)
+        {
+            var row = new UiRow(_list, label, note, detail, accent, noteColor);
+            Register(row, enabled);
+            return row;
+        }
 
         void Register(UiRow row, bool enabled)
         {

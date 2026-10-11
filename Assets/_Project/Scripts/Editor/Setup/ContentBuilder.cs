@@ -87,7 +87,8 @@ namespace Pathfinder.Editor.Setup
             var audio = BuildAudio();
 
             TunePostProcessing();
-            PopulateScenes(art, actors, data, runArt, runConfig, BuildSurvivalConfig(), equipment, audio);
+            var icons = BuildIcons(equipment.Database);
+            PopulateScenes(art, actors, data, runArt, runConfig, BuildSurvivalConfig(), equipment, audio, icons);
             AssetDatabase.SaveAssets();
             Debug.Log("[ContentBuilder] Combat sandbox built.");
         }

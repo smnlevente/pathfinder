@@ -615,7 +615,7 @@ MonoBehaviour:
   bulletSpeed: 11
   bulletRadius: 0.25
   bulletRange: 24
-  bulletPrefab: {fileID: 7868472397677828734, guid: 4bbdaba0bed532745a92174b94a0dcf1, type: 3}
+  bulletPrefab: {fileID: 69224130546606210, guid: 0dbbcda04327e3d4f84ad1b2e1a0445c, type: 3}
   bulletImpactPrefab: {fileID: 2969885834400490193, guid: 4ba244fb3f7f22c479935cf8add5bd1a, type: 3}
   muzzleDistance: 0.8
 --- !u!114 &6446785221668379828

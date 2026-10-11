@@ -34,6 +34,15 @@ namespace Pathfinder.Game.Presentation
             public Color? Accent;
 
             public Color? NoteColor;
+
+            /// <summary>Optional picture before the label, tinted by <see cref="IconTint"/> (white if unset).</summary>
+            public Sprite Icon;
+            public Color? IconTint;
+
+            /// <summary>Optional small picture before the note, e.g. the Scraps cog beside a price.</summary>
+            public Sprite NoteIcon;
+            public Color? NoteIconTint;
+
             public bool Enabled = true;
 
             /// <summary>Runs on selection. Return true to keep the dialog open and refresh it, e.g. after a purchase.</summary>
@@ -210,6 +219,8 @@ namespace Pathfinder.Game.Presentation
                 }
 
                 var row = new UiRow(_content, option.Label, option.Note, option.Detail, option.Accent, option.NoteColor);
+                row.SetIcon(option.Icon, option.IconTint ?? Color.white);
+                row.SetNoteIcon(option.NoteIcon, option.NoteIconTint ?? Color.white);
                 int index = i;
                 row.Pointer.Entered += () => _selected = index;
                 row.Pointer.Clicked += () => Choose(index);

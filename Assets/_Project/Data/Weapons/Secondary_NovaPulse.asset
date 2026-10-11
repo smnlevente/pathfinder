@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: secondary.nova-pulse
   displayName: Nova Pulse
+  icon: {fileID: 21300000, guid: fcb5927c7da5aec4e8e383bad5310f05, type: 3}
   <Cooldown>k__BackingField: 12
   <Charges>k__BackingField: 1
   <ActivationEffect>k__BackingField: {fileID: 8433437193507909146, guid: 62c122fe82f7ece43a1da9a74d4df7ef, type: 3}

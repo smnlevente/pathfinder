@@ -1216,7 +1216,7 @@ MonoBehaviour:
   spiralBulletSpeed: 6
   bulletDamage: 10
   bulletSpeed: 9
-  bulletPrefab: {fileID: 7868472397677828734, guid: 4bbdaba0bed532745a92174b94a0dcf1, type: 3}
+  bulletPrefab: {fileID: 1723375342954329030, guid: 7d9f543b74b3cbc40a0ef997064069c5, type: 3}
   bulletImpactPrefab: {fileID: 2969885834400490193, guid: 4ba244fb3f7f22c479935cf8add5bd1a, type: 3}
   roarTime: 1.5
 --- !u!114 &8875248636756087143

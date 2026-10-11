@@ -69,7 +69,7 @@ flowchart LR
 
 | You see | It means |
 |---|---|
-| Round magenta orbs | Enemy bullets. Dodge or dash through. |
+| Magenta shots with a dark outline | Enemy bullets: darts, spinning stars, glowing rocks, crystal shards or green-glowing seeds, depending on who fired. Dodge or dash through. |
 | An enemy's accent lights flaring white-orange | It's winding up an attack. Each type has its own warning sound. |
 | A lane of red chevrons on the floor | Something is about to charge along it. |
 | An outlined area on the floor, filling in | That area is about to be hit (a flame cone, a slam ring). Get out before it fills. |

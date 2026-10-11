@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: equipment.split-shot
   displayName: Split Shot
+  icon: {fileID: 21300000, guid: 7550264b366c8424899cef106f8240d2, type: 3}
   <Category>k__BackingField: 1
   <Rarity>k__BackingField: 0
   <Weight>k__BackingField: 1

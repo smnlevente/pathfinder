@@ -241,5 +241,33 @@ namespace Pathfinder.Tests.PlayMode
             yield return null;
             Screenshots.CaptureCamera(Path.Combine(directory, "bullet_storm.png"));
         }
+
+        /// <summary>Each shooter's own shot (playtest 7), in a row each, left to right: Gunner, Spinner, Maw, Wardens, Matriarch.</summary>
+        [UnityTest, Category("Screenshot")]
+        public IEnumerator CaptureEnemyShots()
+        {
+            string directory = Screenshots.Directory();
+            yield return LoadRun();
+            Player.GodMode = true;
+            var shots = new[]
+            {
+                EnemyDef("enemy.gunner").Prefab.GetComponent<GunnerBrain>().BulletPrefab,
+                EnemyDef("enemy.spinner").Prefab.GetComponent<SpinnerBrain>().BulletPrefab,
+                EnemyDef("boss.quarry-maw").Prefab.GetComponent<QuarryMawBrain>().BulletPrefab,
+                EnemyDef("boss.binary-wardens").Prefab.GetComponent<WardenBrain>().BulletPrefab,
+                EnemyDef("boss.hive-matriarch").Prefab.GetComponent<MatriarchBrain>().BulletPrefab,
+            };
+            for (int kind = 0; kind < shots.Length; kind++)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    Vector2 direction = PlaneMath.FromHeading(-30f + i * 20f + kind * 15f);
+                    SpawnEnemyBullet(Player.Position + new Vector2(-8f + kind * 4f, 2.5f + i * 1.4f), direction, speed: 0.4f, damage: 0f, visual: shots[kind]);
+                }
+            }
+            yield return WaitTicks(20);
+            yield return null;
+            Screenshots.CaptureCamera(Path.Combine(directory, "enemy_shots.png"));
+        }
     }
 }

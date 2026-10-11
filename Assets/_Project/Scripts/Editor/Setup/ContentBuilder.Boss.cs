@@ -88,7 +88,7 @@ namespace Pathfinder.Editor.Setup
             var dust = SavePrefab(Burst("FX_BurrowDust", art.FxGrey, count: 36, speed: 4.5f, size: 0.7f, lifetime: 0.9f), "FX");
             SetFields(head.AddComponent<SinkVisual>(), ("source", brain), ("model", headModel));
             SetFields(brain, ("segmentPrefab", segmentPrefab), ("eruptTelegraphPrefab", telegraphPrefab), ("eruptBurstPrefab", burstPrefab), ("exposedMawMarker", exposedMaw), ("burrowDustPrefab", dust),
-                ("eruptEffect", art.EnemyExplosion), ("bulletPrefab", art.EnemyBulletVisual), ("bulletImpactPrefab", art.BulletImpact));
+                ("eruptEffect", art.EnemyExplosion), ("bulletPrefab", art.MawShot), ("bulletImpactPrefab", art.BulletImpact));
             var lane = ChargeLane("SweepLane", art, head.transform, size: 1.7f, spacing: 1.9f);
             SetFields(head.AddComponent<TelegraphLine>(), ("source", brain), ("lane", lane.GetComponent<ChevronLane>()));
             var glowParts = new Renderer[teeth.Length + 1];

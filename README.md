@@ -21,6 +21,7 @@ built and how to extend it, what every enemy, item and currency does, and the wo
 | Playtest 4 fixes | ✅ per-enemy wind-up sounds, audio centred on the ship, wormhole pull after the boss reward, Scrap vacuum, Esc closes menus cleanly |
 | Galaxy 2 content | ✅ Scorcher, Arc Drone and Crusher enemies; the Binary Wardens twin boss |
 | Playtest 6 (first external) | ✅ an eruption you dash out of, a ship-mounted HUD readout, 16:9 HUD area, Precision Loader active reload, the Hive Matriarch (galaxy 3 boss), Survival mode |
+| Playtest 7 | ✅ crisp, smaller floor telegraphs, spores that hurt, icons in the Shop, cards, HUD, map and Hub, a shot of its own for every shooter, 3× faster tests |
 
 ## Playing
 
@@ -77,6 +78,10 @@ it to start a fresh profile.
 Tuning lives in the ScriptableObjects under `Assets/_Project/Data`: ships, weapons, equipment (`Data/Equipment`), meta upgrades (`Data/Meta`), enemies, elites, and the wave config
 `Waves/Waves_ShatteredExpanse`. Behaviour tuning (bursts, charge speed, launch rates, the Quarry Maw's phases) is on the brain components in the
 enemy prefabs. To replay an exact run, set a seed code on **Combat World** in the Run scene.
+
+## Credits
+
+Icons by Lorc and Delapouite from [game-icons.net](https://game-icons.net), CC BY 3.0. See [CREDITS.md](CREDITS.md).
 
 ## Text and translations
 

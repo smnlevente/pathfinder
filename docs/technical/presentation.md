@@ -13,7 +13,7 @@ frame or on change.
 | Piece | Role |
 |---|---|
 | `UiKit` | Creates canvases (1920 × 1080 reference, scaled to fit), text, images, panels, layout groups; holds the colour theme and generated sprites (ring, circle, vignette) |
-| `UiRow` | A selectable menu row: accent stripe, bold label, right-aligned note (price or state), wrapping detail line |
+| `UiRow` | A selectable menu row: accent stripe, optional icon, bold label, right-aligned note (price or state, optionally with a small icon such as the Scraps cog), wrapping detail line |
 | `UiBar` | A filled bar with a track, for hull, shield, ammo, cooldowns and boss health |
 | `UiPointer` | Mouse hover, click and right click on any element |
 | `UiScrollList` | A list of rows that grows with its content up to a height limit, then scrolls with a slim scrollbar; menus scroll it to keep the keyboard selection in view |
@@ -119,7 +119,7 @@ Every colour and shape has one meaning, so a crowded screen reads at a glance
 
 | Element | Look |
 |---|---|
-| Enemy bullets | White core, magenta rim, dark outline, faint glow. Round. Nothing else is magenta. |
+| Enemy bullets | White core, magenta body, dark outline, faint glow. Each shooter has its own shape (darts, stars, rocks, shards, seeds; `ContentBuilder.Bullets.cs`). Nothing else is magenta. |
 | Enemies | Solid crimson bodies with red-orange accent strips over a red floor glow |
 | Attack warnings | Accents flare white-orange; chevron lanes for charges; outlined floor areas that fill in; thin flickering beam lines |
 | Hazards | Alpha-blended orange flames; white-and-orange lightning; an orange tether |

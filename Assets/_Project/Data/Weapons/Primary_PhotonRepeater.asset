@@ -14,12 +14,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: primary.photon-repeater
   displayName: Photon Repeater
+  icon: {fileID: 21300000, guid: 93c60a801c003ab479f5f98144f97ee4, type: 3}
+  <FireMode>k__BackingField: 0
   <Damage>k__BackingField: 8
+  <DamageAtMaxRange>k__BackingField: 1
+  <Pierce>k__BackingField: 0
   <ShotsPerSecond>k__BackingField: 10
   <MagazineSize>k__BackingField: 30
   <ReloadTime>k__BackingField: 1
   <ProjectilesPerShot>k__BackingField: 1
   <SpreadDegrees>k__BackingField: 2
+  <MinChargeTime>k__BackingField: 0.3
+  <FullChargeTime>k__BackingField: 1.5
+  <MaxChargeDamage>k__BackingField: 120
+  <OverheatTime>k__BackingField: 2
+  <LockoutTime>k__BackingField: 1
+  <MaxChargeRadius>k__BackingField: 0.5
+  <MaxChargeVisualScale>k__BackingField: 2.2
   <ProjectileSpeed>k__BackingField: 28
   <Range>k__BackingField: 18
   <ProjectileRadius>k__BackingField: 0.15

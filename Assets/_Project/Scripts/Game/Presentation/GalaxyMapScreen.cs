@@ -18,6 +18,7 @@ namespace Pathfinder.Game.Presentation
         static readonly Vector2 AreaSize = new Vector2(860f, 780f);
 
         [SerializeField] RunDirector director;
+        [SerializeField, Tooltip("Optional: pictures on the nodes instead of symbols (playtest 7).")] Content.GameIcons icons;
 
         public static readonly Dictionary<MapNodeType, Color> TypeColors = new Dictionary<MapNodeType, Color>
         {
@@ -128,12 +129,25 @@ namespace Pathfinder.Game.Presentation
                 var entry = UiKit.Node(pair.Key.ToString(), legend.transform);
                 UiKit.Horizontal(entry, 14f, null, TextAnchor.MiddleLeft);
                 var dot = UiKit.Image(entry, "Dot", pair.Value, UiKit.Circle);
-                UiKit.Layout(dot, preferredWidth: 24f, preferredHeight: 24f);
+                UiKit.Layout(dot, preferredWidth: 34f, preferredHeight: 34f);
+                AddIcon(dot.rectTransform, pair.Key, 1f);
                 _legend.Add((pair.Key, UiKit.Text(entry, "Name", string.Empty, 20, UiKit.TextBody, TextAnchor.MiddleLeft)));
             }
 
             _footer = UiKit.Text(root, "Footer", string.Empty, 20, UiKit.TextDim, TextAnchor.MiddleCenter);
             UiKit.Place(_footer.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(1600f, 30f));
+        }
+
+        /// <summary>A dark picture of the node's type on its coloured disc. False when there's no icon for it.</summary>
+        bool AddIcon(RectTransform disc, MapNodeType type, float alpha)
+        {
+            var sprite = icons != null ? icons.ForNode(type) : null;
+            if (sprite == null)
+                return false;
+            var icon = UiKit.Image(disc, "Icon", new Color(0.02f, 0.03f, 0.06f, alpha), sprite);
+            icon.preserveAspect = true;
+            UiKit.Stretch(icon.rectTransform, disc.sizeDelta.x > 0f ? disc.sizeDelta.x * 0.2f : 6f);
+            return true;
         }
 
         void Rebuild()
@@ -185,9 +199,12 @@ namespace Pathfinder.Game.Presentation
                 float alpha = isAvailable ? 1f : isVisited ? 0.8f : 0.4f;
                 var fill = UiKit.Image(rect, "Fill", new Color(color.r, color.g, color.b, alpha), UiKit.Circle, raycast: isAvailable);
                 UiKit.Stretch(fill.rectTransform);
-                var glyph = UiKit.Text(rect, "Glyph", LevelNames.Glyph(node.Type), node.Type == MapNodeType.DarkMatter ? 20 : 26,
-                    new Color(0.02f, 0.03f, 0.06f, alpha), TextAnchor.MiddleCenter, FontStyle.Bold);
-                UiKit.Stretch(glyph.rectTransform);
+                if (!AddIcon(rect, node.Type, alpha))
+                {
+                    var glyph = UiKit.Text(rect, "Glyph", LevelNames.Glyph(node.Type), node.Type == MapNodeType.DarkMatter ? 20 : 26,
+                        new Color(0.02f, 0.03f, 0.06f, alpha), TextAnchor.MiddleCenter, FontStyle.Bold);
+                    UiKit.Stretch(glyph.rectTransform);
+                }
 
                 if (isAvailable)
                 {

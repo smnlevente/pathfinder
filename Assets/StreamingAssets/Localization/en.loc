@@ -197,6 +197,7 @@ weapon.hold = HOLD TO CHARGE
 ## ------------------------------------------------------------------ Hub
 hub.title = PROJECT PATHFINDER
 hub.subtitle = NEW HOME
+hub.credits = Icons by Lorc and Delapouite from game-icons.net, CC BY 3.0
 hub.profile = DARK MATTER {darkmatter}    ·    SINGULARITY CORES {cores}    ·    RUNS {won} WON / {played}
 hub.start = START RUN
 hub.start.detail = Choose a ship and weapons, then jump into the Shattered Expanse.

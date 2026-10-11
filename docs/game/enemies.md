@@ -8,6 +8,12 @@ flare and it plays its own wind-up sound**, so you can read a crowded arena by e
 
 ![Galaxy 1's enemies: Drones, Gunners, a Spinner, a Lancer, a Carrier, an elite, bullets and Scraps](../images/m2-enemies.png)
 
+Every enemy shot has a magenta body and a dark outline, so it reads as danger at a glance, but **each shooter fires its
+own shape** *(playtest 7)*: left to right, the Gunner's darts, the Spinner's spinning stars, the Quarry Maw's glowing
+rocks, the Binary Wardens' crystal shards and the Hive Matriarch's green-glowing seeds.
+
+![Each shooter's shot, left to right: darts, stars, rocks, shards, seeds](../images/enemy-shots.png)
+
 ## At a glance
 
 | Enemy | From | HP | Speed | Cost | Threat | Beat it by |

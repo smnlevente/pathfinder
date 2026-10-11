@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: equipment.capacitor
   displayName: Capacitor
+  icon: {fileID: 21300000, guid: cc53ceb94b59eb542bb7eb69c5c5bf59, type: 3}
   <Category>k__BackingField: 3
   <Rarity>k__BackingField: 0
   <Weight>k__BackingField: 1

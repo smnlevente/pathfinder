@@ -13,7 +13,8 @@ namespace Pathfinder.Game.Presentation.Ui
         readonly Text _label, _note, _detail;
         readonly Color _noteColor;
         readonly RectTransform _header;
-        Image _check;
+        Image _check, _icon, _noteIcon;
+        Color _iconTint, _noteIconTint;
 
         public RectTransform Rect { get; }
         public UiPointer Pointer { get; }
@@ -87,6 +88,30 @@ namespace Pathfinder.Game.Presentation.Ui
                 _check.enabled = on;
         }
 
+        /// <summary>Puts a picture before the label, e.g. an item's icon in its rarity colour (playtest 7: fewer words, more pictures).</summary>
+        public void SetIcon(Sprite sprite, Color tint, float size = 46f)
+        {
+            if (sprite == null)
+                return;
+            _icon = UiKit.Image(_header, "Icon", tint, sprite);
+            _icon.preserveAspect = true;
+            UiKit.Layout(_icon, preferredWidth: size, preferredHeight: size);
+            _icon.transform.SetAsFirstSibling();
+            _iconTint = tint;
+        }
+
+        /// <summary>Puts a small picture before the note, e.g. the Scraps cog beside a price.</summary>
+        public void SetNoteIcon(Sprite sprite, Color tint, float size = 28f)
+        {
+            if (sprite == null)
+                return;
+            _noteIcon = UiKit.Image(_header, "NoteIcon", tint, sprite);
+            _noteIcon.preserveAspect = true;
+            UiKit.Layout(_noteIcon, preferredWidth: size, preferredHeight: size);
+            _noteIcon.transform.SetSiblingIndex(_note.transform.GetSiblingIndex());
+            _noteIconTint = tint;
+        }
+
         public void SetLabel(string text) => _label.text = text;
 
         public void SetNote(string text) => _note.text = text ?? string.Empty;
@@ -98,6 +123,12 @@ namespace Pathfinder.Game.Presentation.Ui
             _note.color = enabled ? _noteColor : UiKit.TextDim;
             if (_detail != null)
                 _detail.color = enabled ? UiKit.TextBody : UiKit.TextDim;
+            if (_icon != null)
+                _icon.color = enabled ? _iconTint : Dimmed(_iconTint);
+            if (_noteIcon != null)
+                _noteIcon.color = enabled ? _noteIconTint : Dimmed(_noteIconTint);
         }
+
+        static Color Dimmed(Color color) => new Color(color.r * 0.45f, color.g * 0.45f, color.b * 0.45f, color.a * 0.7f);
     }
 }

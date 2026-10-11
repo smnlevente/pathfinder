@@ -64,7 +64,7 @@ namespace Pathfinder.Editor.Setup
             Primitive(PrimitiveType.Cube, "Barrel", model, art.EnemyHull, new Vector3(0f, 0.15f, 0.6f), new Vector3(0.18f, 0.18f, 0.7f));
             var muzzle = Glow(Primitive(PrimitiveType.Cube, "Muzzle", model, art.EnemyGlow, new Vector3(0f, 0.15f, 0.97f), new Vector3(0.22f, 0.22f, 0.08f)));
 
-            SetFields(root.AddComponent<GunnerBrain>(), ("bulletPrefab", art.EnemyBulletVisual), ("bulletImpactPrefab", art.BulletImpact));
+            SetFields(root.AddComponent<GunnerBrain>(), ("bulletPrefab", art.GunnerShot), ("bulletImpactPrefab", art.BulletImpact));
             return FinishEnemy(root, data.Gunner, radius: 0.6f, art, halo, eye, muzzle);
         }
 
@@ -82,7 +82,7 @@ namespace Pathfinder.Editor.Setup
                 emitters[i] = Glow(Primitive(PrimitiveType.Cube, "Emitter" + i, model, art.EnemyGlow, position, new Vector3(0.16f, 0.12f, 0.16f), Quaternion.Euler(0f, i * 60f, 0f)));
             }
 
-            SetFields(root.AddComponent<SpinnerBrain>(), ("bulletPrefab", art.EnemyBulletVisual), ("bulletImpactPrefab", art.BulletImpact));
+            SetFields(root.AddComponent<SpinnerBrain>(), ("bulletPrefab", art.SpinnerShot), ("bulletImpactPrefab", art.BulletImpact));
             return FinishEnemy(root, data.Spinner, radius: 0.65f, art, halo, emitters);
         }
 

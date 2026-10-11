@@ -210,7 +210,7 @@ namespace Pathfinder.Editor.Setup
             }
 
             var brain = root.AddComponent<WardenBrain>();
-            SetFields(brain, ("partnerDefinition", partner), ("bulletPrefab", art.EnemyBulletVisual), ("bulletImpactPrefab", art.BulletImpact),
+            SetFields(brain, ("partnerDefinition", partner), ("bulletPrefab", art.WardenShot), ("bulletImpactPrefab", art.BulletImpact),
                 ("offlineEffect", art.CoreOffline), ("rebootEffect", art.CoreReboot));
             SetFields(root.AddComponent<SinkVisual>(), ("source", brain), ("model", model));
             AreaTelegraphChild(root.transform, brain, art.FxGrey); // the reboot ring: grey, filling as the core comes back

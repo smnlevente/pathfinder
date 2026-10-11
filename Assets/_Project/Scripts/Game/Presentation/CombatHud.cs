@@ -30,6 +30,7 @@ namespace Pathfinder.Game.Presentation
         [SerializeField, Tooltip("Optional. Shows the debug key hints when present and enabled.")] DebugHotkeys debugHotkeys;
         [SerializeField, Tooltip("Optional. In the Run scene: level, objective and run status.")] RunDirector runDirector;
         [SerializeField, Tooltip("Optional. In the Survival scene: the clock, what comes next, and the guardian.")] SurvivalController survival;
+        [SerializeField, Tooltip("Optional: currencies as pictures and numbers instead of words (playtest 7).")] Content.GameIcons icons;
 
         static readonly Color HullColor = new Color(0.95f, 0.35f, 0.3f);
         static readonly Color ShieldColor = new Color(0.3f, 0.85f, 1f);
@@ -38,6 +39,7 @@ namespace Pathfinder.Game.Presentation
         static readonly Color WarningColor = new Color(1f, 0.6f, 0.2f);
         static readonly Color ScrapsColor = new Color(1f, 0.8f, 0.3f);
         static readonly Color DarkMatterColor = new Color(0.65f, 0.55f, 1f);
+        static readonly Color CoresColor = new Color(1f, 0.55f, 0.85f);
         static readonly Color BossColor = new Color(1f, 0.3f, 0.25f);
         static readonly Color BannerColor = new Color(1f, 0.95f, 0.6f);
 
@@ -50,7 +52,10 @@ namespace Pathfinder.Game.Presentation
         readonly Text[] _bossPartLabels = new Text[2];
         readonly UiBar[] _dash = new UiBar[MaxDashPips];
         Text _hullText, _primaryText, _secondaryText, _loadoutText;
-        Text _scraps, _darkMatter, _seed, _header, _objective, _bossName, _banner, _prompt, _debug;
+        Text _scraps, _darkMatter, _cores, _seed, _header, _objective, _bossName, _banner, _prompt, _debug;
+        GameObject _runCurrencies, _scrapsRoot;
+        RectTransform _equipmentStrip;
+        string _equipmentKey;
         Text _overlayTitle, _overlayHint;
         GameObject _playerPanel, _bossPanel, _overlay;
         Image _vignette;
@@ -123,18 +128,53 @@ namespace Pathfinder.Game.Presentation
                     _dash[i].Set(i < dash.Charges ? 1f : i == dash.Charges ? dash.RechargeProgress : 0f);
             }
 
-            // Ship trait and equipped items (GDD §8), coloured by rarity.
+            // Ship trait, then the equipped items (GDD §8): pictures in their rarity colour, each with its level (playtest 7:
+            // fewer words). An item without a picture is listed by name instead.
             _builder.Clear();
             if (!string.IsNullOrEmpty(player.Definition.TraitTitle))
                 _builder.Append(player.Definition.DisplayName.ToUpperInvariant()).Append("   ·   ").Append(player.Definition.TraitTitle).Append('\n');
             foreach (var entry in player.Equipment.All)
             {
+                if (entry.Item.Icon != null)
+                    continue;
                 _builder.Append("<color=#").Append(UiKit.Hex(EquipmentChoiceScreen.RarityColor(entry.Item.Rarity))).Append('>')
                     .Append(entry.Item.DisplayName).Append(' ').Append(EquipmentChoiceScreen.Roman(entry.Level)).Append("</color>\n");
             }
             _loadoutText.text = _builder.ToString();
-            _scraps.text = Loc.T("hud.scraps", ("amount", player.Scraps));
+            RefreshEquipmentStrip(player);
+            _scraps.text = icons != null ? player.Scraps.ToString() : Loc.T("hud.scraps", ("amount", player.Scraps));
         }
+
+        /// <summary>The equipped items' pictures, rebuilt only when what's equipped changes.</summary>
+        void RefreshEquipmentStrip(PlayerShip player)
+        {
+            _builder.Clear();
+            foreach (var entry in player.Equipment.All)
+                _builder.Append(entry.Item.Id).Append(entry.Level).Append(';');
+            string key = _builder.ToString();
+            if (key == _equipmentKey)
+                return;
+            _equipmentKey = key;
+
+            for (int i = _equipmentStrip.childCount - 1; i >= 0; i--)
+                Destroy(_equipmentStrip.GetChild(i).gameObject);
+            foreach (var entry in player.Equipment.All)
+            {
+                if (entry.Item.Icon == null)
+                    continue;
+                var color = EquipmentChoiceScreen.RarityColor(entry.Item.Rarity);
+                var slot = UiKit.Image(_equipmentStrip, entry.Item.Id, new Color(0f, 0f, 0f, 0.45f), UiKit.Circle);
+                var icon = UiKit.Image(slot.transform, "Icon", Color.Lerp(color, Color.white, 0.25f), entry.Item.Icon);
+                icon.preserveAspect = true;
+                UiKit.Stretch(icon.rectTransform, 6f);
+                var level = UiKit.Text(slot.transform, "Level", EquipmentChoiceScreen.Roman(entry.Level), 15, Color.white, TextAnchor.LowerRight, FontStyle.Bold);
+                UiKit.Stretch(level.rectTransform).offsetMax = new Vector2(2f, 4f);
+                AddShadow(level);
+            }
+        }
+
+        /// <summary>The pictures of the equipped items, for tests.</summary>
+        public int EquipmentIconCount => _equipmentStrip != null ? _equipmentStrip.childCount : 0;
 
         /// <summary>
         /// "SEEKER SWARM   READY". With several charges it also counts them and shows when the next one returns:
@@ -156,13 +196,25 @@ namespace Pathfinder.Game.Presentation
 
         void RefreshStatus(PlayerShip player)
         {
-            _scraps.gameObject.SetActive(player != null);
+            _scrapsRoot.SetActive(player != null);
             _seed.text = world != null
                 ? Loc.T("hud.seed", ("seed", RunSeed.ToCode(world.Seed)), ("fps", Settings.GameSettings.ShowFps ? Loc.T("hud.fps", ("fps", _fps)) : string.Empty))
                 : string.Empty;
 
             var run = runDirector != null ? runDirector.Run : survival != null ? survival.Run : null;
-            _darkMatter.text = run != null ? Loc.T("hud.currencies", ("darkmatter", run.DarkMatter), ("cores", run.SingularityCores)) : string.Empty;
+            if (icons != null)
+            {
+                _runCurrencies.SetActive(run != null);
+                if (run != null)
+                {
+                    _darkMatter.text = run.DarkMatter.ToString();
+                    _cores.text = run.SingularityCores.ToString();
+                }
+            }
+            else
+            {
+                _darkMatter.text = run != null ? Loc.T("hud.currencies", ("darkmatter", run.DarkMatter), ("cores", run.SingularityCores)) : string.Empty;
+            }
             _debug.text = debugHotkeys != null && debugHotkeys.isActiveAndEnabled ? debugHotkeys.HintText : string.Empty;
 
             var level = runDirector != null ? runDirector.Level : null;
@@ -464,11 +516,33 @@ namespace Pathfinder.Game.Presentation
             }
             _loadoutText = Label(panel, "Loadout", 150f, 18, UiKit.TextBody);
             _loadoutText.rectTransform.sizeDelta = new Vector2(560f, 360f);
+            _equipmentStrip = UiKit.Node("Equipment", panel);
+            UiKit.Place(_equipmentStrip, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, -176f), new Vector2(560f, 200f));
+            var grid = _equipmentStrip.gameObject.AddComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(46f, 46f);
+            grid.spacing = new Vector2(6f, 6f);
+            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
+            grid.childAlignment = TextAnchor.UpperLeft;
 
             // Top right: currencies and the seed.
             _seed = Corner(_safeArea, "Seed", -18f, 16, UiKit.TextDim);
-            _scraps = Corner(_safeArea, "Scraps", -44f, 30, ScrapsColor, FontStyle.Bold);
-            _darkMatter = Corner(_safeArea, "Dark Matter", -84f, 20, DarkMatterColor, FontStyle.Bold);
+            if (icons != null)
+            {
+                // Pictures and numbers (playtest 7): a cog for Scraps, a crystal for Dark Matter, a singularity for Cores.
+                var scrapsRow = CornerRow(_safeArea, "Scraps", -44f);
+                _scrapsRoot = scrapsRow.gameObject;
+                _scraps = Counter(scrapsRow, "Scraps", icons.Scraps, 30, ScrapsColor);
+                var runRow = CornerRow(_safeArea, "Run Currencies", -88f);
+                _runCurrencies = runRow.gameObject;
+                _darkMatter = Counter(runRow, "Dark Matter", icons.DarkMatter, 22, DarkMatterColor);
+                _cores = Counter(runRow, "Cores", icons.Cores, 22, CoresColor);
+            }
+            else
+            {
+                _scraps = Corner(_safeArea, "Scraps", -44f, 30, ScrapsColor, FontStyle.Bold);
+                _scrapsRoot = _scraps.gameObject;
+                _darkMatter = Corner(_safeArea, "Dark Matter", -84f, 20, DarkMatterColor, FontStyle.Bold);
+            }
 
             // Top centre: level, objective, boss.
             _header = Centre(root, "Level", -14f, 24, Color.white, FontStyle.Bold);
@@ -564,6 +638,29 @@ namespace Pathfinder.Game.Presentation
             UiKit.Place(text.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-40f, top), new Vector2(600f, 40f));
             AddShadow(text);
             return text;
+        }
+
+        /// <summary>A right-aligned row in the top-right corner that sizes itself to what it holds.</summary>
+        static RectTransform CornerRow(Transform root, string name, float top)
+        {
+            var row = UiKit.Node(name, root);
+            UiKit.Place(row, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-40f, top), new Vector2(600f, 40f));
+            UiKit.Horizontal(row, 22f, null, TextAnchor.MiddleRight);
+            return row;
+        }
+
+        /// <summary>A picture and a number, e.g. the Scraps cog and how many you have.</summary>
+        static Text Counter(Transform row, string name, Sprite icon, int size, Color color)
+        {
+            var counter = UiKit.Node(name, row);
+            UiKit.Horizontal(counter, 6f, null, TextAnchor.MiddleRight);
+            var image = UiKit.Image(counter, "Icon", color, icon);
+            image.preserveAspect = true;
+            UiKit.Layout(image, preferredWidth: size + 8f, preferredHeight: size + 8f);
+            var value = UiKit.Text(counter, "Value", string.Empty, size, color, TextAnchor.MiddleLeft, FontStyle.Bold);
+            value.horizontalOverflow = HorizontalWrapMode.Overflow;
+            AddShadow(value);
+            return value;
         }
 
         static Text Centre(Transform root, string name, float top, int size, Color color, FontStyle style = FontStyle.Normal)

@@ -58,6 +58,9 @@ namespace Pathfinder.Game.Enemies
         [SerializeField, Min(0.1f)] float fanSpeed = 8f;
         [SerializeField, Min(0f)] float bulletDamage = 10f;
         [SerializeField] GameObject bulletPrefab;
+
+        /// <summary>What this enemy shoots (playtest 7: each shooter has its own kind of shot).</summary>
+        public GameObject BulletPrefab => bulletPrefab;
         [SerializeField] GameObject bulletImpactPrefab;
 
         const float StartHeading = 90f; // Alpha takes the right side of the arena, Beta the left

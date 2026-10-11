@@ -87,6 +87,9 @@ namespace Pathfinder.Game.Enemies
         [SerializeField, Min(0f)] float bulletDamage = 10f;
         [SerializeField, Min(0.1f)] float bulletSpeed = 9f;
         [SerializeField] GameObject bulletPrefab;
+
+        /// <summary>What this enemy shoots (playtest 7: each shooter has its own kind of shot).</summary>
+        public GameObject BulletPrefab => bulletPrefab;
         [SerializeField] GameObject bulletImpactPrefab;
 
         [Header("Roar")]

@@ -863,7 +863,7 @@ MonoBehaviour:
   fanSpread: 36
   fanSpeed: 8
   bulletDamage: 10
-  bulletPrefab: {fileID: 7868472397677828734, guid: 4bbdaba0bed532745a92174b94a0dcf1, type: 3}
+  bulletPrefab: {fileID: 2041101108318339388, guid: c778ca3b571a37149b1d6db3dc4b2a0d, type: 3}
   bulletImpactPrefab: {fileID: 2969885834400490193, guid: 4ba244fb3f7f22c479935cf8add5bd1a, type: 3}
 --- !u!114 &1512761902471418460
 MonoBehaviour:

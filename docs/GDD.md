@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 2.4 (playtest 6, the first external playtest: an eruption you dash out of, a ship-mounted HUD readout and a 16:9 HUD area, the Precision Loader active-reload item, the Hive Matriarch, Survival mode replacing the sandbox) |
+| **Version** | 2.4 (playtest 6, the first external playtest: an eruption you dash out of, a ship-mounted HUD readout and a 16:9 HUD area, the Precision Loader active-reload item, the Hive Matriarch, Survival mode replacing the sandbox; playtest 7: icons in the menus and HUD, a shot of its own for every shooter) |
 | **Date** | 2026-10-10 |
 | **Engine** | Unity 6 (6000.0.67f1), URP |
 | **Status** | Pre-production → Vertical Slice |
@@ -616,6 +616,7 @@ Boot → Main Menu → Hub ──► Ship Select → Loadout Select → Galaxy M
 - **Top right:** Scraps, plus Dark Matter collected this run.
 - **Top center:** Level objective (waves remaining, DM nodes, instability timer). Boss levels show the boss health bar here instead.
 - **On pickups:** equipment choice cards in a modal. In single-player the modal pauses the game. In co-op nothing pauses: choices are made at the end of the level while the exit wormhole charges.
+- **Pictures over words** *(playtest 7: the game should be easy for kids to follow)*: icons from game-icons.net (CC BY 3.0, credited in `CREDITS.md` and on the Hub) for every item, weapon and Lab upgrade, the currencies and the map's node types. Choice cards lead with a big icon in the item's rarity colour; Shop rows show the item's icon and a price as the Scraps cog and a number; the HUD shows Scraps, Dark Matter and Cores as icon and number and the equipped items as a strip of icons with their level; map nodes carry their type's icon; the Hub's loadout and Lab show weapon and upgrade icons and costs as currency icons.
 - *Implemented in M6 (uGUI):* hull bar with its value and a thin shield bar above it, primary and secondary gauges with their state, dash pips, ship trait and equipment list (coloured by rarity) top left; Scraps, Dark Matter, Cores and the seed top right; level, objective and the boss bar with phase marks top centre; banners and prompts; pause, galaxy-cleared and run-over overlays. Text carries a drop shadow so it reads over explosions. **A red vignette flashes at the screen edges when the hull is hit**, scaled by the damage. A **crosshair** follows the mouse (or sits 150 px along the aim for a gamepad) and replaces the system cursor while flying; its ring shows the primary's ammo, reload or charge, and turns orange on a warning (reloading, overheating).
 
 ### 12.3 Galaxy Map
@@ -631,7 +632,7 @@ dense bullet patterns blew out into glare and the Lancer's charge line looked li
 
 | Element | Look | Exclusive |
 |---|---|---|
-| **Enemy bullets** | A solid white core inside a crisp **magenta** rim, edged with a **dark outline**, and only a faint glow. Round. The outline keeps every bullet separate in dense patterns; the glow is alpha-blended, so overlapping bullets don't add up into a haze *(playtest 2)*. | Magenta and round orbs are used for nothing else. |
+| **Enemy bullets** | A glowing white core inside a crisp **magenta** body, edged with a **dark outline**, and only a faint glow. The outline keeps every bullet separate in dense patterns; the glow is alpha-blended, so overlapping bullets don't add up into a haze *(playtest 2)*. **Each shooter has its own shape** *(playtest 7: "everything is a ball")*: the Gunner fires **darts** that point where they fly, the Spinner spinning **four-point stars**, the Quarry Maw tumbling glowing **rocks**, the Binary Wardens flickering **crystal shards** with a violet glow, and the Hive Matriarch pulsing **seeds** with a toxic-green glow. | Magenta bodies with a dark outline are used for nothing else. |
 | **Enemies** | Solid, lit **crimson** bodies with small red-orange accent strips, on a faint **red floor glow**. Never a glowing orb. | The red floor glow marks units only. |
 | **Enemy attack warnings** | Accent strips flare toward white-orange. Charge paths are **lanes of red-orange chevrons** on the floor that fill in as the wind-up completes: flat, segmented and pointed, never round. Spawns are a soft red glow on the floor; eruptions and spore pods are a crisp outline with a fill growing out to it and a ring closing in, flashing just before impact. **Areas** about to be hit are outlined on the floor with a fill growing out to the edge (the Scorcher's orange cone, the Crusher's red ring); the outline flickers just before it lands. **Beams** charge as a thin flickering line that thickens and steadies before the bolt. | Chevrons mean "a charge is coming this way". |
 | **The Swarm** | Toxic-**green** glow on Swarm creatures (the Matriarch's sacs, Broodling eyes), spore clouds and bloom pulses. | Green belongs to the Swarm alone. |

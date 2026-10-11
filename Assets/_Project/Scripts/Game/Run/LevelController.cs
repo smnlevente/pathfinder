@@ -10,6 +10,7 @@ using Pathfinder.Game.Equipment;
 using Pathfinder.Game.Localization;
 using Pathfinder.Game.Player;
 using Pathfinder.Game.Presentation;
+using Pathfinder.Game.Presentation.Ui;
 using Pathfinder.Game.Simulation;
 using UnityEngine;
 
@@ -115,6 +116,8 @@ namespace Pathfinder.Game.Run
 
         /// <summary>What the last event choice did. For tests and the HUD.</summary>
         public EventResult LastEventResult { get; private set; }
+
+        GameIcons Icons => content != null ? content.Icons : null;
 
         public int DarkMatterNodes => _nodes.Count;
         public int DarkMatterHarvested { get; private set; }
@@ -554,12 +557,14 @@ namespace Pathfinder.Game.Run
                     {
                         Label = Loc.T("repair.repair"), Note = Loc.T("repair.repair.note", ("amount", Mathf.RoundToInt(repair))), NoteColor = new Color(0.45f, 1f, 0.6f),
                         Detail = Loc.T("repair.repair.detail", ("percent", config.RepairFraction * 100f)),
+                        Icon = Icons != null ? Icons.Repair : null, IconTint = RepairGreen,
                         OnChoose = () => { ApplyRepair(pilot, RepairChoice.Repair); return false; },
                     },
                     new ChoiceDialog.Option
                     {
                         Label = Loc.T("repair.reinforce"), Note = Loc.T("repair.reinforce.note", ("amount", Mathf.RoundToInt(config.ReinforceHull))), NoteColor = new Color(0.45f, 1f, 0.6f),
                         Detail = Loc.T("repair.reinforce.detail"),
+                        Icon = Icons != null ? Icons.Reinforce : null, IconTint = RepairGreen,
                         OnChoose = () => { ApplyRepair(pilot, RepairChoice.Reinforce); return false; },
                     },
                     new ChoiceDialog.Option { Label = Loc.T("common.leave"), OnChoose = () => false },
@@ -568,6 +573,23 @@ namespace Pathfinder.Game.Run
         }
 
         public enum RepairChoice { Repair, Reinforce }
+
+        static readonly Color RepairGreen = new Color(0.45f, 1f, 0.6f);
+
+        /// <summary>A price as the Scraps cog and a number (playtest 7: fewer words), or in words without icons.</summary>
+        void SetPrice(ChoiceDialog.Option option, int price)
+        {
+            if (Icons != null && Icons.Scraps != null)
+            {
+                option.Note = price.ToString();
+                option.NoteIcon = Icons.Scraps;
+                option.NoteIconTint = UiKit.Gold;
+            }
+            else
+            {
+                option.Note = Loc.T("common.price", ("amount", price));
+            }
+        }
 
         /// <summary>Applies a repair station choice. Also called directly by tests.</summary>
         public void ApplyRepair(PlayerShip pilot, RepairChoice choice)
@@ -598,14 +620,16 @@ namespace Pathfinder.Game.Run
                     var entry = _catalog[i];
                     int price = PriceOf(entry.Item);
                     var outcome = pilot.PreviewEquip(entry.Item);
-                    string state = entry.Sold ? Loc.T("shop.sold") : outcome == EquipOutcome.AlreadyMaxed ? Loc.T("shop.maxed") : Loc.T("common.price", ("amount", price));
+                    string state = entry.Sold ? Loc.T("shop.sold") : outcome == EquipOutcome.AlreadyMaxed ? Loc.T("shop.maxed") : null;
                     var owned = pilot.Equipment.Find(entry.Item);
                     int level = owned != null ? owned.Level + 1 : 1;
                     string action = outcome == EquipOutcome.LeveledUp ? Loc.T("shop.level_up", ("from", EquipmentChoiceScreen.Roman(owned.Level)), ("to", EquipmentChoiceScreen.Roman(level)))
                         : outcome == EquipOutcome.NeedsSwap ? Loc.T("shop.swap") : Loc.T("shop.new");
-                    options.Add(new ChoiceDialog.Option
+                    var option = new ChoiceDialog.Option
                     {
                         Section = i == 0 ? Loc.T("shop.catalog") : null,
+                        Icon = entry.Item.Icon,
+                        IconTint = EquipmentChoiceScreen.RarityColor(entry.Item.Rarity),
                         Label = entry.Item.DisplayName,
                         Detail = Loc.T("shop.item", ("rarity", EquipmentChoiceScreen.RarityName(entry.Item.Rarity)),
                             ("category", EquipmentChoiceScreen.CategoryName(entry.Item.Category)), ("action", action), ("description", entry.Item.Describe(level))),
@@ -617,7 +641,10 @@ namespace Pathfinder.Game.Run
                             BuyEquipment(pilot, index, reopenShop: true);
                             return dialog.IsOpen;
                         },
-                    });
+                    };
+                    if (state == null)
+                        SetPrice(option, price);
+                    options.Add(option);
                 }
 
                 bool firstUpgrade = true;
@@ -627,16 +654,19 @@ namespace Pathfinder.Game.Run
                         continue;
                     var item = equipped.Item;
                     int price = UpgradePrice(equipped.Level);
-                    options.Add(new ChoiceDialog.Option
+                    var upgrade = new ChoiceDialog.Option
                     {
                         Section = firstUpgrade ? Loc.T("shop.upgrades") : null,
+                        Icon = item.Icon,
+                        IconTint = EquipmentChoiceScreen.RarityColor(item.Rarity),
                         Label = Loc.T("shop.upgrade", ("item", item.DisplayName), ("level", EquipmentChoiceScreen.Roman(equipped.Level + 1))),
                         Detail = item.Describe(equipped.Level + 1),
-                        Note = Loc.T("common.price", ("amount", price)),
                         Accent = EquipmentChoiceScreen.RarityColor(item.Rarity),
                         Enabled = pilot.Scraps >= price,
                         OnChoose = () => { UpgradeEquipment(pilot, item); return true; },
-                    });
+                    };
+                    SetPrice(upgrade, price);
+                    options.Add(upgrade);
                     firstUpgrade = false;
                 }
 
@@ -648,10 +678,10 @@ namespace Pathfinder.Game.Run
                 {
                     Label = Loc.T("shop.reroll"),
                     Detail = Loc.T("shop.reroll.detail"),
-                    Note = Loc.T("common.price", ("amount", RerollPrice)),
                     Enabled = pilot.Scraps >= RerollPrice,
                     OnChoose = () => { RerollCatalog(pilot); return true; },
                 });
+                SetPrice(options[options.Count - 1], RerollPrice);
                 options.Add(new ChoiceDialog.Option { Label = Loc.T("common.leave"), OnChoose = () => false });
                 return options;
             });
@@ -734,10 +764,12 @@ namespace Pathfinder.Game.Run
             int missing = Mathf.CeilToInt(pilot.Vitals.MaxHull - pilot.Vitals.Hull);
             int amount = Mathf.Min(hull, missing);
             int price = Mathf.CeilToInt(amount * config.RepairPricePerHull);
-            return new ChoiceDialog.Option
+            var option = new ChoiceDialog.Option
             {
                 Label = label,
-                Note = amount > 0 ? Loc.T("common.price", ("amount", price)) : Loc.T("shop.hull_full"),
+                Icon = Icons != null ? Icons.Repair : null,
+                IconTint = RepairGreen,
+                Note = amount > 0 ? null : Loc.T("shop.hull_full"),
                 Enabled = amount > 0 && pilot.Scraps >= price,
                 OnChoose = () =>
                 {
@@ -745,6 +777,9 @@ namespace Pathfinder.Game.Run
                     return true;
                 },
             };
+            if (amount > 0)
+                SetPrice(option, price);
+            return option;
         }
 
         /// <summary>Buys hull repair at the shop price. Returns false if the pilot can't afford it. Also called directly by tests.</summary>

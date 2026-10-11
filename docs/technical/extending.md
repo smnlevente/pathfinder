@@ -187,6 +187,11 @@ content.Items.Add(StatItem("Reactive Plating", "reactive-plating", EquipmentCate
 
 Its description is generated from the stat names, so it only needs `equipment.reactive-plating.name` in `en.loc`.
 
+**Give it an icon** (every item, weapon and Lab upgrade needs one; a test checks): download a white-on-transparent PNG
+from [game-icons.net](https://game-icons.net) into `Assets/_Project/Art/Icons`, add it to `CREDITS.md` (the licence, CC BY
+3.0, needs the credit; a test checks that too), and map the content ID to the file name in `ContentBuilder.Icons.cs`, or
+set it on the asset's **Icon** field.
+
 ### A behaviour item
 
 Subclass `EquipmentDefinition` and give it an `EquipmentEffect`. Here is the whole of Kill Refund:
