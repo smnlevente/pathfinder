@@ -628,6 +628,7 @@ namespace Pathfinder.Game.Run
                     var option = new ChoiceDialog.Option
                     {
                         Section = i == 0 ? Loc.T("shop.catalog") : null,
+                        PreviewItem = entry.Sold ? null : entry.Item,
                         Icon = entry.Item.Icon,
                         IconTint = EquipmentChoiceScreen.RarityColor(entry.Item.Rarity),
                         Label = entry.Item.DisplayName,
@@ -657,6 +658,7 @@ namespace Pathfinder.Game.Run
                     var upgrade = new ChoiceDialog.Option
                     {
                         Section = firstUpgrade ? Loc.T("shop.upgrades") : null,
+                        PreviewItem = item,
                         Icon = item.Icon,
                         IconTint = EquipmentChoiceScreen.RarityColor(item.Rarity),
                         Label = Loc.T("shop.upgrade", ("item", item.DisplayName), ("level", EquipmentChoiceScreen.Roman(equipped.Level + 1))),

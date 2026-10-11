@@ -54,8 +54,8 @@ namespace Pathfinder.Game.Presentation
         Text _hullText, _primaryText, _secondaryText, _loadoutText;
         Text _scraps, _darkMatter, _cores, _seed, _header, _objective, _bossName, _banner, _prompt, _debug;
         GameObject _runCurrencies, _scrapsRoot;
-        RectTransform _equipmentStrip;
-        string _equipmentKey;
+        ShipSlotsView _slots;
+        GameObject _slotsPanel;
         Text _overlayTitle, _overlayHint;
         GameObject _playerPanel, _bossPanel, _overlay;
         Image _vignette;
@@ -78,8 +78,12 @@ namespace Pathfinder.Game.Presentation
             var player = LocalPlayer();
             Subscribe(player);
             _playerPanel.SetActive(player != null && player.Vitals != null);
+            _slotsPanel.SetActive(_playerPanel.activeSelf);
             if (_playerPanel.activeSelf)
+            {
                 RefreshPlayer(player);
+                _slots.Refresh(player, EquipmentPreview.Item, EquipmentPreview.ReplaceIndex);
+            }
 
             RefreshStatus(player);
             RefreshOverlay();
@@ -128,8 +132,7 @@ namespace Pathfinder.Game.Presentation
                     _dash[i].Set(i < dash.Charges ? 1f : i == dash.Charges ? dash.RechargeProgress : 0f);
             }
 
-            // Ship trait, then the equipped items (GDD §8): pictures in their rarity colour, each with its level (playtest 7:
-            // fewer words). An item without a picture is listed by name instead.
+            // Ship trait; the equipped items are on the ship diagram (playtest 7). An item without a picture is listed here by name.
             _builder.Clear();
             if (!string.IsNullOrEmpty(player.Definition.TraitTitle))
                 _builder.Append(player.Definition.DisplayName.ToUpperInvariant()).Append("   ·   ").Append(player.Definition.TraitTitle).Append('\n');
@@ -141,40 +144,11 @@ namespace Pathfinder.Game.Presentation
                     .Append(entry.Item.DisplayName).Append(' ').Append(EquipmentChoiceScreen.Roman(entry.Level)).Append("</color>\n");
             }
             _loadoutText.text = _builder.ToString();
-            RefreshEquipmentStrip(player);
             _scraps.text = icons != null ? player.Scraps.ToString() : Loc.T("hud.scraps", ("amount", player.Scraps));
         }
 
-        /// <summary>The equipped items' pictures, rebuilt only when what's equipped changes.</summary>
-        void RefreshEquipmentStrip(PlayerShip player)
-        {
-            _builder.Clear();
-            foreach (var entry in player.Equipment.All)
-                _builder.Append(entry.Item.Id).Append(entry.Level).Append(';');
-            string key = _builder.ToString();
-            if (key == _equipmentKey)
-                return;
-            _equipmentKey = key;
-
-            for (int i = _equipmentStrip.childCount - 1; i >= 0; i--)
-                Destroy(_equipmentStrip.GetChild(i).gameObject);
-            foreach (var entry in player.Equipment.All)
-            {
-                if (entry.Item.Icon == null)
-                    continue;
-                var color = EquipmentChoiceScreen.RarityColor(entry.Item.Rarity);
-                var slot = UiKit.Image(_equipmentStrip, entry.Item.Id, new Color(0f, 0f, 0f, 0.45f), UiKit.Circle);
-                var icon = UiKit.Image(slot.transform, "Icon", Color.Lerp(color, Color.white, 0.25f), entry.Item.Icon);
-                icon.preserveAspect = true;
-                UiKit.Stretch(icon.rectTransform, 6f);
-                var level = UiKit.Text(slot.transform, "Level", EquipmentChoiceScreen.Roman(entry.Level), 15, Color.white, TextAnchor.LowerRight, FontStyle.Bold);
-                UiKit.Stretch(level.rectTransform).offsetMax = new Vector2(2f, 4f);
-                AddShadow(level);
-            }
-        }
-
-        /// <summary>The pictures of the equipped items, for tests.</summary>
-        public int EquipmentIconCount => _equipmentStrip != null ? _equipmentStrip.childCount : 0;
+        /// <summary>The ship diagram with its equipment slots, for tests.</summary>
+        public ShipSlotsView Slots => _slots;
 
         /// <summary>
         /// "SEEKER SWARM   READY". With several charges it also counts them and shows when the next one returns:
@@ -516,13 +490,15 @@ namespace Pathfinder.Game.Presentation
             }
             _loadoutText = Label(panel, "Loadout", 150f, 18, UiKit.TextBody);
             _loadoutText.rectTransform.sizeDelta = new Vector2(560f, 360f);
-            _equipmentStrip = UiKit.Node("Equipment", panel);
-            UiKit.Place(_equipmentStrip, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(0f, -176f), new Vector2(560f, 200f));
-            var grid = _equipmentStrip.gameObject.AddComponent<GridLayoutGroup>();
-            grid.cellSize = new Vector2(46f, 46f);
-            grid.spacing = new Vector2(6f, 6f);
-            grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
-            grid.childAlignment = TextAnchor.UpperLeft;
+            // Bottom left: the ship and its equipment slots (playtest 7). On its own canvas above the Shop and the choice
+            // cards, so it stays lit while you shop and shows where the item you're pointing at would go.
+            var slotsCanvas = UiKit.Canvas("HUD Ship Slots", transform, sortingOrder: 35);
+            var slotsArea = UiKit.Node("Safe Area 16x9", slotsCanvas.transform);
+            slotsArea.gameObject.AddComponent<SafeAreaFitter>();
+            var slotsRoot = UiKit.Node("Ship Slots", slotsArea);
+            UiKit.Place(slotsRoot, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(36f, 46f), new Vector2(420f, 340f));
+            _slotsPanel = slotsRoot.gameObject;
+            _slots = new ShipSlotsView(slotsRoot);
 
             // Top right: currencies and the seed.
             _seed = Corner(_safeArea, "Seed", -18f, 16, UiKit.TextDim);

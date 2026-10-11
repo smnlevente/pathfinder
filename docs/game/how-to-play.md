@@ -59,7 +59,11 @@ flowchart LR
   small bars under it show shield (blue) and hull (red). It stays faint until it matters, so you never need to look
   away from your ship.
 - **Top left:** hull (red) and shield (blue), your weapons with ammo and cooldown (and charges, for a secondary with
-  more than one), dash charges, ship trait and equipment.
+  more than one), dash charges and your ship's trait.
+- **Bottom left: your ship and its equipment slots.** Weapon mods sit at the nose, the secondary mod on the left wing,
+  hull systems down the right side and the dash module at the engine. A slot shows its item and level, or a faint **+**
+  when it's free. In the Shop or on a choice card, point at an item and the ship shows where it would go: a free slot
+  glows green, an item you'd level up glows green, and a full group glows gold, which means you'd have to swap one out.
 - **Top right:** Scraps, Dark Matter, Singularity Cores and the run's seed code.
 - **Top centre:** where you are, the objective, and the boss's health bar (one per part for a boss in pieces).
 - **Crosshair:** its ring shows your ammo, reload or charge.

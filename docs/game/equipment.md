@@ -20,6 +20,9 @@ you lose it when the run ends. ([GDD §8](../GDD.md#8-equipment-in-run-build-sys
 - **Levels I → II → III.** Upgrade in the Shop (35 Scraps for I→II, 60 for II→III). Picking an item you already have
   raises its level for free.
 - **Full category:** taking a new item means **swapping** one out (the old one is lost), or skipping.
+- **Seeing your slots** *(playtest 7)*: the ship at the bottom left of the HUD shows every slot, filled or free, each
+  group in its own colour. Pointing at an item in the Shop or on a card lights up where it would go (gold for a swap),
+  and each card shows its category's slots as dots, solid for the ones in use.
 - **Stats stack** as `(base + all flat bonuses) × (1 + all percent bonuses)`. Percentages from different items add up.
 
 ### Offers

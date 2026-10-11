@@ -50,7 +50,12 @@ Every string goes through `Loc.T`, and menus rebuild when the language changes (
   ![The HUD at 21:9: the corner panels stay inside a centred 16:9 area; the ring and bars on the ship show ammo and hull](../images/hud-ultrawide.png)
 
 - **Top left:** hull and shield bars, primary weapon state and ammo gauge, secondary cooldown (with a charge count
-  and the time to the next charge when it has several), dash charges, ship trait and equipment list coloured by rarity.
+  and the time to the next charge when it has several), dash charges and the ship's trait.
+- **Bottom left:** `ShipSlotsView`, the ship (`UiKit.Ship`, drawn in code) with its equipment slots around it, each
+  category in its HUD colour: filled slots show the item's icon and level, free ones a faint plus. It's on its own canvas
+  (sorting order 35, above the map, the Shop and the choice cards, below the pause menu), so it stays lit while you shop.
+  Menus report the item they point at through `EquipmentPreview`, and the diagram shows where it would go (`SlotState`:
+  a free slot to fill, an item to level up, a full category to swap from, the slot a swap would replace).
 - **Top right:** Scraps, Dark Matter and Singularity Cores, the seed code and an optional FPS counter.
 - **Top centre:** galaxy, row and level type; the objective; the boss bar with phase marks, or **one bar per part**
   for a boss that implements `IMultiPartBoss` (each named inside its bar, with a reboot countdown when a part is down).

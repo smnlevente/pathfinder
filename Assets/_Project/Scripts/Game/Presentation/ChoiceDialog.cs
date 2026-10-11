@@ -45,6 +45,9 @@ namespace Pathfinder.Game.Presentation
 
             public bool Enabled = true;
 
+            /// <summary>Optional item this option offers, so the HUD's ship diagram can show where it would go.</summary>
+            public Equipment.EquipmentDefinition PreviewItem;
+
             /// <summary>Runs on selection. Return true to keep the dialog open and refresh it, e.g. after a purchase.</summary>
             public Func<bool> OnChoose;
         }
@@ -113,6 +116,7 @@ namespace Pathfinder.Game.Presentation
             IsOpen = false;
             GameClock.Resume(this);
             ModalScreens.SetOpen(this, false);
+            EquipmentPreview.Clear(this);
             _canvas.gameObject.SetActive(false);
         }
 
@@ -161,6 +165,7 @@ namespace Pathfinder.Game.Presentation
                 return;
             for (int i = 0; i < _rows.Count; i++)
                 _rows[i].SetState(i == _selected, _options[i].Enabled);
+            EquipmentPreview.Show(this, _selected < _options.Count ? _options[_selected].PreviewItem : null);
             if (_scrollToSelection)
                 ScrollToSelection();
         }

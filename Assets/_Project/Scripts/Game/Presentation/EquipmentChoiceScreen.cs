@@ -152,6 +152,7 @@ namespace Pathfinder.Game.Presentation
             IsOpen = false;
             GameClock.Resume(this);
             ModalScreens.SetOpen(this, false);
+            EquipmentPreview.Clear(this);
             _canvas.gameObject.SetActive(false);
             var callback = _onClosed;
             _onClosed = null;
@@ -304,6 +305,7 @@ namespace Pathfinder.Game.Presentation
             UiKit.Text(background.transform, "Kind", Loc.T("choice.kind", ("rarity", RarityName(item.Rarity).ToUpperInvariant()), ("category", CategoryName(item.Category).ToUpperInvariant())),
                 18, RarityColor(item.Rarity), TextAnchor.UpperLeft, FontStyle.Bold);
             UiKit.Text(background.transform, "Status", status, 18, outcome == EquipOutcome.NeedsSwap ? UiKit.Gold : UiKit.Accent, TextAnchor.UpperLeft);
+            SlotPips(background.transform, item.Category, outcome);
             var description = UiKit.Text(background.transform, "Description", item.Describe(level), 22, UiKit.TextBody);
             UiKit.Layout(description, flexibleWidth: 1f).flexibleHeight = 1f;
 
@@ -319,6 +321,24 @@ namespace Pathfinder.Game.Presentation
         }
 
         static Color WithAlpha(Color color, float alpha) => new Color(color.r, color.g, color.b, alpha);
+
+        /// <summary>
+        /// The category's slots as dots, filled ones solid, in the colour that category has on the HUD's ship diagram: how
+        /// much room is left at a glance. All gold when the category is full and taking the item means a swap (playtest 7).
+        /// </summary>
+        void SlotPips(Transform card, EquipmentCategory category, EquipOutcome outcome)
+        {
+            var row = UiKit.Node("Slots", card);
+            UiKit.Horizontal(row, 7f, null, TextAnchor.MiddleLeft);
+            UiKit.Layout(row, preferredHeight: 20f);
+            int used = _ship.Equipment.In(category).Count, capacity = _ship.Equipment.Capacity(category);
+            var color = outcome == EquipOutcome.NeedsSwap ? UiKit.Gold : ShipSlotsView.CategoryColor(category);
+            for (int i = 0; i < capacity; i++)
+            {
+                var pip = UiKit.Image(row, "Slot", color, i < used ? UiKit.Circle : UiKit.Ring);
+                UiKit.Layout(pip, preferredWidth: 20f, preferredHeight: 20f);
+            }
+        }
 
         static void Centre(RectTransform rect, float size)
         {
@@ -380,11 +400,14 @@ namespace Pathfinder.Game.Presentation
                     _cardViews[i].Take.color = selected ? new Color(0.16f, 0.45f, 0.58f, 1f) : new Color(0.1f, 0.16f, 0.22f, 1f);
                 }
                 _skipRow.SetState(_selected == _options.Count, true);
+                EquipmentPreview.Show(this, _selected < _options.Count ? _options[_selected] : null);
             }
             else
             {
                 for (int i = 0; i < _swapRows.Count; i++)
                     _swapRows[i].SetState(i == _selected, true);
+                bool replacing = _selected < _swapRows.Count - 1; // the last row is Back / Cancel
+                EquipmentPreview.Show(this, _pending, replacing ? _selected : -1);
             }
         }
 
@@ -403,6 +426,7 @@ namespace Pathfinder.Game.Presentation
 
         void OnDisable()
         {
+            EquipmentPreview.Clear(this);
             if (IsOpen)
             {
                 IsOpen = false;

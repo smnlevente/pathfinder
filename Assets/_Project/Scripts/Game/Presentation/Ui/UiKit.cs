@@ -29,7 +29,7 @@ namespace Pathfinder.Game.Presentation.Ui
         public static readonly Color Gold = new Color(1f, 0.8f, 0.3f);
 
         static Font s_font;
-        static Sprite s_circle, s_ring, s_vignette;
+        static Sprite s_circle, s_ring, s_vignette, s_ship;
 
         public static Font Font => s_font != null ? s_font : s_font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
@@ -41,6 +41,12 @@ namespace Pathfinder.Game.Presentation.Ui
 
         /// <summary>Clear in the middle, opaque at the edges: a full-screen flash that leaves the action visible.</summary>
         public static Sprite Vignette => s_vignette != null ? s_vignette : s_vignette = MakeRadialSprite(128, d => Mathf.Clamp01((d - 0.55f) / 0.6f));
+
+        /// <summary>
+        /// The pilot's ship from above, nose up: a blue-grey hull and wings with cyan wingtips, cockpit and engine glow, like
+        /// the ship in the arena. For the HUD's slot diagram (playtest 7).
+        /// </summary>
+        public static Sprite Ship => s_ship != null ? s_ship : s_ship = MakeShipSprite(256);
 
         /// <summary>A screen-space overlay canvas that scales the 1920×1080 layout to fit any screen.</summary>
         public static Canvas Canvas(string name, Transform parent, int sortingOrder)
@@ -181,6 +187,59 @@ namespace Pathfinder.Game.Presentation.Ui
 
         /// <summary>Wraps text in a rich-text colour tag.</summary>
         public static string Colored(string text, Color color) => $"<color=#{Hex(color)}>{text}</color>";
+
+        static Sprite MakeShipSprite(int size)
+        {
+            var hull = new Color(0.45f, 0.53f, 0.74f);
+            var wing = new Color(0.36f, 0.44f, 0.65f);
+            var glow = new Color(0.45f, 1f, 0.95f);
+            // u, v span -1..1 across the sprite, nose up. Later parts paint over earlier ones.
+            Color Paint(float u, float v)
+            {
+                float au = Mathf.Abs(u);
+                var color = Color.clear;
+                if (v > -0.32f && v < 0.02f && au < 0.86f)
+                    color = wing;
+                if (au < 0.2f && v > -0.78f && v < 0.45f)
+                    color = hull;
+                if (v >= 0.45f && v < 0.95f && au < 0.2f * (0.95f - v) / 0.5f)
+                    color = hull;
+                if (au > 0.77f && au < 0.9f && v > -0.44f && v < 0.14f)
+                    color = glow;
+                if (u * u + (v - 0.22f) * (v - 0.22f) < 0.1f * 0.1f)
+                    color = glow;
+                if (au < 0.13f && v > -0.9f && v <= -0.78f)
+                    color = glow;
+                return color;
+            }
+
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, mipChain: false)
+            {
+                hideFlags = HideFlags.HideAndDontSave,
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+            };
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    // 2×2 samples per pixel, for smooth edges.
+                    var sum = Color.clear;
+                    for (int s = 0; s < 4; s++)
+                    {
+                        float u = (x + 0.25f + 0.5f * (s % 2)) / size * 2f - 1f, v = (y + 0.25f + 0.5f * (s / 2)) / size * 2f - 1f;
+                        var c = Paint(u, v);
+                        sum += new Color(c.r * c.a, c.g * c.a, c.b * c.a, c.a);
+                    }
+                    float a = sum.a / 4f;
+                    texture.SetPixel(x, y, a > 0f ? new Color(sum.r / sum.a, sum.g / sum.a, sum.b / sum.a, a) : Color.clear);
+                }
+            }
+            texture.Apply();
+            var sprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 100f);
+            sprite.hideFlags = HideFlags.HideAndDontSave;
+            return sprite;
+        }
 
         static Sprite MakeRadialSprite(int size, System.Func<float, float> alpha)
         {
