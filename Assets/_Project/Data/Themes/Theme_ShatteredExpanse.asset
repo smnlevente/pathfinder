@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60a962f7d7294034bad2659774fed2e7, type: 3}
+  m_Name: Theme_ShatteredExpanse
+  m_EditorClassIdentifier: 
+  id: theme.shattered-expanse
+  displayName: The Shattered Expanse
+  icon: {fileID: 0}
+  <FloorTint>k__BackingField: {r: 0.16, g: 0.36, b: 0.46, a: 1}
+  <WallColor>k__BackingField: {r: 0.3, g: 1.3, b: 2.2, a: 1}
+  <Background>k__BackingField: {r: 0.02, g: 0.02, b: 0.05, a: 1}

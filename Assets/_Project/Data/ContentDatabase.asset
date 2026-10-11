@@ -59,6 +59,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a7c956f67cef6194bb8c9d8a5929219e, type: 2}
   - {fileID: 11400000, guid: f59c5e6151e24fa408082018365bbd98, type: 2}
   - {fileID: 11400000, guid: 1d9958a9c25238c44a6878a574774047, type: 2}
+  - {fileID: 11400000, guid: 66fbc6add42534045b25c091d41a0a88, type: 2}
+  - {fileID: 11400000, guid: 6bb16228aae51ea4fa5bbd487091c378, type: 2}
   <MetaUpgrades>k__BackingField:
   - {fileID: 11400000, guid: 88f98723147a0f440a874aeb0cae9ae8, type: 2}
   - {fileID: 11400000, guid: c5a3c7ced10899a4bbf50cdda0ff7f9e, type: 2}

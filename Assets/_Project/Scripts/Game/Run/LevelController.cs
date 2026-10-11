@@ -62,6 +62,8 @@ namespace Pathfinder.Game.Run
         [SerializeField] ChoiceDialog dialog;
         [SerializeField] EquipmentChoiceScreen equipmentChoice;
         [SerializeField] ContentDatabase content;
+        [SerializeField, Tooltip("Optional: each galaxy's arena hazard in combat levels (M7).")] HazardDirector hazards;
+        [SerializeField, Tooltip("Optional: dresses the arena in each galaxy's look (M7).")] ArenaTheme theme;
 
         public sealed class CatalogItem
         {
@@ -170,6 +172,7 @@ namespace Pathfinder.Game.Run
             float scrapsDrop = context.IsEvent ? config.AmbushRewardMultiplier // drops only matter if the event turns into a fight
                 : RewardMultiplier * (context.Type == MapNodeType.Scraps ? config.ScrapsDropMultiplier : 1f);
             world.BeginLevel(context.Seed, RunConfig.ForGalaxy(config.GalaxyEnemyHealth, context.GalaxyIndex), scrapsDrop);
+            ShowGalaxy(context.GalaxyIndex);
 
             foreach (var player in CombatRegistry.Players)
             {
@@ -226,9 +229,20 @@ namespace Pathfinder.Game.Run
                     throw new ArgumentOutOfRangeException(nameof(context), $"Unsupported level type {context.Type}.");
             }
 
+            // Combat levels get the galaxy's hazard: asteroids, laser pylons or spore clouds (M7).
+            if (hazards != null && context.Type is MapNodeType.Scraps or MapNodeType.Equipment or MapNodeType.DarkMatter)
+                hazards.Begin(config.HazardsFor(context.GalaxyIndex), context.Seed.Derive("hazards"));
+
             ShowBanner(context.Ambush ? Loc.T("banner.ambush") : context.IsEvent ? Loc.T("banner.mystery")
                 : context.FromMystery ? Loc.T("banner.mystery_level", ("type", LevelNames.Title(context.Type))) : LevelNames.Title(context.Type));
             UpdateTexts();
+        }
+
+        /// <summary>Dresses the arena in a galaxy's look (M7). Also shown on the galaxy map, behind it.</summary>
+        public void ShowGalaxy(int galaxyIndex)
+        {
+            if (theme != null)
+                theme.Apply(config.ThemeFor(galaxyIndex));
         }
 
         /// <summary>Tears the level down. Leftover Scraps go to the collector.</summary>
@@ -239,6 +253,7 @@ namespace Pathfinder.Game.Run
             director.Completed -= OnEquipmentWavesCleared;
             director.Completed -= OnEventAmbushCleared;
             director.Stop();
+            hazards?.Stop();
 
             if (_cacheCarrier != null)
                 _cacheCarrier.Died -= OnCacheCarrierDied;

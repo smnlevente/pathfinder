@@ -76,6 +76,13 @@ namespace Pathfinder.Game.Run
         [field: SerializeField] public int[] SingularityCores { get; private set; } = { 1, 2, 3 };
         [field: SerializeField, Range(0f, 1f), Tooltip("Hull restored when a boss falls (M7: all of it).")] public float BossHealFraction { get; private set; } = 1f;
 
+        [field: Header("Galaxies (M7)")]
+        [field: SerializeField, Tooltip("Each galaxy's look: galaxy 1, 2, 3.")] public GalaxyThemeDefinition[] GalaxyThemes { get; private set; } = new GalaxyThemeDefinition[0];
+        [field: SerializeField, Tooltip("Each galaxy's arena hazard, in its combat levels: galaxy 1, 2, 3.")] public HazardSetup[] GalaxyHazards { get; private set; } = new HazardSetup[0];
+
+        public GalaxyThemeDefinition ThemeFor(int galaxyIndex) => ForGalaxy(GalaxyThemes, galaxyIndex);
+        public HazardSetup HazardsFor(int galaxyIndex) => ForGalaxy(GalaxyHazards, galaxyIndex);
+
         [field: Header("Objects")]
         [field: SerializeField] public GameObject ExitPrefab { get; private set; }
         [field: SerializeField, Tooltip("Played where the ship arrives at the start of each level.")] public GameObject ArrivalEffect { get; private set; }

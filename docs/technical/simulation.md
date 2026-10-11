@@ -236,6 +236,9 @@ stateDiagram-v2
   loads.
 - `RunDirector` drives the states above, plays the matching music, banks rewards into the profile and appends the run
   log.
+- `HazardDirector` puts the galaxy's arena hazard into combat levels (M7): hazard enemies (`IsHazard`: asteroids, laser
+  pylons) placed clear of the pilots, and drifting spore clouds it simulates itself. `RunConfig.GalaxyHazards` and
+  `GalaxyThemes` say which galaxy gets what.
 - `SurvivalController` runs the Survival scene instead ([GDD §3.2](../GDD.md#32-survival-mode)): the clock, an
   equipment choice every minute, a guardian every five (the clock holds while it lives), and banking when it ends.
   Its tuning is in `SurvivalConfig`.

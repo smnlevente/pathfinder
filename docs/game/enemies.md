@@ -111,6 +111,17 @@ eyes. 12 HP, 6.5 u/s, 8 contact damage. They chase in a weaving line and dart fo
 around you rather than marching at you. They drop nothing, and die with their queen. A full Swarm enemy roster for the
 Veil Nebula is planned.
 
+## Arena hazards
+
+Each galaxy's combat levels carry a hazard *(M7)*: they hurt, but they aren't enemies, and a level never waits for them.
+See [Run structure](run-structure.md#the-galaxies).
+
+| Hazard | Galaxy | Health | What it does |
+|---|---|---|---|
+| **Asteroid** | The Shattered Expanse | 30 | Drifts across the arena, bouncing off the walls; 12 damage on contact. Blocks shots. Breaks for a scrap (60%), and another drifts in 5 s later |
+| **Laser Pylon** | The Graveyard Drift | 120 | Sweeps a two-armed orange beam (7 u each way, 12 damage); powers down briefly every 6 s and flickers before powering up. Shoot it to switch it off (4 Scraps) |
+| Spore cloud | The Veil Nebula | n/a | Drifts slowly; inside, you're slowed to 60% and burn for 4 every 0.6 s |
+
 ## Elites
 
 Any enemy can roll as an **elite**: bigger (×1.2), with a **gold ring** under it, and it **always drops ×3 Scraps**.

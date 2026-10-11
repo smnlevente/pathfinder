@@ -349,6 +349,107 @@ namespace Pathfinder.Tests.PlayMode
             CollectionAssert.AreEqual(Run.Map.EntryNodes, Run.AvailableNodes);
         }
 
+        /// <summary>M7: each galaxy has its own look, and its combat levels its own hazard, which never holds up the waves.</summary>
+        [UnityTest]
+        public IEnumerator Galaxy_HasItsLookAndHazard_AndHazardsDontHoldUpTheWaves()
+        {
+            yield return LoadRun(29);
+            var theme = Object.FindAnyObjectByType<ArenaTheme>();
+            var hazards = Object.FindAnyObjectByType<HazardDirector>();
+            Assert.AreEqual("theme.shattered-expanse", theme.Current.Id, "Galaxy 1 has its own look, on the map too.");
+
+            _director.StartTestLevel(MapNodeType.Scraps);
+            yield return WaitTicks(2);
+            Assert.AreEqual(3, hazards.Hazards.Count, "Asteroids drift through galaxy 1's combat levels.");
+            Assert.That(hazards.Hazards.All(h => h.Definition.Id == "hazard.asteroid" && h.Definition.IsHazard));
+
+            // Kill only the real enemies: the waves end, and the exit opens, with the asteroids still drifting.
+            _player.GodMode = true;
+            float deadline = Time.realtimeSinceStartup + 40f;
+            while (!_level.ExitOpen && Time.realtimeSinceStartup < deadline)
+            {
+                foreach (var enemy in new List<Enemy>(CombatRegistry.Enemies))
+                {
+                    if (!enemy.Definition.IsHazard)
+                        enemy.ApplyDamage(new DamageInfo(1_000_000f, Team.Player, 0, enemy.Position, Vector2.up));
+                }
+                yield return new WaitForFixedUpdate();
+            }
+            Assert.IsTrue(_level.ExitOpen, "Hazards don't count as enemies left.");
+            Assert.That(hazards.Hazards.Any(h => h != null && h.IsAlive), "The hazards are still there.");
+
+            _level.DebugTakeExit();
+            yield return WaitUntil(() => _director.State == RunDirector.Phase.Map, 3f);
+            Assert.AreEqual(0, hazards.Hazards.Count, "Leaving the level clears them away.");
+        }
+
+        [UnityTest]
+        public IEnumerator LaserPylon_BeamHurts_AndSporeClouds_SlowAndBurn()
+        {
+            yield return LoadRun(30);
+            var hazards = Object.FindAnyObjectByType<HazardDirector>();
+            var config = _level.Config;
+            _director.StartTestLevel(MapNodeType.Repair); // a quiet arena: no waves
+            yield return WaitTicks(2);
+
+            hazards.Begin(config.HazardsFor(1), new Seed(5));
+            Assert.AreEqual(2, hazards.Hazards.Count, "Galaxy 2 has two laser pylons.");
+            var pylon = hazards.Hazards[0];
+            var brain = pylon.GetComponent<LaserPylonBrain>();
+            yield return WaitUntil(() => brain.BeamLive, 5f);
+            Assert.IsTrue(brain.BeamLive, "The beam powers up after its warning.");
+            bool hit = false;
+            void OnDamaged(CombatEntity entity, DamageInfo info, DamageResult result) => hit |= info.SourceId == pylon.EntityId;
+            _player.Damaged += OnDamaged;
+            for (int i = 0; i < 30 && !hit; i++)
+            {
+                var (from, to) = brain.BeamEnds(pylon);
+                _player.PlaceForLevel(Vector2.Lerp(pylon.Position, to, 0.6f)); // stand on the beam
+                yield return new WaitForFixedUpdate();
+            }
+            _player.Damaged -= OnDamaged;
+            Assert.IsTrue(hit, "The live beam hurts.");
+
+            hazards.Begin(config.HazardsFor(2), new Seed(6));
+            Assert.AreEqual(2, hazards.CloudCount, "Galaxy 3 has drifting spore clouds.");
+            float health = _player.Vitals.Hull + _player.Vitals.Shield;
+            for (int i = 0; i < 60; i++)
+            {
+                _player.PlaceForLevel(hazards.CloudPositions.First());
+                yield return new WaitForFixedUpdate();
+            }
+            Assert.IsTrue(_player.IsSlowed, "A spore cloud slows the ship...");
+            Assert.Less(_player.Vitals.Hull + _player.Vitals.Shield, health, "...and burns it.");
+            hazards.Stop();
+        }
+
+        /// <summary>Each galaxy's look and hazard, for visual review.</summary>
+        [UnityTest, Category("Screenshot")]
+        public IEnumerator CaptureGalaxies()
+        {
+            string directory = Screenshots.Directory();
+            yield return LoadRun(31);
+            var theme = Object.FindAnyObjectByType<ArenaTheme>();
+            var hazards = Object.FindAnyObjectByType<HazardDirector>();
+            _director.StartTestLevel(MapNodeType.Repair);
+            _player.GodMode = true;
+            yield return WaitTicks(2);
+            for (int galaxy = 0; galaxy < RunState.GalaxyCount; galaxy++)
+            {
+                theme.Apply(_level.Config.ThemeFor(galaxy));
+                hazards.Begin(_level.Config.HazardsFor(galaxy), new Seed(40UL + (ulong)galaxy));
+                // Stand near the galaxy's hazard, so it's in the picture.
+                Vector2 near = hazards.Hazards.Count > 0 ? hazards.Hazards[0].Position
+                    : hazards.CloudCount > 0 ? hazards.CloudPositions.First() : Vector2.zero;
+                _player.PlaceForLevel(_level.Config.PlayerEntry);
+                _player.Teleport(near + new Vector2(2.5f, -4f));
+                yield return WaitTicks(galaxy == 1 ? 140 : 40); // let the pylons power up
+                yield return null;
+                Screenshots.CaptureWithUi(System.IO.Path.Combine(directory, $"galaxy_{galaxy + 1}.png"));
+            }
+            hazards.Stop();
+        }
+
         /// <summary>M7: quit a run, and continue it from the Hub where it left off.</summary>
         [UnityTest]
         public IEnumerator SavedRun_ContinuesWhereItLeftOff()

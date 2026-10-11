@@ -202,7 +202,7 @@ namespace Pathfinder.Game.Enemies
         {
             foreach (var enemy in CombatRegistry.Enemies)
             {
-                if (enemy != null && enemy.IsAlive)
+                if (enemy != null && enemy.IsAlive && !enemy.Definition.IsHazard) // the galaxy's hazards don't count (M7)
                     return true;
             }
             return false;

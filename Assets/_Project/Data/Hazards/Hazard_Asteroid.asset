@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae6e65d0713742e48916ac139e5851dc, type: 3}
+  m_Name: Hazard_Asteroid
+  m_EditorClassIdentifier: 
+  id: hazard.asteroid
+  displayName: Asteroid
+  icon: {fileID: 0}
+  <MaxHealth>k__BackingField: 30
+  <MoveSpeed>k__BackingField: 2.2
+  <ContactDamage>k__BackingField: 12
+  <BudgetCost>k__BackingField: 1
+  <ScrapsDrop>k__BackingField: 1
+  <ScrapsDropChance>k__BackingField: 0.6
+  <KnockbackMultiplier>k__BackingField: 0.25
+  <Prefab>k__BackingField: {fileID: 5408769974330509207, guid: 921ba13caa229d040ac613f9b1ba7b5e, type: 3}
+  <IsHazard>k__BackingField: 1

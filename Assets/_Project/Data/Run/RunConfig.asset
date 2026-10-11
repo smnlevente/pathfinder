@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: run.config
   displayName: Run Config
+  icon: {fileID: 0}
   <PlayerEntry>k__BackingField: {x: 0, y: -14}
   <ExitPosition>k__BackingField: {x: 0, y: 14}
   <ExitRadius>k__BackingField: 1.6
@@ -66,6 +67,26 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f59c5e6151e24fa408082018365bbd98, type: 2}
   <SingularityCores>k__BackingField: 010000000200000003000000
   <BossHealFraction>k__BackingField: 1
+  <GalaxyThemes>k__BackingField:
+  - {fileID: 11400000, guid: 2faf6939176b1234084d78e7849b5b74, type: 2}
+  - {fileID: 11400000, guid: 2858c5b808c6327418fc60fca3b94d79, type: 2}
+  - {fileID: 11400000, guid: 0ffa12fff17a7b14992b18e298254a70, type: 2}
+  <GalaxyHazards>k__BackingField:
+  - Enemy: {fileID: 11400000, guid: 66fbc6add42534045b25c091d41a0a88, type: 2}
+    Count: 3
+    Respawn: 1
+    Clouds: 0
+    CloudPrefab: {fileID: 0}
+  - Enemy: {fileID: 11400000, guid: 6bb16228aae51ea4fa5bbd487091c378, type: 2}
+    Count: 2
+    Respawn: 0
+    Clouds: 0
+    CloudPrefab: {fileID: 0}
+  - Enemy: {fileID: 0}
+    Count: 0
+    Respawn: 0
+    Clouds: 2
+    CloudPrefab: {fileID: 114397338577308049, guid: c63d20ee3c4ee6242873821b63dc6771, type: 3}
   <ExitPrefab>k__BackingField: {fileID: 1460294685376848309, guid: b74a5534ce7f41c4abed1503ef20fd83, type: 3}
   <ArrivalEffect>k__BackingField: {fileID: 2178330559369581766, guid: 86ee05afba5bc294d8629469c3c649e9, type: 3}
   <DarkMatterNodePrefab>k__BackingField: {fileID: 3926833002581884884, guid: 176b6fd5cb18502419f06cca0d8da08e, type: 3}

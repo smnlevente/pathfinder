@@ -29,10 +29,11 @@ namespace Pathfinder.Editor.Setup
 
         static Art BuildArt()
         {
+            // Neutral: white lines on dark grey. The floor material's colour (each galaxy's theme, M7) tints it.
             var grid = CreateTexture("T_Grid", 128, (x, y) =>
             {
                 bool line = x < 3 || y < 3;
-                return line ? new Color(0.16f, 0.36f, 0.46f) : new Color(0.05f, 0.06f, 0.09f);
+                return line ? Color.white : new Color(0.22f, 0.2f, 0.22f);
             }, TextureWrapMode.Repeat, alphaIsTransparency: false);
             var dot = RadialTexture("T_SoftDot", 64, d => (1f - d) * (1f - d) * (d < 1f ? 1f : 0f));
             var ring = RadialTexture("T_Ring", 128, d => Mathf.Exp(-Mathf.Pow((d - 0.88f) / 0.06f, 2f)));
@@ -73,7 +74,7 @@ namespace Pathfinder.Editor.Setup
             {
                 Floor = Material("M_ArenaFloor", LitShader, m =>
                 {
-                    m.SetColor("_BaseColor", Color.white);
+                    m.SetColor("_BaseColor", new Color(0.16f, 0.36f, 0.46f)); // the Shattered Expanse's blue; galaxy themes override it
                     m.SetTexture("_BaseMap", grid);
                     m.SetTextureScale("_BaseMap", ArenaSize / 2f);   // one grid cell = 2 × 2 units
                     m.SetFloat("_Smoothness", 0.55f);

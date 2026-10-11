@@ -218,7 +218,8 @@ namespace Pathfinder.Game.Run
 
         void EnterMap()
         {
-            // The map is a menu: the simulation holds still behind it.
+            // The map is a menu: the simulation holds still behind it, in the galaxy's own look.
+            level.ShowGalaxy(Run.GalaxyIndex);
             GameClock.Pause(this);
             SetPhase(Phase.Map);
             // Between levels is where a run is saved, so it can be continued after quitting (M7).

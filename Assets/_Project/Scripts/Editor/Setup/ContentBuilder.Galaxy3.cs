@@ -18,6 +18,7 @@ namespace Pathfinder.Editor.Setup
         sealed class Matriarch
         {
             public EnemyDefinition Boss, Broodling;
+            public GameObject SporeMark, SporeCloud, SporeBurst;
         }
 
         static Matriarch BuildHiveMatriarch(Art art)
@@ -108,7 +109,7 @@ namespace Pathfinder.Editor.Setup
 
             SetIfEmpty(broodling, ("Prefab", BuildBroodling(art, broodling, swarmGlow)));
             SetIfEmpty(boss, ("Prefab", BuildMatriarchBody(art, boss, broodling, swarmGlow, markPrefab, cloudPrefab, burstPrefab, pulsePrefab)));
-            return new Matriarch { Boss = boss, Broodling = broodling };
+            return new Matriarch { Boss = boss, Broodling = broodling, SporeMark = markPrefab, SporeCloud = cloudPrefab, SporeBurst = burstPrefab };
         }
 
         /// <summary>A circle drawn as a looping line on the floor, its points set by the component that owns it.</summary>

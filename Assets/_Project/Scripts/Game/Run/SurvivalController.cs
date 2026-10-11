@@ -43,6 +43,8 @@ namespace Pathfinder.Game.Run
         [SerializeField, Tooltip("The guardians, their health by galaxy, cores and the boss heal.")] RunConfig runConfig;
         [SerializeField] EquipmentChoiceScreen equipmentChoice;
         [SerializeField] ContentDatabase content;
+        [SerializeField, Tooltip("Optional: the current tier's galaxy hazard (M7).")] HazardDirector hazards;
+        [SerializeField, Tooltip("Optional: dresses the arena in the current tier's galaxy look (M7).")] ArenaTheme theme;
 
         IRandom _lootRandom;
         float _nextUpgrade;
@@ -104,6 +106,7 @@ namespace Pathfinder.Game.Run
             world.BeginLevel(seed, config.EnemyHealthAt(0f), 1f);
             director.Begin(seed, 0, 1, 0, firstWaveDelay: 2f, keepToGalaxy: true);
             ApplyPressure();
+            EnterTier(seed);
 
             world.AllPlayersDown += OnAllPlayersDown;
             CombatEvents.Damaged += OnAnyDamaged;
@@ -183,6 +186,14 @@ namespace Pathfinder.Game.Run
                 _nextUpgrade += config.UpgradeInterval;
                 OfferUpgrade(Loc.T("choice.survival_upgrade"), Rarity.Common);
             }
+        }
+
+        /// <summary>The tier's galaxy look and hazard (M7).</summary>
+        void EnterTier(Seed seed)
+        {
+            if (theme != null)
+                theme.Apply(runConfig.ThemeFor(Tier));
+            hazards?.Begin(runConfig.HazardsFor(Tier), seed.Derive("hazards"));
         }
 
         /// <summary>Dark Matter for every whole minute on the clock, more in later tiers.</summary>
@@ -299,6 +310,7 @@ namespace Pathfinder.Game.Run
             State = Phase.Fighting;
             director.SetGalaxy(Tier);
             ApplyPressure();
+            EnterTier(Run.Seed.Derive("survival").Derive(Tier));
             GameAudio.PlayMusic(SoundLibrary.ForGalaxy(Tier));
             _rewardDelay = RewardDelay;
         }
@@ -310,6 +322,7 @@ namespace Pathfinder.Game.Run
         {
             State = Phase.Won;
             director.Stop();
+            hazards?.Stop();
             foreach (var enemy in new List<Enemy>(CombatRegistry.Enemies))
             {
                 if (enemy != null && enemy.IsAlive)

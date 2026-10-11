@@ -130,6 +130,19 @@ namespace Pathfinder.Editor.Setup
             var pause = GetOrAdd<PauseMenu>(flow.gameObject);
             var debug = FindOrCreate<DebugHotkeys>("Dev Tools");
 
+            // Each galaxy's look and arena hazard (M7), in the run and in Survival.
+            ArenaTheme theme = null;
+            HazardDirector hazards = null;
+            if (kind != CombatScene.Sandbox)
+            {
+                var arenaRoot = GameObject.Find("Arena");
+                theme = GetOrAdd<ArenaTheme>(arenaRoot);
+                var floorRenderer = floor != null ? floor.GetComponent<Renderer>() : null;
+                SetFields(theme, ("floor", floorRenderer), ("walls", (Object[])arenaRoot.GetComponentsInChildren<Renderer>()), ("view", Camera.main));
+                hazards = FindOrCreate<HazardDirector>("Hazard Director");
+                SetFields(hazards, ("world", world));
+            }
+
             RunDirector runDirector = null;
             LevelController level = null;
             ChoiceDialog dialog = null;
@@ -141,7 +154,7 @@ namespace Pathfinder.Editor.Setup
                 var mapScreen = GetOrAdd<GalaxyMapScreen>(runDirector.gameObject);
 
                 SetFields(level, ("world", world), ("director", director), ("config", Load<RunConfig>(assets.RunConfig)), ("dialog", dialog),
-                    ("equipmentChoice", equipmentChoice), ("content", database));
+                    ("equipmentChoice", equipmentChoice), ("content", database), ("hazards", hazards), ("theme", theme));
                 SetFields(runDirector, ("world", world), ("level", level));
                 SetFields(mapScreen, ("director", runDirector), ("icons", Load<GameIcons>(assets.Icons)));
                 foreach (var component in new Component[] { runDirector, level, mapScreen })
@@ -153,7 +166,8 @@ namespace Pathfinder.Editor.Setup
             {
                 survival = FindOrCreate<SurvivalController>("Survival");
                 SetFields(survival, ("world", world), ("director", director), ("config", Load<SurvivalConfig>(assets.SurvivalConfig)),
-                    ("runConfig", Load<RunConfig>(assets.RunConfig)), ("equipmentChoice", equipmentChoice), ("content", database));
+                    ("runConfig", Load<RunConfig>(assets.RunConfig)), ("equipmentChoice", equipmentChoice), ("content", database),
+                    ("hazards", hazards), ("theme", theme));
                 RequireReferences(survival);
             }
 

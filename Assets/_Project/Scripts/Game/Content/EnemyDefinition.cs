@@ -18,5 +18,7 @@ namespace Pathfinder.Game.Content
         [field: SerializeField, Range(0f, 1f)] public float ScrapsDropChance { get; private set; } = 0.5f;
         [field: SerializeField, Range(0f, 1f), Tooltip("How far knockback moves it: 1 = fully, 0 = immovable.")] public float KnockbackMultiplier { get; private set; } = 1f;
         [field: SerializeField] public Enemy Prefab { get; private set; }
+        [field: SerializeField, Tooltip("An arena hazard rather than an enemy (an asteroid, a laser pylon): it never holds up a level's waves (M7).")]
+        public bool IsHazard { get; private set; }
     }
 }

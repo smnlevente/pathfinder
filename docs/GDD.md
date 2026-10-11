@@ -222,6 +222,12 @@ Secondary weapons are cooldown-based burst tools that deal much more damage than
 - A level is a **bounded arena**, about 2–3 screens in area (e.g. 60 × 40 u). The camera is top-down, follows the player smoothly with a slight lead toward the aim direction, and is clamped to the arena bounds.
 - Arenas are built from **handcrafted layout templates** for each theme (walls, chokepoints, spawn zones). **Procedural placement** fills in obstacles, hazards, spawn points and pickups. Fully procedural layouts are post-slice.
 - Theme hazards: drifting asteroids that deal contact damage and can be destroyed (Expanse), electrified debris and rotating laser grids (Graveyard), and spore clouds that slow and drain shield (Veil).
+- *Built in M7:* **each galaxy has its own look** (`GalaxyThemeDefinition`): the colour of the floor's grid, the walls and the space behind: cold blue for the Shattered Expanse, rust and amber for the Graveyard Drift, violet for the Veil Nebula. It shows on the galaxy map as well as in levels, and in Survival per tier. **Each galaxy's combat levels (Scraps, Equipment, Dark Matter) carry its hazard** (`HazardDirector`):
+  - **Expanse: 3 drifting asteroids** (30 HP, 12 contact damage, 2.2 u/s), bouncing off the walls and tumbling. They block shots, so they're cover too, and break for a scrap (60%); a broken one drifts back in from an edge 5 s later.
+  - **Graveyard: 2 laser pylons** (120 HP, 4 Scraps), each sweeping a two-armed hazard-orange beam (7 u per arm, 32°/s, 12 damage on contact). Every 6 s it powers down for 1.2 s, and flickers as a thin line for 1 s before it comes back. Shoot a pylon to switch it off for good.
+  - **Veil: 2 drifting spore clouds** (2.6 u), bouncing off the walls; inside, the ship is slowed to 60% and burns for 4 every 0.6 s.
+
+  Hazards never hold up a level's waves (`EnemyDefinition.IsHazard`), never land on a pilot, and go when the level ends. Boss, Shop, Repair and event levels have none. Hazard enemies are neutral rock and dead-station orange rather than enemy red.
 
 ### 7.2 Wave director
 Enemy spawns are driven by a **budget**:
