@@ -22,6 +22,7 @@ namespace Pathfinder.Tests.Game
                 ["Quarry Maw"] = Prefab("boss.quarry-maw").GetComponent<QuarryMawBrain>().BulletPrefab,
                 ["Binary Wardens"] = Prefab("boss.binary-wardens").GetComponent<WardenBrain>().BulletPrefab,
                 ["Hive Matriarch"] = Prefab("boss.hive-matriarch").GetComponent<MatriarchBrain>().BulletPrefab,
+                ["Spitter"] = Prefab("enemy.spitter").GetComponent<SpitterBrain>().BulletPrefab,
             };
 
             var seen = new HashSet<GameObject>();

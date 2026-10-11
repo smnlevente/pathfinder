@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: waves.shattered-expanse
   displayName: The Shattered Expanse
+  icon: {fileID: 0}
   <Enemies>k__BackingField:
   - Enemy: {fileID: 11400000, guid: ec5933fb65d6e1c4b98b2b7d0c0b3206, type: 2}
     Weight: 5
@@ -47,6 +48,18 @@ MonoBehaviour:
     Weight: 1.5
     MinWave: 2
     MinGalaxy: 1
+  - Enemy: {fileID: 11400000, guid: d74a12a8c4a5bbf469f1bc5280ee9c82, type: 2}
+    Weight: 2.5
+    MinWave: 1
+    MinGalaxy: 2
+  - Enemy: {fileID: 11400000, guid: e79876fa402bf0346b094c66b7f23430, type: 2}
+    Weight: 2
+    MinWave: 1
+    MinGalaxy: 2
+  - Enemy: {fileID: 11400000, guid: b93dd772f7d2bf24491d73b0c5d3c60d, type: 2}
+    Weight: 2
+    MinWave: 2
+    MinGalaxy: 2
   <Elites>k__BackingField:
   - {fileID: 11400000, guid: 699e8ed91a1215a47812d97152f3d47a, type: 2}
   - {fileID: 11400000, guid: 34ddf20325bac3147a55110305b1656e, type: 2}

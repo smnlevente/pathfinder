@@ -13,7 +13,8 @@ the third boss and humanity has a new home. ([GDD §9–§10](../GDD.md#9-run-st
 | 2 | The Graveyard Drift | [The Binary Wardens](bosses.md#the-binary-wardens) | ×1.6 | ×1.4 | 2 Cores |
 | 3 | The Veil Nebula | [The Hive Matriarch](bosses.md#the-hive-matriarch) | ×2.4 | ×1.8 | 3 Cores |
 
-From galaxy 2 the **Scorcher**, **Arc Drone** and **Crusher** join the enemy mix.
+From galaxy 2 the **Scorcher**, **Arc Drone** and **Crusher** join the enemy mix, and from galaxy 3 the Swarm's
+**Spore Drifter**, **Stinger** and **Spitter** *(M7)*.
 
 **Each galaxy looks and plays a little different** *(M7)*. The arena takes the galaxy's colours (cold blue, rust and
 amber, violet), and its combat levels carry the galaxy's hazard:

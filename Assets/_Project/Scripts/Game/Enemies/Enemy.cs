@@ -69,6 +69,9 @@ namespace Pathfinder.Game.Enemies
         Vitals _vitals;
         EnemyBrain _brain;
         CombatWorld _world;
+
+        /// <summary>The world it was spawned into.</summary>
+        public CombatWorld World => _world;
         IRandom _lootRandom;
         bool _dropsLoot;
         float _contactCooldown;

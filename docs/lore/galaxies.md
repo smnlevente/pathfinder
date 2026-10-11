@@ -50,9 +50,9 @@ grow there, and the space itself seems to breathe. This is the home of **the Swa
 clouds with spores that choke an engine and eat a shield, and when cornered she blooms: the whole nebula pulses outward
 from her in rings of living light. Her final cry is the last thing between humanity and its new home.
 
-> [!NOTE]
-> The Veil Nebula's own look and Swarm enemy roster are still to come; for now its levels use the shared arena and
-> enemy mix, and its guardian is the Matriarch.
+In the game *(M7)*, the Veil Nebula's arenas glow violet, spore clouds drift through them, and the Swarm's own
+creatures join the fight: Spore Drifters that burst into spores, Stingers that circle and dart, and Spitters that lob
+seed globs.
 
 ## New Home
 

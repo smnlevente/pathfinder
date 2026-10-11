@@ -26,6 +26,9 @@ rocks, the Binary Wardens' crystal shards and the Hive Matriarch's green-glowing
 | [Scorcher](#scorcher) | Galaxy 2 | 45 | 3.2 | 3 | Flamethrower cone up close | Stay out of the cone; hit it during the cooldown |
 | [Arc Drone](#arc-drone) | Galaxy 2 | 20 | 5 | 2 | Instant zap along a locked line | Step off the line, or dash through |
 | [Crusher](#crusher) | Galaxy 2, wave 2 | 110 | 2.8 | 4 | A lunging slam if it reaches you | Move away the moment its ring appears; shoot it while it recovers |
+| [Spore Drifter](#spore-drifter) | Galaxy 3 | 35 | 2.2 | 2 | Bursts into a spore cloud when killed | Pop it at range; step out of the cloud |
+| [Stinger](#stinger) | Galaxy 3 | 22 | 6.5 | 2 | Circles you, then darts through you | Step off the chevron lane; it's fragile |
+| [Spitter](#spitter) | Galaxy 3, wave 2 | 40 | 2.4 | 3 | Lobbed globs that burst into thorns | Leave the landing mark; close in on it |
 
 Speeds are in units per second (the ship flies at 8). Cost is the wave director's budget price.
 
@@ -108,8 +111,38 @@ for 1 s.
 
 Born by the [Hive Matriarch](bosses.md#the-hive-matriarch) in broods of five: small crimson grubs with glowing green
 eyes. 12 HP, 6.5 u/s, 8 contact damage. They chase in a weaving line and dart forward now and then, so a brood flows
-around you rather than marching at you. They drop nothing, and die with their queen. A full Swarm enemy roster for the
-Veil Nebula is planned.
+around you rather than marching at you. They drop nothing, and die with their queen.
+
+From galaxy 3, the Veil Nebula, three Swarm creatures join the waves *(M7)*. Crimson bodies with the Swarm's green glow,
+like the brood.
+
+### Spore Drifter
+
+A swollen spore sac, breathing slowly, studded with glowing green pustules. 35 HP, 2.2 u/s, 10 contact damage. It floats
+after you on a lazy sideways sway, and when it dies it **bursts into a spore cloud** (2.2 u, 5 s): inside, you're slowed
+to 60% and burn for 4 every 0.5 s.
+
+> Pop it before it reaches you. Shot down up close, it leaves its cloud on top of you.
+
+### Stinger
+
+A slim insect on buzzing wings, with a green sting out front. 22 HP, 6.5 u/s, 9 contact damage. It **circles you** at
+about 6 u, then stops short for 0.6 s behind a **chevron lane** through you and past you, and **darts** along it at
+22 u/s, stinging harder than a touch. Then it rests for a moment.
+
+> It comes from the side, not head-on. Watch for the lane and step off it; one or two hits bring it down.
+
+### Spitter
+
+<img src="../images/spitter-glob.png" width="49%" alt="A Spitter's seed glob arcing in over its green landing mark around the ship, a Stinger's chevron lane through it, and a Spore Drifter's cloud nearby"> <img src="../images/spitter-thorns.png" width="49%" alt="The glob burst into a ring of thorns flying outward from the mark's edge">
+
+A squat pod on short legs, with its mouth tipped up and a green sac on its back. 40 HP, 2.4 u/s, 8 contact damage. It
+keeps about 10 u away and, every few seconds, its sac swells and it **lobs a seed glob** at where you are. A landing
+mark fills in while a ring closes in on it; the glob hits for 12 if you're still under it, and **bursts into a ring of
+6 thorns** flying outward.
+
+> Leave the mark the moment it appears, and keep clear of its edge as the thorns fly out. Then close in: it's slow,
+> and a glob still in the air when it dies falls harmlessly.
 
 ## Arena hazards
 
@@ -155,6 +188,9 @@ and Volatile elites are planned.
 | Scorcher | 2 | 80% |
 | Arc Drone | 1 | 70% |
 | Crusher | 4 | 90% |
+| Spore Drifter | 1 | 70% |
+| Stinger | 1 | 70% |
+| Spitter | 2 | 80% |
 | Elites | ×3 | always |
 
 Scraps settle on the floor, fly to the ship inside its magnet radius and blink out after 10 s. When a fight is won,

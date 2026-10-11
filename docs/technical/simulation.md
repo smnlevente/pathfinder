@@ -157,6 +157,13 @@ target, visual scale, damage kind, quiet and growth.
 before they expire, and are collected by the authority. **Vacuum** mode (set when a fight is won) ignores the radius
 and lifetime and pulls every Scrap to the nearest ship.
 
+## Floor clouds
+
+`CloudSystem` (M7) holds clouds that enemies leave on the floor, such as the Spore Drifter's death cloud. They sit still
+for a while; a ship inside is slowed, and every 0.5 s burns for the strongest cloud it's in, so overlapping clouds don't
+stack. The world owns them, so a cloud outlives the enemy that left it, and `ClearLevel` removes them. It runs after
+pickups in the tick. Spawn one with `world.Clouds.Spawn(new CloudSpawn(...))`.
+
 ## The player ship
 
 Each tick `PlayerShip.Simulate` reads a `ShipCommand` from its `CommandSource`: move, aim, fire primary, fire

@@ -38,6 +38,9 @@ namespace Pathfinder.Game.Combat
         public ProjectileSystem Projectiles { get; private set; }
         public PickupSystem Pickups { get; private set; }
 
+        /// <summary>Clouds enemies leave on the floor (M7).</summary>
+        public CloudSystem Clouds { get; private set; }
+
         /// <summary>Number of simulation ticks completed.</summary>
         public int Tick { get; private set; }
 
@@ -80,6 +83,10 @@ namespace Pathfinder.Game.Combat
             var pickupRoot = new GameObject("Pickups").transform;
             pickupRoot.SetParent(transform, false);
             Pickups = new PickupSystem(pickupRoot, scrapPickupPrefab);
+
+            var cloudRoot = new GameObject("Clouds").transform;
+            cloudRoot.SetParent(transform, false);
+            Clouds = new CloudSystem(cloudRoot);
         }
 
         void FixedUpdate()
@@ -108,6 +115,7 @@ namespace Pathfinder.Game.Combat
 
             Projectiles.Simulate(deltaTime, this);
             Pickups.Simulate(deltaTime, this);
+            Clouds.Simulate(deltaTime);
             Tick++;
 
             if (!IsOver && CombatRegistry.Players.Count > 0 && !CombatRegistry.AnyPlayerAlive())
@@ -166,6 +174,7 @@ namespace Pathfinder.Game.Combat
                 enemy.Despawn();
 
             Projectiles.Clear();
+            Clouds.Clear();
             if (collector != null)
                 Pickups.CollectAll(collector);
             Pickups.Clear();

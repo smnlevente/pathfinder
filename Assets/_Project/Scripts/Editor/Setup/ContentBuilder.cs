@@ -84,8 +84,9 @@ namespace Pathfinder.Editor.Setup
             var matriarch = BuildHiveMatriarch(art);
             AssignGalaxyBosses(runConfig, quarryMaw, wardens.Alpha, matriarch.Boss);
             var galaxies = BuildGalaxyIdentity(art, runConfig, matriarch.SporeCloud);
+            var swarm = BuildSwarmEnemies(art, matriarch, data.Waves);
             var equipment = BuildEquipment(art, data, new[] { quarryMaw, wardens.Alpha, wardens.Beta, matriarch.Boss, matriarch.Broodling,
-                galaxies.Asteroid, galaxies.LaserPylon });
+                galaxies.Asteroid, galaxies.LaserPylon, swarm.SporeDrifter, swarm.Stinger, swarm.Spitter });
             var audio = BuildAudio();
 
             TunePostProcessing();

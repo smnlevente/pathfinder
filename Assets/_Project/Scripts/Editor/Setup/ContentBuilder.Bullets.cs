@@ -47,6 +47,13 @@ namespace Pathfinder.Editor.Setup
                 float r = Mathf.Sqrt(u * u + v * v), forward = r > 1e-4f ? Mathf.Max(0f, v / r) : 0f;
                 return r - (0.55f + 0.4f * forward * forward);
             });
+            // Spitter: a thorn, a fat round back drawn out to a long sharp point.
+            var thorn = BulletShape("T_ShotThorn", (u, v) =>
+            {
+                float back = Mathf.Sqrt(u * u + (v + 0.45f) * (v + 0.45f)) - 0.42f;
+                float spike = Rhombus(u, v - 0.05f, 0.4f, 0.92f);
+                return Mathf.Min(back, Mathf.Max(spike, -(v + 0.45f)));
+            });
 
             var body = art.EnemyBulletBody.GetColor("_BaseColor");
             var core = new Color(2.2f, 1.7f, 2.2f);
@@ -58,6 +65,8 @@ namespace Pathfinder.Editor.Setup
                 new Vector2(0.56f, 0.92f), Blended("M_FX_ShotShardHalo", new Color(0.85f, 0.25f, 1.6f, 0.55f), dot), 1.2f, flicker: true);
             art.MatriarchShot = Shot("PV_MatriarchSeed", art, Blended("M_FX_ShotSeed", body, seed), Additive("M_FX_ShotSeedCore", core, seed),
                 new Vector2(0.58f, 0.72f), Blended("M_FX_ShotSeedHalo", new Color(0.4f, 1.6f, 0.3f, 0.5f), dot), 1.15f, pulse: true);
+            art.SpitterShot = Shot("PV_SpitterThorn", art, Blended("M_FX_ShotThorn", body, thorn), Additive("M_FX_ShotThornCore", core, thorn),
+                new Vector2(0.46f, 0.82f), Blended("M_FX_ShotThornHalo", new Color(0.4f, 1.6f, 0.3f, 0.45f), dot), 1f);
             art.MawShot = Rock(art);
         }
 

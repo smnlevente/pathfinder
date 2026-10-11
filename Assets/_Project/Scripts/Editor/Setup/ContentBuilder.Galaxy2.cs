@@ -240,11 +240,14 @@ namespace Pathfinder.Editor.Setup
         }
 
         /// <summary>Wave configs made before galaxy 2's enemies get them added once, from galaxy 2 on.</summary>
-        static void AddGalaxyTwoEnemies(Data data)
+        static void AddGalaxyTwoEnemies(Data data) => AddWaveEntries(data.Waves, GalaxyTwoPool(data));
+
+        /// <summary>Adds each enemy to the wave pool once; entries already there (and their tuning) are left alone.</summary>
+        static void AddWaveEntries(WaveDirectorConfig waves, (EnemyDefinition enemy, float weight, int minWave, int minGalaxy)[] pool)
         {
-            var so = new SerializedObject(data.Waves);
+            var so = new SerializedObject(waves);
             var entries = so.FindProperty("<Enemies>k__BackingField");
-            foreach (var (enemy, weight, minWave, minGalaxy) in GalaxyTwoPool(data))
+            foreach (var (enemy, weight, minWave, minGalaxy) in pool)
             {
                 bool present = false;
                 for (int i = 0; i < entries.arraySize; i++)

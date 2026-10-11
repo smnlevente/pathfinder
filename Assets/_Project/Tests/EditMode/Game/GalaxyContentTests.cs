@@ -41,6 +41,18 @@ namespace Pathfinder.Tests.Game
         }
 
         [Test]
+        public void ShippedWavePool_HasTheSwarmFromGalaxyThree()
+        {
+            var waves = AssetDatabase.LoadAssetAtPath<WaveDirectorConfig>(WavesPath);
+            foreach (string id in new[] { "enemy.spore-drifter", "enemy.stinger", "enemy.spitter" })
+            {
+                var entry = waves.Enemies.SingleOrDefault(e => e.Enemy != null && e.Enemy.Id == id);
+                Assert.IsNotNull(entry.Enemy, $"{id} is in the wave pool.");
+                Assert.AreEqual(2, entry.MinGalaxy, $"{id} starts in galaxy 3, the Veil Nebula.");
+            }
+        }
+
+        [Test]
         public void EachGalaxy_HasItsBoss()
         {
             var run = AssetDatabase.LoadAssetAtPath<RunConfig>(RunConfigPath);
