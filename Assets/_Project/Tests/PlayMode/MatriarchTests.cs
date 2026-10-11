@@ -26,24 +26,46 @@ namespace Pathfinder.Tests.PlayMode
             yield return WaitTicks(2);
         }
 
+        IEnumerator WaitOnlySpores(int ticks, System.Func<bool> until = null)
+        {
+            for (int i = 0; i < ticks && (until == null || !until()); i++)
+            {
+                World.Projectiles.Clear();
+                foreach (var enemy in CombatRegistry.Enemies.ToList())
+                {
+                    if (enemy != _boss && enemy.IsAlive)
+                        Kill(enemy);
+                }
+                yield return new WaitForFixedUpdate();
+            }
+        }
+
         void Hit(float amount) => _boss.ApplyDamage(new DamageInfo(amount, Team.Player, 0, _boss.Position, Vector2.up));
 
         [UnityTest]
-        public IEnumerator Brood_BirthsBroodlings_AndSporesSlowAndDrain()
+        public IEnumerator Brood_BirthsBroodlings_AndSporesBurstBurnAndSlow()
         {
-            yield return SpawnMatriarch();
+            yield return SpawnMatriarch(godMode: false);
+            Player.Reinforce(5000f); // takes her stream and brood without dying; only the spore hits are counted below
+            Player.Heal(5000f);
+            int sporeHits = 0;
+            Player.Damaged += (entity, info, result) => sporeHits += info.SourceId == _boss.EntityId && info.Kind == DamageKind.Contact ? 1 : 0;
             Assert.AreEqual(MatriarchBrain.Phase.Brood, _brain.CurrentPhase);
             Assert.IsTrue(_brain.HeartOpen && !_boss.Armoured, "Drifting, her heart is open.");
 
             yield return WaitUntilTicks(() => _brain.LivingBrood > 0, 300);
             Assert.Greater(_brain.LivingBrood, 0, "She births Broodlings.");
 
-            yield return WaitUntilTicks(() => _brain.LandedSpores.Any(), 400);
+            // From here on only the spores may hurt the ship: her bullets and brood are cleared away each tick.
+            yield return WaitOnlySpores(400, () => _brain.LandedSpores.Any());
             Assert.IsTrue(_brain.LandedSpores.Any(), "Her spore pods land and become clouds.");
             Assert.Less(Vector2.Distance(_brain.LandedSpores.First(), Player.Position), 1f, "A pod lands where the ship was.");
-            yield return WaitTicks(10);
+            Assert.GreaterOrEqual(sporeHits, 1, "A pod that bursts on the ship hurts it (playtest 7: spores seemed to do nothing).");
+
+            int afterBurst = sporeHits;
+            yield return WaitOnlySpores(70);
             Assert.IsTrue(Player.IsSlowed, "A spore cloud slows the ship.");
-            Assert.Less(Player.Vitals.Shield, Player.Vitals.MaxShield, "...and drains its shield.");
+            Assert.Greater(sporeHits, afterBurst, "...and burns it while it stays inside.");
         }
 
         [UnityTest]
@@ -55,9 +77,12 @@ namespace Pathfinder.Tests.PlayMode
             var telegraph = (IChargeTelegraph)_brain;
             yield return WaitUntilTicks(() => telegraph.ShowsCharge, 120);
             Assert.IsTrue(telegraph.ShowsCharge, "Each charge shows its lane first.");
+            Assert.IsTrue(_brain.HeartOpen && !_boss.Armoured, "Her heart stays open while she lines the charge up (playtest 7).");
+
+            yield return WaitUntilTicks(() => !telegraph.ShowsCharge, 120);
             Assert.IsTrue(_boss.Armoured, "Her heart shuts while she charges.");
 
-            yield return WaitUntilTicks(() => _brain.HeartOpen, 600);
+            yield return WaitUntilTicks(() => _brain.HeartOpen && !telegraph.ShowsCharge, 600);
             Assert.IsTrue(_brain.HeartOpen && !_boss.Armoured, "After a volley she rests, heart open.");
         }
 
@@ -132,6 +157,11 @@ namespace Pathfinder.Tests.PlayMode
             yield return WaitTicks(20);
             yield return null;
             Screenshots.CaptureCamera(System.IO.Path.Combine(directory, "matriarch_brood.png"));
+
+            // A pod in flight, its landing circle filling in.
+            yield return WaitUntilTicks(() => _brain.HasIncomingSpore(0.6f), 400);
+            yield return null;
+            Screenshots.CaptureCamera(System.IO.Path.Combine(directory, "matriarch_spore_incoming.png"));
 
             Hit(_boss.Vitals.MaxHull * 0.4f);
             var telegraph = (IChargeTelegraph)_brain;

@@ -10,7 +10,7 @@ hull** and offers a **Rare-or-better item**. Then the wormhole pulls you into th
 |---|---|---|
 | 1 | [The Quarry Maw](#the-quarry-maw) | Its shell deflects everything: hit the yellow crystals, and its maw when it opens |
 | 2 | [The Binary Wardens](#the-binary-wardens) | Two cores; one alone only reboots. Wear both down and finish them together |
-| 3 | [The Hive Matriarch](#the-hive-matriarch) | Shoot her heart while it glows, keep out of the spores, dash through her bloom rings |
+| 3 | [The Hive Matriarch](#the-hive-matriarch) | Shoot the yellow heart on her back, get out of the green spore circles, dash through her bloom rings |
 
 Every boss fight opens with a one-line hint on how to hurt it. When a boss dies, **every enemy bullet in the air turns
 harmless** and fades out, so a stray shot can't kill you after you've won.
@@ -107,8 +107,12 @@ she roars, charges or gathers a pulse**. Her creatures and hazards glow toxic gr
 
 - She drifts along the top of the arena, sweeping a **flowing bullet stream** at you.
 - Every few seconds she births a brood of **Broodlings**: small, weaving critters that bite on contact.
-- She lobs **spore pods** where you are: a green ring closes in on the spot, then a **spore cloud** stays for 6 s. Inside
-  it you're **slowed** and your **shield drains**.
+- She lobs **spore pods** where you are. You see the pod fly; where it will land, a green circle fills in from the
+  middle while a ring closes in, like the Quarry Maw's eruption, and it flashes just before impact. If you're still
+  inside when it lands, the pod **bursts** on you. It leaves a **spore cloud** for 6 s that **burns** and
+  **slows** you while you're inside.
+
+![A spore pod in flight from the Matriarch; under the ship its landing circle fills in while a ring closes in on it](../images/matriarch-spores.png)
 
 > Keep moving so the pods land behind you, and clear the brood before it surrounds you.
 
@@ -116,7 +120,8 @@ she roars, charges or gathers a pulse**. Her creatures and hazards glow toxic gr
 
 - **Two charges** through you, each shown by a chevron lane, each ending in a **double ring** of bullets: two waves at
   different speeds.
-- Then she **rests 3.5 s with her heart open**: the window to hurt her.
+- Her heart stays **open while she lines up each charge**, and shuts only while she's actually charging.
+- After the volley she **rests 5 s, barely moving, heart open**: the best window to hurt her.
 
 ### Phase 3: Bloom (below 1/3)
 

@@ -16,10 +16,11 @@ namespace Pathfinder.Game.Enemies
     /// charges or gathers a pulse.
     /// <list type="number">
     /// <item><b>Brood</b> (above 66%): she drifts along the top of the arena, births broods of Broodlings, lobs spore
-    /// pods that land where the ship was (a ring closes in first) and leave clouds that slow the ship and drain its
-    /// shield, and sprays a flowing, sweeping bullet stream.</item>
+    /// pods that land where the ship was (a ring closes in first, like the Quarry Maw's eruption) and burst, hurting
+    /// whoever is inside, into clouds that burn and slow the ship, and sprays a flowing, sweeping bullet stream.</item>
     /// <item><b>Frenzy</b> (66–33%): volleys of two charges through the ship, each shown by a chevron lane and ending
-    /// in a two-speed ring burst; then she rests, heart open.</item>
+    /// in a two-speed ring burst; then she rests, nearly still. Her heart is open while she lines a charge up and while
+    /// she rests; it shuts only while she charges (playtest 7: the rest alone was too short a window).</item>
     /// <item><b>Bloom</b> (below 33%): she holds the arena centre and spins a wobbling two-arm spiral, and every few
     /// seconds gathers herself and sends out a solid expanding ring with no gap: the only way through is to dash.</item>
     /// </list>
@@ -37,7 +38,8 @@ namespace Pathfinder.Game.Enemies
             public float Timer;
             public bool Landed;
             public GameObject View;
-            public Presentation.EruptTelegraph Mark;
+            public Presentation.SporeTelegraph Mark;
+            public Presentation.SporeCloud Cloud;
         }
 
         struct Pulse
@@ -67,17 +69,21 @@ namespace Pathfinder.Game.Enemies
         [SerializeField, Min(0.1f), Tooltip("Flight time: the landing ring closes in over it.")] float sporeFlightTime = 1.2f;
         [SerializeField, Min(0.1f)] float sporeRadius = 2.5f;
         [SerializeField, Min(0.1f)] float sporeDuration = 6f;
-        [SerializeField, Range(0.1f, 1f)] float sporeSlow = 0.6f;
-        [SerializeField, Min(0f), Tooltip("Shield drained per second inside a cloud.")] float sporeShieldDrain = 10f;
+        [SerializeField, Min(0f), Tooltip("Damage to a ship caught where a pod bursts.")] float sporeImpactDamage = 15f;
+        [SerializeField, Min(0f), Tooltip("Damage each burn tick inside a cloud (playtest 7: the clouds used to only drain the shield, which nobody noticed).")]
+        float sporeBurnDamage = 5f;
+        [SerializeField, Min(0.1f)] float sporeBurnInterval = 0.5f;
+        [SerializeField, Range(0.1f, 1f)] float sporeSlow = 0.5f;
         [SerializeField] GameObject sporeMarkPrefab;
         [SerializeField] GameObject sporeCloudPrefab;
+        [SerializeField, Tooltip("A one-shot flash where a pod bursts.")] GameObject sporeBurstPrefab;
 
         [Header("Phase 2: Frenzy")]
         [SerializeField, Min(0f)] float firstChargeWindUp = 1.1f;
         [SerializeField, Min(0f)] float chainedChargeWindUp = 0.8f;
         [SerializeField, Min(0.1f)] float chargeSpeed = 16f;
         [SerializeField, Min(1)] int chargesPerVolley = 2;
-        [SerializeField, Min(0f)] float restTime = 3.5f;
+        [SerializeField, Min(0f)] float restTime = 5f;
         [SerializeField, Min(3)] int burstBullets = 20;
 
         [Header("Phase 3: Bloom")]
@@ -105,7 +111,7 @@ namespace Pathfinder.Game.Enemies
         readonly List<Enemy> _brood = new List<Enemy>();
         Action _action;
         float _timer, _actionDuration, _time;
-        float _broodTimer, _sporeTimer, _streamTimer, _pulseTimer, _spiralTimer, _spiralAngle;
+        float _broodTimer, _sporeTimer, _streamTimer, _pulseTimer, _spiralTimer, _spiralAngle, _burnTimer;
         Vector2 _chargeFrom, _chargeTo;
         int _chargesLeft;
         bool _subscribed;
@@ -114,7 +120,7 @@ namespace Pathfinder.Game.Enemies
         public bool IsRoaring => _action == Action.Roar;
 
         /// <summary>Her heart is open and she can be hurt: always, except while she roars, charges or gathers a pulse.</summary>
-        public bool HeartOpen => _action is not (Action.Roar or Action.ChargeWindUp or Action.Charging or Action.PulseWindUp);
+        public bool HeartOpen => _action is not (Action.Roar or Action.Charging or Action.PulseWindUp);
 
         public int LivingBrood => _brood.Count;
         public int ActiveSpores => _spores.Count;
@@ -130,6 +136,17 @@ namespace Pathfinder.Game.Enemies
             centre = _pulses[_pulses.Count - 1].Centre;
             radius = _pulses[_pulses.Count - 1].Radius;
             return true;
+        }
+
+        /// <summary>A spore pod is in the air and at least this far along its flight (0..1). For tests and screenshots.</summary>
+        public bool HasIncomingSpore(float minProgress)
+        {
+            foreach (var spore in _spores)
+            {
+                if (!spore.Landed && 1f - spore.Timer / sporeFlightTime >= minProgress)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>The spore clouds that have landed, for tests.</summary>
@@ -151,8 +168,12 @@ namespace Pathfinder.Game.Enemies
         float IChargeTelegraph.ChargeLength => Vector2.Distance(_chargeFrom, _chargeTo);
         float IChargeTelegraph.ChargeProgress => _actionDuration > 0f ? Mathf.Clamp01(1f - _timer / _actionDuration) : 1f;
 
+        int _selfId;
+
         public override void ResetState(Enemy self)
         {
+            _selfId = self.EntityId;
+            _burnTimer = 0f;
             CurrentPhase = Phase.Brood;
             _time = 0f;
             _broodTimer = broodInterval * 0.4f;
@@ -211,7 +232,7 @@ namespace Pathfinder.Game.Enemies
                     if (Tick(ref _broodTimer, attackDelta, broodInterval))
                         Brood(self, world, broodSize);
                     if (target != null && Tick(ref _sporeTimer, attackDelta, sporeInterval))
-                        LaunchSpore(world, target.Position);
+                        LaunchSpore(self, world, target.Position);
                     break;
                 }
 
@@ -244,13 +265,13 @@ namespace Pathfinder.Game.Enemies
                 }
 
                 case Action.Rest:
-                    // Tired, heart open: the window to hurt her. She keeps spores coming.
-                    self.SpeedMultiplier = 0.4f;
+                    // Tired, heart open, barely moving: the window to hurt her. She keeps spores coming.
+                    self.SpeedMultiplier = 0.15f;
                     if (target != null)
                     {
                         desired = (target.Position - self.Position).normalized * self.MoveSpeed;
                         if (Tick(ref _sporeTimer, attackDelta, sporeInterval * 1.5f))
-                            LaunchSpore(world, target.Position);
+                            LaunchSpore(self, world, target.Position);
                     }
                     if (_timer <= 0f && target != null)
                     {
@@ -343,14 +364,14 @@ namespace Pathfinder.Game.Enemies
             }
         }
 
-        void LaunchSpore(CombatWorld world, Vector2 at)
+        void LaunchSpore(Enemy self, CombatWorld world, Vector2 at)
         {
             var spore = new Spore { Position = world.ClampToArena(at, sporeRadius * 0.5f), Timer = sporeFlightTime };
             if (sporeMarkPrefab != null)
             {
                 spore.View = Instantiate(sporeMarkPrefab, PlaneMath.ToWorld(spore.Position), Quaternion.identity);
-                spore.Mark = spore.View.GetComponent<Presentation.EruptTelegraph>();
-                spore.Mark?.Show(sporeRadius, 0f, false);
+                spore.Mark = spore.View.GetComponent<Presentation.SporeTelegraph>();
+                spore.Mark?.Launch(self.Position, spore.Position, sporeRadius);
             }
             _spores.Add(spore);
             GameAudio.Play(SoundCue.SporePod, transform.position);
@@ -364,27 +385,28 @@ namespace Pathfinder.Game.Enemies
                 spore.Timer -= deltaTime;
                 if (!spore.Landed)
                 {
-                    spore.Mark?.Show(sporeRadius, 1f - spore.Timer / sporeFlightTime, spore.Timer < 0.3f);
+                    spore.Mark?.Show(1f - spore.Timer / sporeFlightTime, spore.Timer < 0.3f);
                     if (spore.Timer <= 0f)
                     {
-                        // The pod bursts: a cloud that slows and drains whoever is inside.
+                        // The pod bursts, hitting whoever stayed under it, and leaves a cloud that burns and slows.
+                        BurstSpore(spore.Position);
                         if (spore.View != null)
                             Destroy(spore.View);
+                        spore.Mark = null;
                         spore.View = sporeCloudPrefab != null ? Instantiate(sporeCloudPrefab, PlaneMath.ToWorld(spore.Position), Quaternion.identity) : null;
-                        if (spore.View != null)
-                            spore.View.transform.localScale = Vector3.one * sporeRadius;
+                        spore.Cloud = spore.View != null ? spore.View.GetComponent<Presentation.SporeCloud>() : null;
+                        spore.Cloud?.Begin(sporeRadius);
                         spore.Landed = true;
                         spore.Timer = sporeDuration;
                     }
                 }
                 else
                 {
+                    spore.Cloud?.SetLife(sporeDuration - spore.Timer, spore.Timer);
                     foreach (var player in CombatRegistry.Players)
                     {
-                        if (!player.IsAlive || (player.Position - spore.Position).sqrMagnitude > (sporeRadius + player.Radius) * (sporeRadius + player.Radius))
-                            continue;
-                        player.Slow(sporeSlow, 0.15f);
-                        player.DrainShield(sporeShieldDrain * deltaTime);
+                        if (player.IsAlive && InSpore(player, spore.Position))
+                            player.Slow(sporeSlow, 0.15f);
                     }
                     if (spore.Timer <= 0f)
                     {
@@ -396,6 +418,55 @@ namespace Pathfinder.Game.Enemies
                 }
                 _spores[i] = spore;
             }
+            BurnInClouds(deltaTime);
+        }
+
+        bool InSpore(PlayerShip player, Vector2 centre) =>
+            (player.Position - centre).sqrMagnitude <= (sporeRadius + player.Radius) * (sporeRadius + player.Radius);
+
+        void BurstSpore(Vector2 at)
+        {
+            GameAudio.Play(SoundCue.Erupt, PlaneMath.ToWorld(at));
+            if (sporeBurstPrefab != null)
+            {
+                var burst = Instantiate(sporeBurstPrefab, PlaneMath.ToWorld(at), Quaternion.identity);
+                if (burst.TryGetComponent(out Presentation.RingPulse pulse))
+                    pulse.SizeMultiplier = sporeRadius;
+            }
+            foreach (var player in CombatRegistry.Players)
+            {
+                if (player.IsAlive && InSpore(player, at))
+                    HurtWithSpores(player, at, sporeImpactDamage);
+            }
+        }
+
+        /// <summary>Every burn tick, each ship inside any cloud takes one hit: overlapping clouds don't stack.</summary>
+        void BurnInClouds(float deltaTime)
+        {
+            _burnTimer -= deltaTime;
+            if (_burnTimer > 0f)
+                return;
+            _burnTimer = sporeBurnInterval;
+            foreach (var player in CombatRegistry.Players)
+            {
+                if (!player.IsAlive)
+                    continue;
+                foreach (var spore in _spores)
+                {
+                    if (spore.Landed && InSpore(player, spore.Position))
+                    {
+                        HurtWithSpores(player, spore.Position, sporeBurnDamage);
+                        break;
+                    }
+                }
+            }
+        }
+
+        void HurtWithSpores(PlayerShip player, Vector2 from, float damage)
+        {
+            Vector2 away = player.Position - from;
+            Vector2 direction = away.sqrMagnitude > 1e-6f ? away.normalized : Vector2.up;
+            player.ApplyDamage(new DamageInfo(damage, Team.Enemy, _selfId, player.Position, direction, DamageKind.Contact));
         }
 
         // ---------------------------------------------------------------- charges

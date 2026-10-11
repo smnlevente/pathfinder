@@ -385,7 +385,7 @@ boss.hive-matriarch.name = The Hive Matriarch
 # How to hurt each boss, shown for the first seconds of the fight.
 boss.quarry-maw.hint = Its shell deflects shots: hit the yellow crystals, and its maw when it opens
 boss.binary-wardens.hint = A lone core only reboots: wear both down, then destroy them together
-boss.hive-matriarch.hint = Shoot her heart while it glows, keep out of the green spores, and dash through her bloom rings
+boss.hive-matriarch.hint = Shoot the yellow heart on her back. Green circles are spores landing: get out. Dash through her bloom rings
 
 ## ------------------------------------------------------------------ equipment (names and descriptions)
 # Stat items (Overclock, Armor Plating...) build their description from the stat lines above.

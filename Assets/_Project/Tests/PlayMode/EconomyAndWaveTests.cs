@@ -56,6 +56,31 @@ namespace Pathfinder.Tests.PlayMode
             Assert.GreaterOrEqual(Director.CurrentBudget, firstBudget, "The budget grows each wave.");
         }
 
+        /// <summary>Playtest 7: a level finished while its last Carrier's drones were still flying.</summary>
+        [UnityTest]
+        public IEnumerator Director_FinishesOnlyOnceEveryEnemyIsDead_LaunchedDronesToo()
+        {
+            yield return LoadRun(keepDirector: true);
+            Director.Begin(new Seed(77), 0, 1, waves: 1);
+            yield return WaitUntilTicks(() => Director.Wave == 1 && Director.RemainingInWave > 0 && CombatRegistry.Enemies.Count == Director.RemainingInWave, maxTicks: 300);
+            yield return WaitTicks(60); // let the whole staggered wave arrive
+
+            // A drone a Carrier launched: alive, but not one of the wave's own enemies.
+            var drone = Spawn("enemy.drone", new Vector2(12f, 8f));
+            foreach (var enemy in new List<Enemy>(CombatRegistry.Enemies))
+            {
+                if (enemy != drone)
+                    Kill(enemy);
+            }
+            yield return WaitTicks(10);
+            Assert.AreEqual(0, Director.RemainingInWave, "The wave's own enemies are dead.");
+            Assert.IsFalse(Director.IsComplete, "A launched drone is still alive, so the waves aren't done.");
+
+            Kill(drone);
+            yield return WaitUntilTicks(() => Director.IsComplete, maxTicks: 10);
+            Assert.IsTrue(Director.IsComplete, "With the last drone dead, the waves are done.");
+        }
+
         [UnityTest]
         public IEnumerator Director_SpawnsAwayFromTheShip()
         {

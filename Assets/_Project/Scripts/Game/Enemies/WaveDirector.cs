@@ -173,7 +173,9 @@ namespace Pathfinder.Game.Enemies
             bool finalWaveSpawned = waveCount > 0 && Wave >= waveCount;
             if (finalWaveSpawned)
             {
-                if (_pending.Count == 0 && _waveEnemies.Count == 0)
+                // Done when nothing is left at all: drones a Carrier launched aren't wave enemies, but they still have to
+                // die (playtest 7: a level used to finish with its last Carrier's drones still flying).
+                if (_pending.Count == 0 && _waveEnemies.Count == 0 && !AnyEnemyAlive())
                 {
                     IsComplete = true;
                     _running = false;
@@ -194,6 +196,16 @@ namespace Pathfinder.Game.Enemies
         {
             if (_running && !IsComplete && (waveCount == 0 || Wave < waveCount))
                 StartNextWave();
+        }
+
+        static bool AnyEnemyAlive()
+        {
+            foreach (var enemy in CombatRegistry.Enemies)
+            {
+                if (enemy != null && enemy.IsAlive)
+                    return true;
+            }
+            return false;
         }
 
         bool IsWaveMostlyCleared()

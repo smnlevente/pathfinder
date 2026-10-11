@@ -353,9 +353,6 @@ namespace Pathfinder.Game.Player
         /// <summary>Takes hull past the shield, never below 1 (a Mystery event's cost). Returns the hull lost. Authority only.</summary>
         public float DrainHull(float amount) => Authority.IsAuthority ? _vitals.DrainHull(amount) : 0f;
 
-        /// <summary>Saps the shield without a hit, e.g. a spore cloud. Authority only.</summary>
-        public float DrainShield(float amount) => Authority.IsAuthority ? _vitals.DrainShield(amount) : 0f;
-
         /// <summary>Slows the ship to <paramref name="factor"/> of its speed for a while, e.g. inside a spore cloud. Dashes aren't slowed.</summary>
         public void Slow(float factor, float seconds)
         {

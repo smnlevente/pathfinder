@@ -1095,15 +1095,18 @@ MonoBehaviour:
   sporeFlightTime: 1.2
   sporeRadius: 2.5
   sporeDuration: 6
-  sporeSlow: 0.6
-  sporeShieldDrain: 10
+  sporeImpactDamage: 15
+  sporeBurnDamage: 5
+  sporeBurnInterval: 0.5
+  sporeSlow: 0.5
   sporeMarkPrefab: {fileID: 3970877105900714918, guid: 0bfdf1b4730d2e6469da063c1558b938, type: 3}
   sporeCloudPrefab: {fileID: 114397338577308049, guid: c63d20ee3c4ee6242873821b63dc6771, type: 3}
+  sporeBurstPrefab: {fileID: 6708252237037926935, guid: b2c7576a6fb1b7c4bb629129825ef677, type: 3}
   firstChargeWindUp: 1.1
   chainedChargeWindUp: 0.8
   chargeSpeed: 16
   chargesPerVolley: 2
-  restTime: 3.5
+  restTime: 5
   burstBullets: 20
   pulseInterval: 3.5
   pulseWindUp: 0.8

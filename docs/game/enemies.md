@@ -54,7 +54,8 @@ it recovers for 1 s and waits 1.8 s.
 ### Carrier
 
 A slow tank that keeps about 10 u away and turns at only 60°/s. Every 4 s its flank bays flare (a low horn) and it
-launches **2 Drones**, with at most 6 alive; launched Drones drop no Scraps. Its **armoured front takes 60% damage**;
+launches **2 Drones**, with at most 6 alive; launched Drones drop no Scraps. They outlive their Carrier, and a level's
+waves aren't cleared until they're dead too. Its **armoured front takes 60% damage**;
 its **yellow rear weak point takes 200%**.
 
 ## Galaxy 2: the Graveyard Drift
