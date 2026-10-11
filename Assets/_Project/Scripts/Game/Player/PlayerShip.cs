@@ -230,6 +230,36 @@ namespace Pathfinder.Game.Player
             return true;
         }
 
+        /// <summary>The run's permanent stat changes (Lab bonuses, repairs, events), for the save file.</summary>
+        public IReadOnlyList<StatModifier> RunModifiers => _runModifiers;
+
+        /// <summary>Drops everything gained this run (equipment, run modifiers, Scraps), before a saved run is put back.</summary>
+        public void ClearRunState()
+        {
+            _runModifiers.Clear();
+            Equipment.Clear();
+            Scraps = 0;
+            TotalScrapsGained = 0;
+            Rebuild();
+        }
+
+        /// <summary>Sets the Scraps held and collected so far, from a saved run.</summary>
+        public void RestoreScraps(int scraps, int collected)
+        {
+            Scraps = Mathf.Max(0, scraps);
+            TotalScrapsGained = Mathf.Max(0, collected);
+        }
+
+        /// <summary>Sets the hull, from a saved run. Never below 1.</summary>
+        public void RestoreHull(float hull)
+        {
+            float change = Mathf.Max(1f, hull) - _vitals.Hull;
+            if (change > 0f)
+                _vitals.Heal(change);
+            else if (change < 0f)
+                _vitals.DrainHull(-change);
+        }
+
         /// <summary>A permanent stat change for the rest of the run, e.g. Reinforce at a repair station.</summary>
         public void AddRunModifier(StatId stat, float flat, float percent)
         {

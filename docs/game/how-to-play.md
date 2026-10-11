@@ -16,7 +16,7 @@ three galaxies in one run. When the ship is lost, the run ends, but what you ban
 | Dash (invulnerable while dashing) | Space | A / Cross, RB |
 | Reload | R | X / Square |
 | Interact (stations, restart after a run) | E | Y / Triangle |
-| Pause menu (options, controls, abandon run) | Esc | Start |
+| Pause menu (options, controls, save and quit, abandon run) | Esc | Start |
 | Galaxy map: choose a node | Left / Right + Enter, or click | D-pad / stick + A |
 
 Movement and aim are independent: the ship faces where you aim. The dash goes the way you're moving, or the way
@@ -49,7 +49,10 @@ flowchart LR
    fight is won.
 5. **Beat the boss** to earn Singularity Cores, a full repair and a Rare-or-better item. Then the wormhole pulls you
    into the next galaxy.
-6. **When the run ends**, win or lose, the Dark Matter and Cores you earned are banked, plus 10% of the Scraps you
+6. **Need a break?** Choose **Save and Quit** in the pause menu (or just close the game): next time, **Continue Run** in
+   the Hub takes you back to the galaxy map, with your equipment, hull and Scraps. A level you were in the middle of
+   starts over.
+7. **When the run ends**, win or lose, the Dark Matter and Cores you earned are banked, plus 10% of the Scraps you
    collected. Spend them in the **Pathfinder Lab**. See [Economy & meta](economy.md).
 
 ## Reading the screen

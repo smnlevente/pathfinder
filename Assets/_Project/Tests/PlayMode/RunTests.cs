@@ -349,6 +349,64 @@ namespace Pathfinder.Tests.PlayMode
             CollectionAssert.AreEqual(Run.Map.EntryNodes, Run.AvailableNodes);
         }
 
+        /// <summary>M7: quit a run, and continue it from the Hub where it left off.</summary>
+        [UnityTest]
+        public IEnumerator SavedRun_ContinuesWhereItLeftOff()
+        {
+            yield return LoadRun(27);
+            var item = Object.FindAnyObjectByType<Pathfinder.Game.Dev.DebugHotkeys>().Content.FindEquipment("equipment.extended-mag");
+            Assert.IsTrue(_director.ChooseNode(Run.AvailableNodes[0]));
+            _player.Equip(item);
+            _player.UpgradeEquipment(item);
+            _player.AddScraps(57);
+            _player.DrainHull(30f);
+            _level.DebugTakeExit();
+            yield return WaitUntil(() => _director.State == RunDirector.Phase.Map, 3f);
+            Assert.IsTrue(RunSaveFile.Exists, "Reaching the map saves the run.");
+
+            int node = Run.CurrentNode.Id, levels = Run.LevelsCleared, scraps = _player.Scraps;
+            float hull = _player.Vitals.Hull;
+            var available = Run.AvailableNodes.Select(n => n.Id).ToList();
+
+            // Quit to the Hub (Save and Quit), then continue.
+            Object.FindAnyObjectByType<PauseMenu>().SaveAndQuit();
+            yield return WaitUntil(() => SceneManager.GetActiveScene().name == "Hub", 5f);
+            yield return null;
+            var hub = Object.FindAnyObjectByType<HubMenu>();
+            Assert.AreEqual(Pathfinder.Game.Localization.Loc.T("hub.continue"), hub.Rows[0].LabelText, "The Hub offers to continue.");
+            hub.ContinueRun();
+            yield return WaitUntil(() => SceneManager.GetActiveScene().name == "Run", 5f);
+            yield return null;
+            yield return null;
+
+            _director = Object.FindAnyObjectByType<RunDirector>();
+            _player = CombatRegistry.Players[0];
+            Assert.AreEqual(node, Run.CurrentNode.Id, "Back on the map, at the node last played.");
+            Assert.AreEqual(levels, Run.LevelsCleared);
+            CollectionAssert.AreEqual(available, Run.AvailableNodes.Select(n => n.Id).ToList(), "With the same choices ahead.");
+            var owned = _player.Equipment.Find(item);
+            Assert.IsNotNull(owned, "Equipment comes back...");
+            Assert.AreEqual(2, owned.Level, "...at its level.");
+            Assert.AreEqual(scraps, _player.Scraps, "Scraps come back.");
+            Assert.AreEqual(hull, _player.Vitals.Hull, 0.01f, "Hull damage stays.");
+        }
+
+        [UnityTest]
+        public IEnumerator SavedRun_IsDeletedWhenTheRunEnds()
+        {
+            yield return LoadRun(28);
+            Assert.IsTrue(_director.ChooseNode(Run.AvailableNodes[0]));
+            _level.DebugTakeExit();
+            yield return WaitUntil(() => _director.State == RunDirector.Phase.Map, 3f);
+            Assert.IsTrue(RunSaveFile.Exists);
+
+            Assert.IsTrue(_director.ChooseNode(Run.AvailableNodes[0]));
+            _player.ApplyDamage(new DamageInfo(10_000f, Team.Enemy, 0, _player.Position, Vector2.up));
+            yield return WaitTicks(2);
+            Assert.AreEqual(RunDirector.Phase.Defeat, _director.State);
+            Assert.IsFalse(RunSaveFile.Exists, "A finished run leaves nothing to continue.");
+        }
+
         /// <summary>M7: every level starts with the secondary weapon fully charged.</summary>
         [UnityTest]
         public IEnumerator NewLevel_RefillsTheSecondary()

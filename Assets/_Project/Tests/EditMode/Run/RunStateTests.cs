@@ -147,5 +147,49 @@ namespace Pathfinder.Tests.Run
             Assert.AreEqual(12, run.DarkMatter);
             Assert.AreEqual(1, run.SingularityCores);
         }
+
+        /// <summary>M7: a saved run comes back exactly where it stood, on the same map.</summary>
+        [Test]
+        public void Snapshot_RestoresTheRunWhereItStood()
+        {
+            var run = NewRun(41);
+            run.Enter(run.AvailableNodes[0]);
+            run.CompleteLevel();
+            run.Enter(run.AvailableNodes[run.AvailableNodes.Count - 1]);
+            run.CompleteLevel();
+            run.AddDarkMatter(23);
+            run.AddSingularityCores(1);
+            run.MarkEventSeen("event.echo-of-earth");
+            run.Loadout = new PilotLoadout("ship.titan", "primary.plasma-cutter", "secondary.nova-pulse");
+
+            var copy = RunState.Restore(run.Snapshot());
+
+            Assert.AreEqual(run.Seed, copy.Seed);
+            Assert.AreEqual(run.GalaxyIndex, copy.GalaxyIndex);
+            Assert.AreEqual(run.CurrentNode.Id, copy.CurrentNode.Id);
+            Assert.AreEqual(run.CurrentNode.Type, copy.CurrentNode.Type, "The map regenerates the same from the seed.");
+            CollectionAssert.AreEquivalent(run.VisitedNodes, copy.VisitedNodes);
+            CollectionAssert.AreEqual(run.AvailableNodes.Select(n => n.Id), copy.AvailableNodes.Select(n => n.Id));
+            Assert.AreEqual(2, copy.LevelsCleared);
+            Assert.AreEqual(23, copy.DarkMatter);
+            Assert.AreEqual(1, copy.SingularityCores);
+            Assert.IsTrue(copy.HasSeenEvent("event.echo-of-earth"));
+            Assert.AreEqual("ship.titan", copy.Loadout.ShipId);
+        }
+
+        [Test]
+        public void Snapshot_InALaterGalaxy_RebuildsThatGalaxysMap()
+        {
+            var snapshot = NewRun(42).Snapshot();
+            snapshot.GalaxyIndex = 2;
+            snapshot.CurrentNodeId = -1;
+            snapshot.Visited = new int[0];
+            var copy = RunState.Restore(snapshot);
+
+            Assert.AreEqual(2, copy.GalaxyIndex);
+            Assert.IsNull(copy.CurrentNode, "At the start of the galaxy.");
+            var fresh = NewRun(42);
+            CollectionAssert.AreNotEqual(fresh.Map.Nodes.Select(n => n.Type).ToList(), copy.Map.Nodes.Select(n => n.Type).ToList(), "Galaxy 3 has its own map.");
+        }
     }
 }

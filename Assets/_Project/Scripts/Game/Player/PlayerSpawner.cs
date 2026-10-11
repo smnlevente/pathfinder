@@ -41,6 +41,10 @@ namespace Pathfinder.Game.Player
             player.Bind(world, index);
             if (useRunLoadout && content != null)
                 MetaProgression.ApplyRunBonuses(player, content); // Hub upgrades only apply to real runs
+            // A continued run puts the pilot back as saved (M7).
+            var saved = useRunLoadout && content != null ? RunSession.TakePendingPilot() : null;
+            if (saved != null)
+                RunSaveFile.ApplyPilot(saved, player, content);
             player.IsLocal = true;
             player.CommandSource = player.gameObject.AddComponent<LocalInputCommandSource>();
 

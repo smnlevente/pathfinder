@@ -181,6 +181,7 @@ namespace Pathfinder.Game.Run
 
             BankedRewards = MetaProgression.Current.BankRun(Run.DarkMatter, Run.SingularityCores, scraps, won, Run.GalaxyIndex + 1);
             MetaProgression.Save();
+            RunSaveFile.Delete(); // the run is over: nothing to continue
 
             var pilot = CombatRegistry.Players.Count > 0 ? CombatRegistry.Players[0] : null;
             RunLog.Append(new RunLog.Entry
@@ -197,7 +198,7 @@ namespace Pathfinder.Game.Run
                 darkMatter = Run.DarkMatter,
                 singularityCores = Run.SingularityCores,
                 scrapsCollected = scraps,
-                minutes = (Time.realtimeSinceStartup - _startTime) / 60f,
+                minutes = PlayMinutes,
                 killedBy = won ? string.Empty : _lastHitBy ?? "abandoned",
             });
         }
@@ -220,7 +221,11 @@ namespace Pathfinder.Game.Run
             // The map is a menu: the simulation holds still behind it.
             GameClock.Pause(this);
             SetPhase(Phase.Map);
+            // Between levels is where a run is saved, so it can be continued after quitting (M7).
+            RunSaveFile.Save(Run, FirstLivingLocalPilot(), PlayMinutes);
         }
+
+        float PlayMinutes => RunSession.MinutesBefore + (Time.realtimeSinceStartup - _startTime) / 60f;
 
         void SetPhase(Phase phase)
         {

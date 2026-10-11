@@ -85,6 +85,11 @@ From the balance probe (a perfect-aim bot in galaxy 1, row 3):
 
 ## Where it's saved
 
+A run in progress is saved separately, to `run.json` beside the profile, each time the galaxy map comes up, and deleted
+when the run ends; see [How to play](how-to-play.md). Starting a new run over a saved one banks what the saved run had
+earned first.
+
+
 The profile is `meta.json` in the game's data folder (on Windows,
 `%USERPROFILE%\AppData\LocalLow\DefaultCompany\pathfinder\`), written after every banking and purchase. A corrupt file
 is set aside as `meta.json.corrupt` and a fresh profile starts, so a bad file never blocks play. Delete `meta.json` to

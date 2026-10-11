@@ -21,6 +21,7 @@ namespace Pathfinder.Game.Presentation
     public sealed class HubMenu : MonoBehaviour
     {
         static readonly string[] MainOptions = { "hub.start", "hub.survival", "hub.lab", "hub.options", "hub.quit" };
+        readonly List<string> _mainKeys = new List<string>(); // the main page's rows: Continue Run first when a run is saved
 
         public enum Page { Main, Loadout, Lab, Options }
 
@@ -142,22 +143,38 @@ namespace Pathfinder.Game.Presentation
 
         void ChooseMain(int index)
         {
-            switch (index)
+            switch (index < _mainKeys.Count ? _mainKeys[index] : string.Empty)
             {
-                case 0:
-                case 1:
-                    OpenLoadout(survival: index == 1);
+                case "hub.continue":
+                    ContinueRun();
                     break;
-                case 2:
+                case "hub.start":
+                case "hub.survival":
+                    OpenLoadout(survival: _mainKeys[index] == "hub.survival");
+                    break;
+                case "hub.lab":
                     ShowPage(Page.Lab);
                     break;
-                case 3:
+                case "hub.options":
                     ShowPage(Page.Options);
                     break;
                 default:
                     Application.Quit();
                     break;
             }
+        }
+
+        /// <summary>Picks the saved run back up at the galaxy map it was saved at (M7).</summary>
+        public void ContinueRun()
+        {
+            if (!RunSaveFile.TryLoad(out var data))
+            {
+                ShowPage(Page.Main);
+                return;
+            }
+            var run = RunSession.Resume(data);
+            CombatWorld.NextSeedOverride = run.Seed;
+            SceneManager.LoadScene(SceneNames.Run);
         }
 
         /// <summary>The loadout page, launching a run or Survival.</summary>
@@ -199,7 +216,12 @@ namespace Pathfinder.Game.Presentation
 
         static int Wrap(int value, int count) => count == 0 ? 0 : (value % count + count) % count;
 
-        public void StartRun() => Launch(SceneNames.Run);
+        /// <summary>Starts a new run. A saved one is given up, and what it earned is banked as a lost run.</summary>
+        public void StartRun()
+        {
+            RunSaveFile.DiscardAndBank();
+            Launch(SceneNames.Run);
+        }
 
         public void StartSurvival() => Launch(SceneNames.Survival);
 
@@ -263,8 +285,19 @@ namespace Pathfinder.Game.Presentation
             {
                 case Page.Main:
                     _pageTitle.text = string.Empty;
-                    foreach (string key in MainOptions)
-                        AddRow(Loc.T(key), null, key == "hub.survival" ? SurvivalDetail() : Loc.TOr(key + ".detail", null));
+                    _mainKeys.Clear();
+                    bool saved = RunSaveFile.TryLoad(out var save);
+                    if (saved)
+                        _mainKeys.Add("hub.continue");
+                    _mainKeys.AddRange(MainOptions);
+                    foreach (string key in _mainKeys)
+                    {
+                        string detail = key == "hub.continue" ? ContinueDetail(save)
+                            : key == "hub.survival" ? SurvivalDetail()
+                            : key == "hub.start" && saved ? Loc.T("hub.start.detail_saved")
+                            : Loc.TOr(key + ".detail", null);
+                        AddRow(Loc.T(key), null, detail, key == "hub.continue" ? UiKit.Accent : (Color?)null);
+                    }
                     _hint.text = Loc.T("hub.main.hint");
                     break;
 
@@ -352,6 +385,13 @@ namespace Pathfinder.Game.Presentation
         {
             var meta = MetaProgression.Current;
             return Loc.T("hub.profile", ("darkmatter", meta.DarkMatter), ("cores", meta.SingularityCores), ("won", meta.RunsWon), ("played", meta.RunsPlayed));
+        }
+
+        string ContinueDetail(RunSaveFile.Data save)
+        {
+            var ship = content.FindShip(save.pilot.ship);
+            return Loc.T("hub.continue.detail", ("galaxy", save.galaxy + 1), ("galaxyName", Loc.T($"galaxy.{Mathf.Clamp(save.galaxy, 0, 2)}")),
+                ("levels", save.levelsCleared), ("ship", ship != null ? ship.DisplayName : save.pilot.ship));
         }
 
         static string SurvivalDetail()

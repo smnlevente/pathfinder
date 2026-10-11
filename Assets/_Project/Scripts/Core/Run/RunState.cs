@@ -117,6 +117,61 @@ namespace Pathfinder.Core.Run
 
         public void MarkLost() => IsLost = !IsWon;
 
+        // ---------------------------------------------------------------- saving (M7)
+
+        /// <summary>Everything needed to rebuild the run where it stands. The map isn't stored: it regenerates from the seed.</summary>
+        public RunStateSnapshot Snapshot()
+        {
+            var visited = new int[_visited.Count];
+            _visited.CopyTo(visited);
+            Array.Sort(visited);
+            var seen = new string[_seenEvents.Count];
+            _seenEvents.CopyTo(seen);
+            Array.Sort(seen, StringComparer.Ordinal);
+            return new RunStateSnapshot
+            {
+                Seed = Seed,
+                Loadout = Loadout,
+                GalaxyIndex = GalaxyIndex,
+                CurrentNodeId = CurrentNode != null ? CurrentNode.Id : -1,
+                Visited = visited,
+                LevelsCleared = LevelsCleared,
+                DarkMatter = DarkMatter,
+                SingularityCores = SingularityCores,
+                SeenEvents = seen,
+                RepairUsed = _repairUsedThisGalaxy,
+            };
+        }
+
+        /// <summary>Rebuilds a run from a snapshot. Anything that doesn't fit the regenerated map (a stale node) is dropped.</summary>
+        public static RunState Restore(RunStateSnapshot snapshot, MapRules rules = null)
+        {
+            var run = new RunState(snapshot.Seed, rules) { Loadout = snapshot.Loadout };
+            int galaxy = Math.Max(0, Math.Min(snapshot.GalaxyIndex, GalaxyCount - 1));
+            if (galaxy > 0)
+            {
+                run.GalaxyIndex = galaxy;
+                run.GenerateMap();
+            }
+
+            foreach (int id in snapshot.Visited ?? Array.Empty<int>())
+            {
+                if (id >= 0 && id < run.Map.Nodes.Count)
+                    run._visited.Add(id);
+            }
+            int current = snapshot.CurrentNodeId;
+            run.CurrentNode = current >= 0 && current < run.Map.Nodes.Count ? run.Map[current] : null;
+            if (run.CurrentNode != null)
+                run._visited.Add(current);
+            run.LevelsCleared = Math.Max(0, snapshot.LevelsCleared);
+            run.DarkMatter = Math.Max(0, snapshot.DarkMatter);
+            run.SingularityCores = Math.Max(0, snapshot.SingularityCores);
+            foreach (string id in snapshot.SeenEvents ?? Array.Empty<string>())
+                run._seenEvents.Add(id);
+            run._repairUsedThisGalaxy |= snapshot.RepairUsed;
+            return run;
+        }
+
         void GenerateMap()
         {
             Map = GalaxyMapGenerator.Generate(Seed.Derive(SeedLabels.Map).Derive(GalaxyIndex).CreateRandom(SeedLabels.Layout), _rules);
@@ -127,6 +182,21 @@ namespace Pathfinder.Core.Run
             foreach (var node in Map.Nodes)
                 _repairUsedThisGalaxy |= node.Type == MapNodeType.Repair;
         }
+    }
+
+    /// <summary>A run's state as plain values, for the save file (M7). See <see cref="RunState.Snapshot"/>.</summary>
+    public sealed class RunStateSnapshot
+    {
+        public Seed Seed;
+        public PilotLoadout Loadout;
+        public int GalaxyIndex;
+        public int CurrentNodeId = -1;
+        public int[] Visited = Array.Empty<int>();
+        public int LevelsCleared;
+        public int DarkMatter;
+        public int SingularityCores;
+        public string[] SeenEvents = Array.Empty<string>();
+        public bool RepairUsed;
     }
 
     /// <summary>A pilot's starting ship, primary and secondary, stored as stable content IDs for saves and network messages.</summary>

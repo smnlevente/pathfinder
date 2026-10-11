@@ -102,6 +102,9 @@ namespace Pathfinder.Game.Presentation
             runFlow.ReturnToHub();
         }
 
+        /// <summary>Back to the Hub without ending the run: it continues from the galaxy map it was last saved at.</summary>
+        public void SaveAndQuit() => runFlow.ReturnToHub();
+
         public void Back()
         {
             if (CurrentPage == Page.Main)
@@ -128,6 +131,9 @@ namespace Pathfinder.Game.Presentation
                     AddRow(Loc.T("pause.resume"), null, null, Resume);
                     AddRow(Loc.T("pause.options"), null, Loc.T("pause.options.detail"), () => ShowPage(Page.Options));
                     AddRow(Loc.T("pause.controls"), null, null, () => ShowPage(Page.Controls));
+                    // A run can be saved and continued later (M7); abandoning still counts it as lost.
+                    if (runDirector != null)
+                        AddRow(Loc.T("pause.save_quit"), null, Loc.T("pause.save_quit.detail"), SaveAndQuit);
                     string leave = runDirector != null ? "pause.abandon" : survival != null ? "pause.survival_leave" : "pause.quit";
                     AddRow(Loc.T(leave), null, Loc.T(leave + ".detail"), Leave);
                     _hint.text = Loc.T("pause.hint");

@@ -100,6 +100,7 @@ Adjust the Unity path to your install.
 | File | Where | What |
 |---|---|---|
 | `meta.json` | `Application.persistentDataPath` (on Windows: `%USERPROFILE%\AppData\LocalLow\DefaultCompany\pathfinder\`) | The profile: Dark Matter, Singularity Cores, Lab upgrades, run stats. Delete it to start fresh. |
+| `run.json` | Next to `meta.json` | The run in progress, written at each galaxy map and deleted when the run ends (`RunSaveFile`). Readable JSON; delete it to forget the run. |
 | `run-log.jsonl` | Next to `meta.json` | One line per finished run: seed, loadout, progress, play time and what killed the pilot. Ask testers for it. |
 | Settings | `PlayerPrefs` | Language, volumes, screen shake, fullscreen, FPS counter. |
 

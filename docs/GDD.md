@@ -690,7 +690,8 @@ Every player-facing string lives in plain-text **.loc files** in `Assets/Streami
   - **Shared:** seed, galaxy index, the map and the current node.
   - **Per player:** ship, loadout, equipment, hull and Scraps.
 
-  In single-player there is just one per-player entry. Serializability also allows a mid-run save later.
+  In single-player there is just one per-player entry.
+- **Continuing a run** *(M7)*: the run is saved to `run.json` (beside `meta.json`) each time the galaxy map comes up, so it always holds whole levels; it's deleted when the run ends. The Hub then offers **Continue Run**, and the pause menu has **Save and Quit** (a level in progress starts over from the map). The file is readable JSON with a format version: no encryption, since it's single-player and a readable file is easy to debug; an unknown version or a file that doesn't parse is ignored. It stores the run (seed, galaxy, current and visited nodes, levels cleared, Dark Matter, Cores, seen events) and the pilot (ship and weapons, equipment and levels, run modifiers including the Lab's bonuses as they were when the run began, hull, Scraps); the map regenerates from the seed. Starting a new run over a saved one banks what the saved run earned, as a lost run.
 - **MetaState**: currencies, unlocks and upgrades, stored per player profile. Saved as JSON in `Application.persistentDataPath`.
 - **Simulation tick:** fixed 60 Hz. `CombatWorld` advances everything in a fixed order: players, then enemies, then projectiles. Gameplay collision is circle-vs-circle on the plane, with swept projectiles; no physics engine is involved. Transforms interpolate between ticks for smooth rendering.
 - **Pooling** for projectiles, enemies, pickups and VFX. Projectile visuals already use per-prefab pools.

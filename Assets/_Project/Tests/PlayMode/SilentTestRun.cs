@@ -48,6 +48,9 @@ namespace Pathfinder.Tests.PlayMode
         {
             Time.timeScale = _timeScale;
             Pathfinder.Game.Presentation.BossIntro.Enabled = _bossIntro;
+            // Saved runs from tests that pointed the meta save at a temporary file (run-test-*.json beside meta-test-*.json).
+            foreach (string file in System.IO.Directory.GetFiles(Application.temporaryCachePath, "run-test-*.json"))
+                System.IO.File.Delete(file);
             AudioListener.volume = _volume;
             Pathfinder.Game.Settings.GameSettings.Persist = _persist;
             Pathfinder.Game.Settings.GameSettings.RespondToFocus = _respondToFocus;
