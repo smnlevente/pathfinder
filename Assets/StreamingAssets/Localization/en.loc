@@ -242,6 +242,7 @@ controls.any = Any: keyboard, mouse or controller
 hub.coop.remove = REMOVE {player}
 hub.continue.players = {count} players flew this run ({joined} here now)
 coop.player = PLAYER {number}
+coop.menu_for = Only {player} can choose here. Everyone else waits.
 coop.help = {player} DOWN! Fly close to help
 coop.reviving = Bringing {player} back...
 coop.panel_down = DOWN   ·   HELP {percent}%

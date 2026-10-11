@@ -4,7 +4,10 @@ using UnityEngine.EventSystems;
 
 namespace Pathfinder.Game.Presentation.Ui
 {
-    /// <summary>Mouse hover, click and right click on a UI element. Needs a raycast-target graphic on the same object.</summary>
+    /// <summary>
+    /// Mouse hover, click and right click on a UI element. Needs a raycast-target graphic on the same object. Does nothing
+    /// while a co-op player's menu blocks the mouse (<see cref="MenuMouse"/>).
+    /// </summary>
     public sealed class UiPointer : MonoBehaviour, IPointerEnterHandler, IPointerClickHandler
     {
         public event Action Entered;
@@ -15,12 +18,16 @@ namespace Pathfinder.Game.Presentation.Ui
 
         public void OnPointerEnter(PointerEventData eventData)
         {
+            if (MenuMouse.Blocked)
+                return;
             Audio.GameAudio.Play(Audio.SoundCue.UiMove);
             Entered?.Invoke();
         }
 
         public void OnPointerClick(PointerEventData eventData)
         {
+            if (MenuMouse.Blocked)
+                return;
             if (eventData.button == PointerEventData.InputButton.Right)
             {
                 if (RightClicked == null)

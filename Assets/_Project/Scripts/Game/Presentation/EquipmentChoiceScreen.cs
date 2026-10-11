@@ -62,7 +62,11 @@ namespace Pathfinder.Game.Presentation
             _canvas.gameObject.SetActive(false);
         }
 
-        void OnDestroy() => _input?.Dispose();
+        void OnDestroy()
+        {
+            _input?.Dispose();
+            MenuMouse.Set(this, false);
+        }
 
         /// <summary>Offers a choice of items. <paramref name="onClosed"/> receives true if an item was taken.</summary>
         public void Show(string title, IReadOnlyList<EquipmentDefinition> options, PlayerShip ship, int skipScraps, Action<bool> onClosed) =>
@@ -146,8 +150,10 @@ namespace Pathfinder.Game.Presentation
 
         void Open()
         {
-            // In local co-op, the pilot whose pick it is chooses, with their own controller (M8).
+            // In local co-op, the pilot whose pick it is chooses, with their own controller (M8), and nobody else: not the
+            // mouse either, unless it's theirs (playtest 8).
             _input.RestrictTo(PilotLabels.Devices(_ship));
+            MenuMouse.Set(this, !PilotLabels.UsesMouse(_ship));
             IsOpen = true;
             GameClock.Pause(this);
             ModalScreens.SetOpen(this, true);
@@ -159,6 +165,7 @@ namespace Pathfinder.Game.Presentation
             IsOpen = false;
             GameClock.Resume(this);
             ModalScreens.SetOpen(this, false);
+            MenuMouse.Set(this, false);
             EquipmentPreview.Clear(this);
             _canvas.gameObject.SetActive(false);
             var callback = _onClosed;

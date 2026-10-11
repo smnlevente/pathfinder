@@ -63,8 +63,11 @@ help.
   bonuses are paid once, into the shared wallet.
 - **Equipment is your own.** Equipment caches, boss rewards and Mystery event finds give **every player a pick in
   turn**, starting with whoever opened it. Each pick names the player and answers only to their controller.
-- **The Shop and the repair station** open for whoever flies up and presses Interact, and only their controller works
-  the menu. A repair station serves each player once.
+- **The Shop and the repair station** open for whoever flies up and presses Interact, and **only that player** works
+  the menu: their controller, or the keyboard and mouse if those are theirs *(playtest 8)*. Everyone else's buttons do
+  nothing. The mouse can't hover or click in someone else's menu, and the cursor is hidden while it's open. The
+  menu's title names the player, and a line under it says only they can choose. The game waits while they shop. A
+  repair station serves each player once.
 - **Player 1 picks the next node** on the galaxy map. **Any player can pause**, and a pause stops everyone.
 
 ## Harder for more

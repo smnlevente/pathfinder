@@ -144,6 +144,73 @@ namespace Pathfinder.Tests.PlayMode
             yield return null;
         }
 
+        sealed class InteractOnce : IShipCommandSource
+        {
+            bool _pressed;
+
+            public ShipCommand ReadCommand(PlayerShip ship)
+            {
+                var command = new ShipCommand { Interact = !_pressed };
+                _pressed = true;
+                return command;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator PlayerTwosShop_IsTheirsAlone()
+        {
+            // Playtest 8: "I have to tell everyone to stop interacting, I'm shopping."
+            yield return LoadRun(21);
+            _director.StartTestLevel(MapNodeType.Shop, row: 4);
+            var one = Pilot(0);
+            var two = Pilot(1);
+            two.AddScraps(500);
+            two.PlaceForLevel(Vector2.zero); // the terminal stands in the middle of the arena
+            two.CommandSource = new InteractOnce();
+            var dialog = Object.FindAnyObjectByType<ChoiceDialog>();
+            yield return WaitUntil(() => dialog.IsOpen, 2f);
+            Assert.IsTrue(dialog.IsOpen, "Player 2 opens the Shop.");
+            Assert.AreSame(two, dialog.Owner, "It's player 2's.");
+            Assert.IsTrue(Pathfinder.Game.Presentation.Ui.MenuMouse.Blocked, "Player 1's mouse can't work it.");
+
+            int scraps = two.Scraps;
+            var pointer = dialog.Rows[0].Pointer;
+            pointer.OnPointerEnter(new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current));
+            pointer.OnPointerClick(new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current)
+                { button = UnityEngine.EventSystems.PointerEventData.InputButton.Left });
+            Assert.AreEqual(scraps, two.Scraps, "A click from player 1's mouse buys nothing.");
+            Assert.IsTrue(dialog.IsOpen);
+            dialog.Close();
+            Assert.IsFalse(Pathfinder.Game.Presentation.Ui.MenuMouse.Blocked, "Closed, the mouse works again.");
+
+            // Player 1 plays with the keyboard and mouse: their own Shop takes clicks.
+            one.PlaceForLevel(Vector2.zero);
+            one.CommandSource = new InteractOnce();
+            yield return WaitUntil(() => dialog.IsOpen, 2f);
+            Assert.AreSame(one, dialog.Owner);
+            Assert.IsFalse(Pathfinder.Game.Presentation.Ui.MenuMouse.Blocked, "Player 1's Shop takes their mouse.");
+            dialog.Close();
+        }
+
+        /// <summary>Player 2's Shop, for visual review.</summary>
+        [UnityTest, Category("Screenshot")]
+        public IEnumerator CaptureCoopShop()
+        {
+            string directory = Screenshots.Directory();
+            yield return LoadRun(21);
+            _director.StartTestLevel(MapNodeType.Shop, row: 4);
+            var two = Pilot(1);
+            two.AddScraps(300);
+            two.PlaceForLevel(Vector2.zero);
+            two.CommandSource = new InteractOnce();
+            var dialog = Object.FindAnyObjectByType<ChoiceDialog>();
+            yield return WaitUntil(() => dialog.IsOpen, 2f);
+            yield return null;
+            yield return null;
+            Screenshots.CaptureWithUi(System.IO.Path.Combine(directory, "coop_shop.png"));
+            dialog.Close();
+        }
+
         [UnityTest]
         public IEnumerator ADownedPilot_ComesBackForTheNextLevel()
         {

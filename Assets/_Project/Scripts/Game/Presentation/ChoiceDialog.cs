@@ -63,7 +63,8 @@ namespace Pathfinder.Game.Presentation
 
         Canvas _canvas;
         RectTransform _panel, _content, _viewport;
-        Text _titleText, _bodyText;
+        Text _titleText, _bodyText, _ownerText;
+        ScrollRect _scrollRect;
         LayoutElement _listLayout;
 
         Player.PlayerShip _owner;
@@ -87,7 +88,11 @@ namespace Pathfinder.Game.Presentation
             _canvas.gameObject.SetActive(false);
         }
 
-        void OnDestroy() => _input?.Dispose();
+        void OnDestroy()
+        {
+            _input?.Dispose();
+            MenuMouse.Set(this, false);
+        }
 
         /// <summary>
         /// Opens the dialog. With an <paramref name="owner"/> in local co-op (M8), e.g. the pilot at the Shop, only their
@@ -97,6 +102,13 @@ namespace Pathfinder.Game.Presentation
         {
             _owner = owner;
             _input.RestrictTo(PilotLabels.Devices(owner));
+            // Nobody else touches it (playtest 8): not other players' controllers, and not the mouse unless it's theirs.
+            bool mouse = owner == null || PilotLabels.UsesMouse(owner);
+            MenuMouse.Set(this, !mouse);
+            if (_scrollRect != null)
+                _scrollRect.scrollSensitivity = mouse ? 40f : 0f;
+            _ownerText.text = PilotLabels.OnlyFor(owner);
+            _ownerText.gameObject.SetActive(_ownerText.text.Length > 0);
             _title = title;
             _body = body;
             _buildOptions = buildOptions;
@@ -129,6 +141,7 @@ namespace Pathfinder.Game.Presentation
             IsOpen = false;
             GameClock.Resume(this);
             ModalScreens.SetOpen(this, false);
+            MenuMouse.Set(this, false);
             EquipmentPreview.Clear(this);
             _canvas.gameObject.SetActive(false);
         }
@@ -196,11 +209,13 @@ namespace Pathfinder.Game.Presentation
             UiKit.FitContent(panel);
 
             _titleText = UiKit.Text(_panel, "Title", string.Empty, 40, UiKit.TextBright, TextAnchor.MiddleCenter, FontStyle.Bold);
+            _ownerText = UiKit.Text(_panel, "Owner", string.Empty, 22, UiKit.TextBody, TextAnchor.MiddleCenter, FontStyle.Bold);
+            _ownerText.gameObject.SetActive(false);
             _bodyText = UiKit.Text(_panel, "Body", string.Empty, 22, UiKit.TextBody, TextAnchor.UpperCenter);
 
             var list = UiKit.Node("List", _panel);
             _listLayout = UiKit.Layout(list, preferredHeight: 100f);
-            var scroll = list.gameObject.AddComponent<ScrollRect>();
+            var scroll = _scrollRect = list.gameObject.AddComponent<ScrollRect>();
             scroll.horizontal = false;
             scroll.movementType = ScrollRect.MovementType.Clamped;
             scroll.scrollSensitivity = 40f;

@@ -347,7 +347,7 @@ namespace Pathfinder.Game.Presentation
                 var color = CoopRules.PilotColor(player.PlayerIndex);
                 _reticleTracks[i].color = coop ? new Color(color.r, color.g, color.b, 0.45f) : new Color(1f, 1f, 1f, 0.18f);
             }
-            Cursor.visible = !anyFlying;
+            Cursor.visible = !anyFlying && !MenuMouse.Blocked; // no cursor over a co-op player's menu the mouse can't work
         }
 
         /// <summary>For tests: player 1's ship readout is showing, and its ammo ring's fill.</summary>

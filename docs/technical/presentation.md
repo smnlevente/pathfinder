@@ -44,7 +44,9 @@ Every string goes through `Loc.T`, and menus rebuild when the language changes (
 `ShipReadout` on their ship (over a wreck: a call for help and the revive ring), their own crosshair (only player 1
 aims with the mouse), and P2's `ShipSlotsView` sits bottom right. `EquipmentPreview.Pilot` says whose diagram a menu's
 preview belongs to. Menus that are for one pilot (`EquipmentChoiceScreen`, the Shop and repair `ChoiceDialog`) head
-their title with `PilotLabels.Prefix(pilot)` and listen only to that pilot's devices.
+their title with `PilotLabels.Prefix(pilot)` and listen only to that pilot's devices. If the pilot doesn't play with
+the mouse, the menu blocks it too (`MenuMouse.Set(menu, true)`): `UiPointer` ignores hovers and clicks and the HUD hides
+the cursor until the menu closes (playtest 8).
 
 With one pilot:
 
