@@ -363,6 +363,9 @@ ship.titan.trait.desc = +50% hull and 10% less damage taken. The beginner ship.
 ship.stormbringer.name = Stormbringer Battleship
 ship.stormbringer.trait = Lightning Core
 ship.stormbringer.trait.desc = Each primary hit has an 8% chance to call a lightning strike from above.
+ship.bot-commander.name = Bot-Commander Frigate
+ship.bot-commander.trait = Swarm Protocol
+ship.bot-commander.trait.desc = Every kill launches a guided bot that flies at the nearest enemy and bursts on contact.
 
 ## ------------------------------------------------------------------ weapons
 primary.photon-repeater.name = Photon Repeater
@@ -433,6 +436,8 @@ equipment.split-shot.name = Split Shot
 equipment.split-shot.desc = Every {ordinal} shot fires 3 projectiles in a fan
 trait.lightning-core.name = Lightning Core
 trait.lightning-core.desc = Each primary hit has a {chance:0}% chance to call lightning: {damage:0} damage within {radius:0} u
+trait.swarm-protocol.name = Swarm Protocol
+trait.swarm-protocol.desc = Every kill launches a guided bot: {damage:0} damage on contact, up to {max} at once
 
 ## ------------------------------------------------------------------ Pathfinder Lab upgrades
 meta.hull-plating.name = Hull Plating
@@ -440,6 +445,7 @@ meta.shield-matrix.name = Shield Matrix
 meta.salvage-protocols.name = Salvage Protocols
 meta.second-dash.name = Second Dash Charge
 meta.unlock-quantum-charger.name = Quantum Charger
+meta.unlock-bot-commander.name = Bot-Commander Frigate
 
 ## ------------------------------------------------------------------ Mystery events
 # {id}.name is the title; choice/result/fail are numbered in the order the choices appear.

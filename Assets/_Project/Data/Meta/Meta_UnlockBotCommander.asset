@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55765a44176328442b691572de5dfa04, type: 3}
+  m_Name: Meta_UnlockBotCommander
+  m_EditorClassIdentifier: 
+  id: meta.unlock-bot-commander
+  displayName: Bot-Commander Frigate
+  icon: {fileID: 21300000, guid: c7df9d78442317f48808c31bb95136c2, type: 3}
+  <Currency>k__BackingField: 1
+  <Costs>k__BackingField: 02000000
+  <Effect>k__BackingField: 2
+  <Stat>k__BackingField: 0
+  <AmountPerTier>k__BackingField: 0
+  <UnlockTarget>k__BackingField: {fileID: 11400000, guid: eec850a25ddae3a4cb5eedee846cdcb1, type: 2}

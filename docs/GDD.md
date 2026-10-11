@@ -174,7 +174,7 @@ Ship selection happens at the start of each run. Each ship has a **stat profile*
 |---|---|---|---|---|
 | 1 | **Titan-Class Cruiser** | Hull 150, Shield 25, Speed 7 | **Reinforced Hull:** +50% hull, and incoming damage is reduced by 10%. The beginner ship. | Starting |
 | 2 | **Stormbringer Battleship** | Hull 100, Shield 25, Speed 8 | **Lightning Core:** each primary projectile has an 8% chance to call a lightning strike from above at the impact point (25 dmg, 2 u radius). | Starting |
-| 3 | **Bot-Commander Frigate** | Hull 90, Shield 30, Speed 8.5 | **Swarm Protocol:** each kill spawns a guided bot at the corpse. The bot homes on the nearest enemy, deals 12 damage on contact and is destroyed. Max 6 bots active. | 2 Singularity Cores |
+| 3 | **Bot-Commander Frigate** | Hull 90, Shield 30, Speed 8.5 | **Swarm Protocol:** each kill spawns a guided bot at the corpse. The bot homes on the nearest enemy, deals 12 damage on contact and is destroyed. Max 6 bots active. *(Built in M7.)* | 2 Singularity Cores (Lab) |
 | 4 | **Arcanum Explorer** | Hull 85, Shield 25, Speed 9 | **Cargo Hold:** every equipment choice offers **+1 option** (4 instead of 3), and the Shop catalog has +1 slot. | 3 Singularity Cores |
 | 5 | **Vampiric Destroyer** | Hull 110, Shield 0, Speed 8 | **Energy Siphon:** each kill restores 2 hull (elites 6, bosses 20 per phase). It takes **+25% damage** and has **no shield**. | 4 Singularity Cores |
 

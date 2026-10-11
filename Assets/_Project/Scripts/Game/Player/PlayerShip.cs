@@ -163,9 +163,33 @@ namespace Pathfinder.Game.Player
             TotalScrapsGained = 0;
             _runModifiers.Clear();
             Equipment.Clear();
+            ApplyHullTint();
 
             Rebuild();
         }
+
+        /// <summary>
+        /// Colours the hull parts of the model in the ship's own colour (M7: ships no longer all look alike). On the material
+        /// itself, since the hit flash uses property blocks and clears them afterwards.
+        /// </summary>
+        void ApplyHullTint()
+        {
+            if (_hullParts == null)
+            {
+                var parts = new List<(Renderer, Color)>();
+                foreach (var part in GetComponentsInChildren<Renderer>(true))
+                {
+                    if (part.name is "Hull" or "Nose" or "Wings")
+                        parts.Add((part, part.sharedMaterial.GetColor(HullColorId)));
+                }
+                _hullParts = parts;
+            }
+            foreach (var (part, original) in _hullParts)
+                part.material.SetColor(HullColorId, original * ship.HullTint);
+        }
+
+        static readonly int HullColorId = Shader.PropertyToID("_BaseColor");
+        List<(Renderer part, Color original)> _hullParts;
 
         /// <summary>Joins the ship to a world. The player index selects its deterministic random streams.</summary>
         public void Bind(CombatWorld world, int playerIndex)

@@ -31,9 +31,11 @@ Dash modules change how it behaves; see [Equipment](equipment.md#dash-modules).
 |---|---|---|---|---|---|
 | **Titan-Class Cruiser** | 150 | 25 | 7 | **Reinforced Hull:** +50% hull and 10% less damage taken. The beginner ship. | Built |
 | **Stormbringer Battleship** | 100 | 25 | 8 | **Lightning Core:** each primary hit has an 8% chance to call a lightning strike (25 damage in 2 u). | Built |
-| Bot-Commander Frigate | 90 | 30 | 8.5 | Swarm Protocol: kills spawn homing bots | Planned (2 Cores) |
+| **Bot-Commander Frigate** | 90 | 30 | 8.5 | **Swarm Protocol:** every kill launches a guided bot from the wreck that homes on the nearest enemy and bursts for 12 damage; up to 6 at once. | Built, unlocked in the Lab for 2 Cores |
 | Arcanum Explorer | 85 | 25 | 9 | Cargo Hold: +1 option on every equipment choice and Shop catalog | Planned (3 Cores) |
 | Vampiric Destroyer | 110 | 0 | 8 | Energy Siphon: kills restore hull; +25% damage taken, no shield | Planned (4 Cores) |
+
+Each ship has its own hull colour: the Titan steel grey, the Stormbringer indigo, the Frigate green.
 
 ## Primary weapons
 

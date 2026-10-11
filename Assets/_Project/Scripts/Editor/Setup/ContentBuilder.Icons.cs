@@ -4,6 +4,7 @@ using System.IO;
 using Pathfinder.Game.Content;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Pathfinder.Editor.Setup
 {
@@ -69,6 +70,19 @@ namespace Pathfinder.Editor.Setup
                 }
             }
 
+            // Ships get a silhouette drawn here (our own art, so not in CREDITS.md); the UI tints it in each ship's colour.
+            var shipIcon = ShipSilhouetteIcon();
+            foreach (var ship in database.Ships)
+            {
+                if (ship != null && ship.Icon == null)
+                    SetFields(ship, ("icon", shipIcon));
+            }
+            foreach (var upgrade in database.MetaUpgrades)
+            {
+                if (upgrade != null && upgrade.Icon == null && upgrade.UnlockTarget is ShipDefinition)
+                    SetFields(upgrade, ("icon", shipIcon));
+            }
+
             const string path = DataDir + "/UI/GameIcons.asset";
             var icons = AssetDatabase.LoadAssetAtPath<GameIcons>(path);
             if (icons == null)
@@ -83,6 +97,44 @@ namespace Pathfinder.Editor.Setup
             SetFields(database, ("Icons", icons));
             EditorUtility.SetDirty(database);
             return icons;
+        }
+
+        /// <summary>The pilot's ship from above, nose up, white on transparent, with the cockpit and wingtips cut out.</summary>
+        static Sprite ShipSilhouetteIcon()
+        {
+            const string dir = IconsDir + "/Generated", file = dir + "/ship.png";
+            const int size = 256;
+            EnsureFolder(dir);
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, mipChain: false);
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float covered = 0f;
+                    for (int s = 0; s < 4; s++)
+                    {
+                        float u = (x + 0.25f + 0.5f * (s % 2)) / size * 2f - 1f, v = (y + 0.25f + 0.5f * (s / 2)) / size * 2f - 1f;
+                        covered += ShipShape(u, v) ? 0.25f : 0f;
+                    }
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, covered));
+                }
+            }
+            File.WriteAllBytes(file, texture.EncodeToPNG());
+            Object.DestroyImmediate(texture);
+            AssetDatabase.ImportAsset(file, ImportAssetOptions.ForceSynchronousImport);
+            ConfigureIcon(file);
+            return AssetDatabase.LoadAssetAtPath<Sprite>(file);
+        }
+
+        static bool ShipShape(float u, float v)
+        {
+            float au = Mathf.Abs(u);
+            bool hull = (v > -0.32f && v < 0.02f && au < 0.86f)                       // wings
+                || (au < 0.2f && v > -0.78f && v < 0.45f)                              // body
+                || (v >= 0.45f && v < 0.95f && au < 0.2f * (0.95f - v) / 0.5f);        // nose
+            bool cut = u * u + (v - 0.22f) * (v - 0.22f) < 0.08f * 0.08f                // cockpit
+                || (au > 0.74f && au < 0.8f && v > -0.32f && v < 0.02f);               // wingtip seams
+            return hull && !cut;
         }
 
         static Sprite Icon(string name) => AssetDatabase.LoadAssetAtPath<Sprite>($"{IconsDir}/{name}.png")

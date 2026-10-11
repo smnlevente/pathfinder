@@ -15,6 +15,7 @@ MonoBehaviour:
   <Ships>k__BackingField:
   - {fileID: 11400000, guid: b8b13ec2162890d45a50c81bb86d79d2, type: 2}
   - {fileID: 11400000, guid: 6ae274df5a07b624ab03c24fa065cec3, type: 2}
+  - {fileID: 11400000, guid: eec850a25ddae3a4cb5eedee846cdcb1, type: 2}
   <PrimaryWeapons>k__BackingField:
   - {fileID: 11400000, guid: be9a8083b9dba724e882afe3bd748c78, type: 2}
   - {fileID: 11400000, guid: 25fe3e3b277580d4d88e7a135386a91b, type: 2}
@@ -64,6 +65,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 49de56d2acca9314ba9e2196579c6d4b, type: 2}
   - {fileID: 11400000, guid: 69d7a0d95bf427544acfc286efbbc901, type: 2}
   - {fileID: 11400000, guid: 1c054644e7f31464681e798a5a5650da, type: 2}
+  - {fileID: 11400000, guid: 3b6de171031a7fe4e98e4f5bef4ff71d, type: 2}
   <Events>k__BackingField:
   - {fileID: 11400000, guid: 6b869b8b1e304bd46b261eb69fded077, type: 2}
   - {fileID: 11400000, guid: 47509317c40a40a42a1a7bc895594445, type: 2}

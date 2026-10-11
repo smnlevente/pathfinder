@@ -40,6 +40,20 @@ namespace Pathfinder.Tests.Game
                 Assert.IsNotNull(icons.ForNode(type), $"{type} nodes have an icon.");
         }
 
+        [Test]
+        public void TheBotCommander_IsUnlockedInTheLab_ForTwoCores()
+        {
+            var database = AssetDatabase.LoadAssetAtPath<ContentDatabase>(DatabasePath);
+            var frigate = database.FindShip("ship.bot-commander");
+            Assert.IsNotNull(frigate, "The third ship is in the database.");
+            Assert.AreEqual(3, database.Ships.Length);
+            Assert.IsNotNull(frigate.Icon, "Ships have an icon.");
+            var unlock = System.Array.Find(database.MetaUpgrades, u => u.UnlockTarget == frigate);
+            Assert.IsNotNull(unlock, "A Lab upgrade unlocks it.");
+            Assert.AreEqual(Pathfinder.Core.Meta.MetaCurrency.SingularityCores, unlock.Currency);
+            Assert.AreEqual(2, unlock.CostOfTier(0));
+        }
+
         /// <summary>The icons are CC BY 3.0: every one in the project must be credited.</summary>
         [Test]
         public void EveryIcon_IsCredited()

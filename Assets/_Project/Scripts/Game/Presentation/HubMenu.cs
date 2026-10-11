@@ -308,7 +308,8 @@ namespace Pathfinder.Game.Presentation
                     var primary = content.PrimaryWeapons[_primary];
                     var secondary = content.SecondaryWeapons[_secondary];
                     AddRow(Loc.T("hub.loadout.ship", ("name", ship.DisplayName)), null, Loc.T("hub.loadout.ship.detail",
-                        ("hull", ship.MaxHull), ("shield", ship.MaxShield), ("speed", ship.MoveSpeed), ("trait", ship.TraitTitle), ("description", ship.TraitText)));
+                        ("hull", ship.MaxHull), ("shield", ship.MaxShield), ("speed", ship.MoveSpeed), ("trait", ship.TraitTitle), ("description", ship.TraitText)))
+                        .SetIcon(ship.Icon, Color.Lerp(new Color(0.55f, 0.65f, 0.9f), Color.white, 0.2f) * ship.HullTint, 56f);
                     AddRow(Loc.T("hub.loadout.primary", ("name", primary.DisplayName)), null, PrimarySummary(primary)).SetIcon(primary.Icon, WeaponColor, 56f);
                     AddRow(Loc.T("hub.loadout.secondary", ("name", secondary.DisplayName)), null, Loc.T("hub.loadout.secondary.detail", ("seconds", secondary.Cooldown)))
                         .SetIcon(secondary.Icon, WeaponColor, 56f);

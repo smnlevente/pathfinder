@@ -16,6 +16,8 @@ namespace Pathfinder.Editor.Setup
         {
             public readonly List<EquipmentDefinition> Items = new List<EquipmentDefinition>();
             public LightningCoreDefinition LightningCore;
+            public SwarmProtocolDefinition SwarmProtocol;
+            public ShipDefinition BotCommander;
             public ShipDefinition Titan;
             public ContentDatabase Database;
         }
@@ -66,13 +68,23 @@ namespace Pathfinder.Editor.Setup
                 ("TraitName", "Reinforced Hull"), ("TraitDescription", "+50% hull and 10% less damage taken. The beginner ship.")));
             UpgradeStormbringer(data.Ship, content.LightningCore);
 
+            // M7: the third ship (GDD §5.3), unlocked in the Lab. Every kill launches a homing bot from the wreck.
+            content.SwarmProtocol = Definition<SwarmProtocolDefinition>("Equipment/Traits/Trait_SwarmProtocol", "trait.swarm-protocol", "Swarm Protocol");
+            SetIfEmpty(content.SwarmProtocol, ("BotPrefab", fx.SwarmBot), ("ImpactPrefab", art.MissileImpact));
+            content.BotCommander = Definition<ShipDefinition>("Ships/Ship_BotCommander", "ship.bot-commander", "Bot-Commander Frigate", so => Set(so,
+                ("MaxHull", 90f), ("MaxShield", 30f), ("MoveSpeed", 8.5f), ("HullTint", new Color(0.62f, 1.1f, 0.82f)),
+                ("TraitName", "Swarm Protocol"), ("TraitDescription", "Every kill launches a guided bot that homes on the nearest enemy.")));
+            SetIfEmpty(content.BotCommander, ("Trait", content.SwarmProtocol));
+            // Each ship its own colour; the older assets predate the field.
+            TintIfUntinted(data.Ship, new Color(0.82f, 0.86f, 1.25f));
+
             content.Database = BuildContentDatabase(data, content, bosses);
             return content;
         }
 
         sealed class EquipmentFx
         {
-            public GameObject Lightning, Blink, Pushback;
+            public GameObject Lightning, Blink, Pushback, SwarmBot;
         }
 
         static EquipmentFx BuildEquipmentEffects(Art art)
@@ -91,6 +103,13 @@ namespace Pathfinder.Editor.Setup
             fx.Lightning = SavePrefab(strike, "FX");
 
             fx.Blink = SavePrefab(Burst("FX_Blink", art.FxCyan, count: 22, speed: 5f, size: 0.35f, lifetime: 0.3f), "FX");
+
+            // Swarm Protocol's bot: a little cyan drone with stubby wings, nose first (it turns to face where it flies).
+            var bot = new GameObject("PV_SwarmBot");
+            Primitive(PrimitiveType.Sphere, "Body", bot.transform, art.PlayerMissile, Vector3.zero, new Vector3(0.26f, 0.18f, 0.34f));
+            Primitive(PrimitiveType.Cube, "Wings", bot.transform, art.ShipGlow, new Vector3(0f, 0f, -0.04f), new Vector3(0.5f, 0.04f, 0.12f));
+            FlatQuad("Glow", bot.transform, art.FxCyan, -0.05f, 0.75f);
+            fx.SwarmBot = SavePrefab(bot, "Projectiles");
 
             // Pushback: a quick ring sized for a 4 u radius. The effect scales it to the module's radius.
             var push = new GameObject("FX_PushbackDash");
@@ -132,6 +151,12 @@ namespace Pathfinder.Editor.Setup
                 configure?.Invoke(so);
             });
 
+        static void TintIfUntinted(ShipDefinition ship, Color tint)
+        {
+            if (ship.HullTint == Color.white)
+                SetFields(ship, ("HullTint", tint));
+        }
+
         /// <summary>The Stormbringer predates traits. Give it Lightning Core without touching any tuning.</summary>
         static void UpgradeStormbringer(ShipDefinition stormbringer, LightningCoreDefinition trait)
         {
@@ -160,11 +185,11 @@ namespace Pathfinder.Editor.Setup
             }
 
             var so = new SerializedObject(database);
-            Assign(so.FindProperty("<Ships>k__BackingField"), new Object[] { content.Titan, data.Ship }, "Ships");
+            Assign(so.FindProperty("<Ships>k__BackingField"), new Object[] { content.Titan, data.Ship, content.BotCommander }, "Ships");
             Assign(so.FindProperty("<PrimaryWeapons>k__BackingField"), data.Primaries, "PrimaryWeapons");
             Assign(so.FindProperty("<SecondaryWeapons>k__BackingField"), data.Secondaries, "SecondaryWeapons");
             Assign(so.FindProperty("<Equipment>k__BackingField"), content.Items.ToArray(), "Equipment");
-            Assign(so.FindProperty("<MetaUpgrades>k__BackingField"), BuildMetaUpgrades(data), "MetaUpgrades");
+            Assign(so.FindProperty("<MetaUpgrades>k__BackingField"), BuildMetaUpgrades(data, content.BotCommander), "MetaUpgrades");
             Assign(so.FindProperty("<Events>k__BackingField"), BuildMysteryEvents(), "Events");
             var enemies = new System.Collections.Generic.List<Object>(data.Enemies);
             enemies.AddRange(bosses);

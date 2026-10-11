@@ -65,6 +65,18 @@ namespace Pathfinder.Game.Combat
 
         public ProjectileSystem(Transform visualRoot) => _visualRoot = visualRoot;
 
+        /// <summary>Live projectiles an entity fired with a given visual, e.g. the Bot-Commander's bots (capped by its trait).</summary>
+        public int CountFrom(int ownerId, GameObject visualPrefab)
+        {
+            int count = 0;
+            foreach (var projectile in _active)
+            {
+                if (projectile.OwnerId == ownerId && projectile.VisualPrefab == visualPrefab && projectile.FadeLeft <= 0f)
+                    count++;
+            }
+            return count;
+        }
+
         public int CountForTeam(Team team)
         {
             int count = 0;

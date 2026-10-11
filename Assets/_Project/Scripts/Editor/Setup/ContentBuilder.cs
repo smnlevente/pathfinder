@@ -262,6 +262,7 @@ namespace Pathfinder.Editor.Setup
                     break;
                 case bool flag: property.boolValue = flag; break;
                 case Vector2 vector: property.vector2Value = vector; break;
+                case Color color: property.colorValue = color; break;
                 case string text: property.stringValue = text; break;
                 default: throw new NotSupportedException($"Unsupported value for '{field}': {value}");
             }

@@ -117,7 +117,7 @@ namespace Pathfinder.Editor.Setup
         }
 
         /// <summary>Hub upgrades (GDD §11.2): three Lab upgrades, one Core Project and a weapon unlock.</summary>
-        static MetaUpgradeDefinition[] BuildMetaUpgrades(Data data)
+        static MetaUpgradeDefinition[] BuildMetaUpgrades(Data data, ShipDefinition botCommander)
         {
             MetaUpgradeDefinition Upgrade(string asset, string id, string name, MetaCurrency currency, int[] costs,
                 MetaUpgradeDefinition.EffectKind effect, StatId stat = StatId.MaxHull, float amount = 0f, Object unlock = null) =>
@@ -143,6 +143,8 @@ namespace Pathfinder.Editor.Setup
                     MetaUpgradeDefinition.EffectKind.StatBonus, StatId.DashCharges, 1f),
                 Upgrade("Meta_UnlockQuantumCharger", "meta.unlock-quantum-charger", "Quantum Charger", MetaCurrency.DarkMatter, new[] { 150 },
                     MetaUpgradeDefinition.EffectKind.Unlock, unlock: data.QuantumCharger),
+                Upgrade("Meta_UnlockBotCommander", "meta.unlock-bot-commander", "Bot-Commander Frigate", MetaCurrency.SingularityCores, new[] { 2 },
+                    MetaUpgradeDefinition.EffectKind.Unlock, unlock: botCommander),
             };
         }
     }

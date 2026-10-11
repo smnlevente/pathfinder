@@ -64,6 +64,7 @@ Permanent upgrades, bought in the Hub.
 | **Salvage Protocols** | Dark Matter | 40 / 80 / 120 | Start each run with +25 Scraps per tier |
 | **Second Dash Charge** | Singularity Cores | 2 | +1 dash charge |
 | **Quantum Charger** | Dark Matter | 150 | Unlocks the weapon for your loadout |
+| **Bot-Commander Frigate** | Singularity Cores | 2 | Unlocks the third ship for your loadout (M7) |
 
 Planned: Reroll Credits, Field Repairs, ship unlocks (2 / 3 / 4 Cores), a second dash module slot, Epic Research, and
 later **Pathfinder Protocols**, optional difficulty modifiers for bonus rewards.

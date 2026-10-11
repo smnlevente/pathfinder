@@ -22,6 +22,9 @@ namespace Pathfinder.Game.Content
         [field: SerializeField, Min(0), Tooltip("Extra options in every equipment choice and Shop catalog (Arcanum Explorer: 1).")]
         public int ExtraEquipmentChoices { get; private set; }
 
+        [field: Header("Look")]
+        [field: SerializeField, Tooltip("The hull's colour, so each ship looks like itself (M7).")] public Color HullTint { get; private set; } = Color.white;
+
         [field: Header("Durability")]
         [field: SerializeField, Min(1f)] public float MaxHull { get; private set; } = 100f;
         [field: SerializeField, Min(0f)] public float MaxShield { get; private set; } = 25f;
