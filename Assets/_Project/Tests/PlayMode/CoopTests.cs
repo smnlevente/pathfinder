@@ -90,6 +90,29 @@ namespace Pathfinder.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator Alone_AnyDeviceFliesTheShip()
+        {
+            // Playtest 8: alone, nothing could fly the ship. (Keyboards are off in batch mode without focus, so this
+            // checks a gamepad; the keyboard rides on the same device setting.)
+            var pad = InputSystem.AddDevice<Gamepad>();
+            try
+            {
+                yield return LoadRun();
+                Assert.IsNull(LocalPlayers.DevicesFor(0), "Alone, player 1 listens to every device.");
+                var input = Player.GetComponent<LocalInputCommandSource>();
+                InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = new Vector2(1f, 0f) });
+                yield return null;
+                Assert.Greater(input.ReadCommand(Player).Move.x, 0.5f, "Alone, any gamepad flies the ship.");
+                InputSystem.QueueStateEvent(pad, new GamepadState());
+                yield return null;
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(pad);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator Menus_ListenOnlyToThePlayerTheyAreFor()
         {
             yield return LoadCoop();

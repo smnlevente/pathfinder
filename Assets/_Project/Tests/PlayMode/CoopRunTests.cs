@@ -239,6 +239,73 @@ namespace Pathfinder.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator TheHub_HearsWhichControllerTheNewPlayerPresses_EvenOneThatShowsUpTwice()
+        {
+            // Playtest 8: one PlayStation pad drove both ships. It can show up as two devices (itself and a virtual Xbox
+            // pad), and player 1 kept every device nobody had claimed.
+            LocalPlayers.Reset();
+            var twin = InputSystem.AddDevice<Gamepad>();
+            var other = InputSystem.AddDevice<Gamepad>();
+            try
+            {
+                GameClock.ResumeAll();
+                RunSession.Clear();
+                yield return SceneManager.LoadSceneAsync(Pathfinder.Game.Boot.SceneNames.Hub, LoadSceneMode.Single);
+                yield return null;
+                var menu = Object.FindAnyObjectByType<HubMenu>();
+                menu.OpenLoadout(survival: false);
+
+                // Player 1's pad (both its devices) chooses ADD PLAYER 2...
+                Press(_pad, twin);
+                yield return null;
+                menu.ListenForJoin();
+                Release(_pad, twin);
+                yield return new WaitForSecondsRealtime(0.4f);
+
+                // ...so pressing it again isn't a new player.
+                Press(_pad, twin);
+                yield return null;
+                Release(_pad, twin);
+                yield return null;
+                Assert.AreEqual(1, LocalPlayers.Count, "Player 1's own controller doesn't join as player 2.");
+                Assert.AreEqual(1, menu.ListeningFor, "Still listening for player 2.");
+
+                // A moment later (two pads pressing within a few frames of each other count as one controller).
+                yield return new WaitForSecondsRealtime(0.2f);
+                Press(other);
+                yield return null;
+                Release(other);
+                yield return null;
+                Assert.AreEqual(2, LocalPlayers.Count, "The controller player 2 pressed joins.");
+                Assert.AreEqual(1, LocalPlayers.OwnerOf(other));
+                Assert.AreEqual(LocalPlayers.Controls.Gamepad, LocalPlayers.ControlsOf(0), "Player 1 keeps their controller...");
+                CollectionAssert.IsSubsetOf(new InputDevice[] { _pad, twin }, LocalPlayers.DevicesFor(0), "...both its devices.");
+                CollectionAssert.DoesNotContain(LocalPlayers.DevicesFor(0), other);
+                CollectionAssert.DoesNotContain(LocalPlayers.DevicesFor(1), _pad);
+                CollectionAssert.DoesNotContain(LocalPlayers.DevicesFor(1), twin);
+                Assert.AreEqual("controls", menu.LoadoutRows[1], "Each player's controls are shown, and can be changed.");
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(twin);
+                InputSystem.RemoveDevice(other);
+            }
+        }
+
+        /// <summary>Presses Triangle/Y (not a menu button) on these pads in one frame.</summary>
+        static void Press(params Gamepad[] pads)
+        {
+            foreach (var pad in pads)
+                InputSystem.QueueStateEvent(pad, new UnityEngine.InputSystem.LowLevel.GamepadState().WithButton(UnityEngine.InputSystem.LowLevel.GamepadButton.North));
+        }
+
+        static void Release(params Gamepad[] pads)
+        {
+            foreach (var pad in pads)
+                InputSystem.QueueStateEvent(pad, new UnityEngine.InputSystem.LowLevel.GamepadState());
+        }
+
+        [UnityTest]
         public IEnumerator TheHub_LetsAPlayerLeave()
         {
             GameClock.ResumeAll();

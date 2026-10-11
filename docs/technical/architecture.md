@@ -177,9 +177,12 @@ Local co-op is built (M8, see below), and these rules keep online co-op possible
 
 ### Local co-op (M8)
 
-- **Who's playing:** `LocalPlayers` (static, kept across scenes) holds up to four slots. Player 1 has no device of
-  their own and plays with whatever nobody else claimed. Players 2–4 each claim a `Gamepad` and remember their
-  `PilotLoadout`. `LocalPlayers.DevicesFor(index)` is the device list a player's controls listen to.
+- **Who's playing:** `LocalPlayers` (static, kept across scenes) holds up to four slots, each with its `Controls`
+  (`Any` for player 1 alone, `KeyboardMouse`, or `Gamepad` with that controller's devices: one pad can show up as
+  several) and its `PilotLoadout`. `LocalPlayers.DevicesFor(index)` is the device list a player's controls listen to;
+  null means every device. Assign a null list as `null`, never as a null array: an array converts to an empty device
+  list first, and the pilot hears nothing (playtest 8). The Hub assigns controls by press (`HubMenu.ListenForJoin`,
+  `ListenForControls`) and logs every device and assignment to the player log (`[Input]`, `[Controls]`).
 - **Input:** each `LocalInputCommandSource` instantiates its own copy of the project's input actions and sets
   `InputActionAsset.devices`, so two pilots never read each other's sticks. Menus do the same on demand:
   `MenuInput.RestrictTo(devices)` (see `PilotLabels.Devices(pilot)`). The shared actions still serve Pause, which any

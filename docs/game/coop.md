@@ -4,23 +4,34 @@
 
 Up to four players on one screen, each with their own controller *(M8)*. Runs and Survival both work in co-op.
 
-## Joining
+## Joining, and who plays with what
 
-Player 1 is always in, playing with the keyboard and mouse or a gamepad. Everyone else joins with a gamepad of their
-own (PlayStation and Xbox controllers both work):
+Alone, player 1 plays with anything: the keyboard and mouse, or any controller. With company, **every player has their
+own controls**, chosen by pressing a button *(playtest 8)*:
 
 1. In the Hub, choose **Start Run** or **Survival** to open the loadout page.
-2. Choose **ADD PLAYER 2**. The row turns gold and waits.
-3. The new player presses any button on their controller. The controller player 1 used to choose the row can't join
-   again, so player 1 can be on a gamepad too.
+2. Choose **ADD PLAYER 2**. The row turns gold: **PLAYER 2: PRESS A BUTTON OR KEY**.
+3. Player 2 presses a button on **their** controller, or any key to play on the keyboard and mouse.
 
-Esc or Circle/B stops waiting.
+Player 1 keeps what they chose the row with. If they chose it with the keyboard or mouse, they keep the keyboard and
+mouse. If they chose it with a controller, they keep that controller, and it can't join again as player 2. So you can
+play with:
 
-Each player picks their own ship and weapons: the **PILOT** row at the top switches whose loadout the rows below
-show. **REMOVE PLAYER 2** lets a player leave. Players stay joined, with their picks remembered, until the game is
-closed.
+- the keyboard and mouse for player 1 and a controller for player 2,
+- or a controller each.
 
-![The loadout page with a second player: the PILOT row picks whose loadout to change](../images/coop-hub.png)
+Esc (or Circle/B on your own controller) stops waiting.
+
+**CONTROLS** shows what each player plays with. To change it, choose the row, then press a button on the controller that
+player should use, or a key for the keyboard and mouse. If another player had those controls, the two swap. The
+**PILOT** row at the top switches whose controls, ship and weapons the rows below show. **REMOVE PLAYER 2** lets a
+player leave. Players stay joined, with their picks remembered, until the game is closed.
+
+> [!TIP]
+> One controller can show up as two devices: a PlayStation pad and a virtual Xbox pad that Steam or DS4Windows adds.
+> The game treats devices that press at the same moment as one controller, so both belong to the same player.
+
+![The loadout page with a second player: PILOT picks whose loadout to change, CONTROLS what they play with](../images/coop-hub.png)
 
 ## On screen
 

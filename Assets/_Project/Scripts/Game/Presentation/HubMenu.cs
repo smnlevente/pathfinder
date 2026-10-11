@@ -41,15 +41,26 @@ namespace Pathfinder.Game.Presentation
         readonly int[] _secondaries = new int[CoopRules.MaxPilots];
         readonly List<string> _loadoutKeys = new List<string>(); // the loadout page's rows
         int _editing;
-        bool _waitingForJoin;
-        InputDevice _joinExcluded;
-        int _joinStartFrame;
+        // Listening for the controls of a new player, or of one already in (playtest 8: say who plays with what).
+        enum Listening { None, Join, Controls }
+        Listening _listening;
+        int _listeningFor;
+        float _listenStarted;
+        float _twinsUntil;
+        int _twinsFor = -1;
+        readonly List<InputDevice> _starters = new List<InputDevice>(); // the controller that chose the row: not the one we want
+        readonly Dictionary<InputDevice, int> _lastPress = new Dictionary<InputDevice, int>(); // each controller's latest press (frame)
+        const int TwinFrames = 4;       // controllers pressing within this many frames of each other are one controller
+        const float ListenDelay = 0.25f; // the press that chose the row, and its echo on a twin device, are not answers
 
         /// <summary>Which local player's loadout the page shows (M8). For tests.</summary>
         public int EditingPlayer => _editing;
 
         /// <summary>Whether the page is waiting for a new player to press a button on their controller. For tests.</summary>
-        public bool WaitingForPlayer => _waitingForJoin;
+        public bool WaitingForPlayer => _listening == Listening.Join;
+
+        /// <summary>Whose controls the page is waiting for (a new player's index when joining), or -1. For tests.</summary>
+        public int ListeningFor => _listening == Listening.None ? -1 : _listeningFor;
 
         /// <summary>The loadout page's rows by name ("pilot", "ship", "launch", "add"…). For tests.</summary>
         public IReadOnlyList<string> LoadoutRows => _loadoutKeys;
@@ -78,21 +89,28 @@ namespace Pathfinder.Game.Presentation
 
         void Awake()
         {
+            LogDevices();
+            InputSystem.onDeviceChange += OnDeviceChange;
             _input = new MenuInput();
             Build();
             ShowPage(Page.Main);
             Loc.Changed += OnLanguageChanged;
         }
 
-        void OnDestroy() => Loc.Changed -= OnLanguageChanged;
+        void OnDestroy()
+        {
+            Loc.Changed -= OnLanguageChanged;
+            InputSystem.onDeviceChange -= OnDeviceChange;
+        }
 
         void OnLanguageChanged() => ShowPage(_page, keepSelection: true);
 
         void Update()
         {
-            if (_waitingForJoin)
+            TrackPresses();
+            if (_listening != Listening.None)
             {
-                TickJoin();
+                TickListening();
                 _meta.text = MetaLine();
                 for (int i = 0; i < _rows.Count; i++)
                     _rows[i].SetState(i == _selected, _enabled[i]);
@@ -124,10 +142,9 @@ namespace Pathfinder.Game.Presentation
 
         void Activate(int index)
         {
-            if (_waitingForJoin)
+            if (_listening != Listening.None)
             {
-                _waitingForJoin = false;
-                ShowPage(_page, keepSelection: true);
+                StopListening();
                 return;
             }
             switch (_page)
@@ -145,7 +162,10 @@ namespace Pathfinder.Game.Presentation
                                 StartRun();
                             break;
                         case "add":
-                            BeginJoin();
+                            ListenForJoin();
+                            break;
+                        case "controls":
+                            ListenForControls(_editing);
                             break;
                         case "remove":
                             RemovePlayer(_editing);
@@ -230,7 +250,7 @@ namespace Pathfinder.Game.Presentation
         {
             _survival = survival;
             _editing = 0;
-            _waitingForJoin = false;
+            _listening = Listening.None;
             // Each player starts from what they flew last time this session (M8), within what's unlocked.
             for (int i = 0; i < LocalPlayers.Count; i++)
             {
@@ -286,60 +306,232 @@ namespace Pathfinder.Game.Presentation
         // ---------------------------------------------------------------- local co-op (M8)
 
         /// <summary>
-        /// Waits for a new player to press a button on a controller nobody has claimed yet. The controller that chose
-        /// "add a player" is player 1's, so it can't join again.
+        /// Waits for a new player to press a button on their controller, or a key for the keyboard and mouse. The controller
+        /// that chose the row is ignored: it's someone else's. For tests and debug tools too.
         /// </summary>
-        void BeginJoin()
+        public void ListenForJoin()
         {
             if (LocalPlayers.Count >= CoopRules.MaxPilots)
                 return;
-            _waitingForJoin = true;
-            _joinExcluded = _input.SubmitDevice as Gamepad;
-            _joinStartFrame = Time.frameCount;
+            BeginListening(Listening.Join, LocalPlayers.Count);
+        }
+
+        /// <summary>Waits for a player to press a button on the controller they'll use, or a key for the keyboard and mouse.</summary>
+        public void ListenForControls(int player)
+        {
+            if (player < 0 || player >= LocalPlayers.Count)
+                return;
+            BeginListening(Listening.Controls, player);
+        }
+
+        void BeginListening(Listening listening, int player)
+        {
+            _listening = listening;
+            _listeningFor = player;
+            _listenStarted = Time.unscaledTime;
+            // Whatever pressed just now chose the row. A controller that pressed with it is the same controller.
+            _starters.Clear();
+            if (_input.SubmitDevice is Gamepad pad)
+                _starters.Add(pad);
+            foreach (var pair in _lastPress)
+            {
+                if (Time.frameCount - pair.Value <= TwinFrames && !_starters.Contains(pair.Key))
+                    _starters.Add(pair.Key);
+            }
             ShowPage(Page.Loadout, keepSelection: true);
         }
 
-        void TickJoin()
+        void StopListening()
         {
-            if (Time.frameCount == _joinStartFrame)
+            _listening = Listening.None;
+            ShowPage(Page.Loadout, keepSelection: true);
+        }
+
+        /// <summary>Remembers when each controller last pressed a button, and catches a new player's controller's twins.</summary>
+        void TrackPresses()
+        {
+            foreach (var pad in Gamepad.all)
+            {
+                if (!AnyButtonPressed(pad))
+                    continue;
+                _lastPress[pad] = Time.frameCount;
+                // Shortly after a player gets a controller, another device pressing along with it is that controller too.
+                if (_twinsFor >= 0 && _twinsFor < LocalPlayers.Count && Time.unscaledTime < _twinsUntil && !LocalPlayers.IsClaimed(pad)
+                    && PressedWithAny(pad, LocalPlayers.Slots[_twinsFor].Gamepads))
+                    LocalPlayers.AddTwin(_twinsFor, pad);
+            }
+        }
+
+        bool PressedWithAny(InputDevice pad, IReadOnlyList<InputDevice> others)
+        {
+            if (!_lastPress.TryGetValue(pad, out int frame))
+                return false;
+            foreach (var other in others)
+            {
+                if (other != pad && _lastPress.TryGetValue(other, out int otherFrame) && Mathf.Abs(frame - otherFrame) <= TwinFrames)
+                    return true;
+            }
+            return false;
+        }
+
+        void TickListening()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+            {
+                StopListening();
                 return;
-            foreach (var gamepad in Gamepad.all)
+            }
+
+            bool settling = Time.unscaledTime - _listenStarted < ListenDelay;
+            foreach (var pad in Gamepad.all)
             {
-                if (gamepad != _joinExcluded && !LocalPlayers.IsClaimed(gamepad) && AnyButtonPressed(gamepad))
+                if (!AnyButtonPressed(pad))
+                    continue;
+                // The controller that chose the row, or its twin echoing it: Circle/B or Select there stops listening.
+                if (settling || _starters.Contains(pad) || PressedWithAny(pad, _starters))
                 {
-                    AddPlayer(gamepad);
-                    return;
+                    if (!_starters.Contains(pad))
+                        _starters.Add(pad);
+                    if (!settling && (pad.buttonEast.wasPressedThisFrame || pad.selectButton.wasPressedThisFrame))
+                    {
+                        StopListening();
+                        return;
+                    }
+                    continue;
                 }
+                AssignController(ControllerOf(pad));
+                return;
             }
-            if (_input.Cancelled)
+
+            if (!settling && keyboard != null && keyboard.anyKey.wasPressedThisFrame)
+                AssignKeyboard();
+        }
+
+        /// <summary>The pad and any other unclaimed pads that pressed with it: one physical controller.</summary>
+        InputDevice[] ControllerOf(Gamepad pad)
+        {
+            var devices = new List<InputDevice> { pad };
+            foreach (var other in Gamepad.all)
             {
-                _waitingForJoin = false;
-                ShowPage(Page.Loadout, keepSelection: true);
+                if (other != pad && !LocalPlayers.IsClaimed(other) && !_starters.Contains(other) && PressedWithAny(other, devices))
+                    devices.Add(other);
             }
+            return devices.ToArray();
+        }
+
+        void AssignController(InputDevice[] controller)
+        {
+            if (_listening == Listening.Join)
+                AddPlayer(controller);
+            else
+            {
+                LocalPlayers.Assign(_listeningFor, LocalPlayers.Controls.Gamepad, controller);
+                FinishListening(_listeningFor);
+            }
+        }
+
+        void AssignKeyboard()
+        {
+            if (_listening == Listening.Join)
+                AddKeyboardPlayer();
+            else
+            {
+                LocalPlayers.Assign(_listeningFor, LocalPlayers.Controls.KeyboardMouse);
+                FinishListening(_listeningFor);
+            }
+        }
+
+        void FinishListening(int player)
+        {
+            _listening = Listening.None;
+            _twinsFor = player;
+            _twinsUntil = Time.unscaledTime + 1.5f;
+            ResolvePlayerOne();
+            Audio.GameAudio.Play(Audio.SoundCue.UiConfirm);
+            LogControls();
+            ShowPage(Page.Loadout, keepSelection: true);
+        }
+
+        /// <summary>
+        /// With company, player 1 can't keep playing with every device. They take the controller that chose the row, if one
+        /// did; otherwise the keyboard and mouse if free; otherwise the controllers nobody else has.
+        /// </summary>
+        void ResolvePlayerOne()
+        {
+            if (!LocalPlayers.IsCoop || LocalPlayers.ControlsOf(0) != LocalPlayers.Controls.Any)
+                return;
+            var starterPads = _starters.FindAll(device => device is Gamepad && !LocalPlayers.IsClaimed(device));
+            if (starterPads.Count > 0)
+                LocalPlayers.Assign(0, LocalPlayers.Controls.Gamepad, starterPads.ToArray());
+            else if (LocalPlayers.OwnerOf(Keyboard.current) < 0)
+                LocalPlayers.Assign(0, LocalPlayers.Controls.KeyboardMouse);
         }
 
         static bool AnyButtonPressed(Gamepad gamepad) =>
             gamepad.buttonSouth.wasPressedThisFrame || gamepad.buttonEast.wasPressedThisFrame || gamepad.buttonWest.wasPressedThisFrame
             || gamepad.buttonNorth.wasPressedThisFrame || gamepad.startButton.wasPressedThisFrame || gamepad.selectButton.wasPressedThisFrame
-            || gamepad.leftShoulder.wasPressedThisFrame || gamepad.rightShoulder.wasPressedThisFrame;
+            || gamepad.leftShoulder.wasPressedThisFrame || gamepad.rightShoulder.wasPressedThisFrame
+            || gamepad.leftTrigger.wasPressedThisFrame || gamepad.rightTrigger.wasPressedThisFrame;
 
-        /// <summary>A new player joins with this controller and starts with player 1's loadout. Returns their index, or -1.</summary>
-        public int AddPlayer(InputDevice device)
+        /// <summary>A new player joins with this controller (all its devices) and starts with player 1's loadout. Returns their index, or -1.</summary>
+        public int AddPlayer(params InputDevice[] controller) => Joined(LocalPlayers.Join(controller, StarterPads()));
+
+        /// <summary>A new player joins with the keyboard and mouse. Returns their index, or -1.</summary>
+        public int AddKeyboardPlayer() => Joined(LocalPlayers.JoinWithKeyboard(StarterPads()));
+
+        /// <summary>The controller that chose the row (with its twins): player 1's, if they were playing with anything.</summary>
+        InputDevice[] StarterPads() => _starters.FindAll(device => device is Gamepad).ToArray();
+
+        int Joined(int index)
         {
-            _waitingForJoin = false;
-            int index = LocalPlayers.Join(device);
+            _listening = Listening.None;
             if (index > 0)
             {
                 _ships[index] = _ships[0];
                 _primaries[index] = _primaries[0];
                 _secondaries[index] = _secondaries[0];
                 _editing = index;
-                Audio.GameAudio.Play(Audio.SoundCue.UiConfirm);
-            }
-            ShowPage(Page.Loadout, keepSelection: true);
-            if (index > 0)
+                FinishListening(index);
                 _selected = Mathf.Max(0, _loadoutKeys.IndexOf("pilot"));
+            }
+            else
+            {
+                ShowPage(Page.Loadout, keepSelection: true);
+            }
             return index;
+        }
+
+        /// <summary>Who plays with what, in the player log: helps when a controller shows up as more than one device.</summary>
+        static void LogControls()
+        {
+            var text = new System.Text.StringBuilder("[Controls]");
+            for (int i = 0; i < LocalPlayers.Count; i++)
+            {
+                text.Append($" P{i + 1}={LocalPlayers.ControlsOf(i)}");
+                foreach (var device in LocalPlayers.Slots[i].Gamepads)
+                    text.Append($" '{device.displayName}' ({device.layout} #{device.deviceId})");
+                text.Append(';');
+            }
+            Debug.Log(text.ToString());
+        }
+
+        static void LogDevices()
+        {
+            var text = new System.Text.StringBuilder("[Input] Devices:");
+            foreach (var device in InputSystem.devices)
+                text.Append($" '{device.displayName}' ({device.layout} #{device.deviceId});");
+            Debug.Log(text.ToString());
+        }
+
+        void OnDeviceChange(InputDevice device, InputDeviceChange change)
+        {
+            if (change is InputDeviceChange.Added or InputDeviceChange.Removed or InputDeviceChange.Reconnected or InputDeviceChange.Disconnected)
+            {
+                LogDevices();
+                if (_page == Page.Loadout && _listening == Listening.None)
+                    ShowPage(Page.Loadout, keepSelection: true); // a controller's name or "disconnected" changed
+            }
         }
 
         /// <summary>A player other than player 1 leaves; those after them move up.</summary>
@@ -480,6 +672,13 @@ namespace Pathfinder.Game.Presentation
                         _loadoutKeys.Add("pilot");
                         AddRow(Loc.T("hub.coop.pilot", ("player", PilotLabels.Name(_editing))), null,
                             Loc.T("hub.coop.pilot.detail", ("count", LocalPlayers.Count)), pilotColor);
+                        // What they play with (playtest 8): choose, then press a button on it.
+                        _loadoutKeys.Add("controls");
+                        bool listening = _listening == Listening.Controls && _listeningFor == _editing;
+                        AddRow(listening ? Loc.T("hub.coop.press", ("player", PilotLabels.Name(_editing)))
+                                : Loc.T("hub.coop.controls", ("controls", LocalPlayers.DescribeControls(_editing))), null,
+                            Loc.T(listening ? "hub.coop.press.detail" : "hub.coop.controls.detail", ("player", PilotLabels.Name(_editing))),
+                            listening ? pilotColor : (Color?)null);
                     }
                     var ship = content.Ships[_ships[_editing]];
                     var primary = content.PrimaryWeapons[_primaries[_editing]];
@@ -499,16 +698,20 @@ namespace Pathfinder.Game.Presentation
                     if (LocalPlayers.Count < CoopRules.MaxPilots)
                     {
                         _loadoutKeys.Add("add");
-                        AddRow(Loc.T(_waitingForJoin ? "hub.coop.waiting" : "hub.coop.add", ("player", PilotLabels.Name(LocalPlayers.Count))), null,
-                            Loc.T(_waitingForJoin ? "hub.coop.waiting.detail" : FreeControllers() > 0 ? "hub.coop.add.detail" : "hub.coop.add.no_controller"),
-                            _waitingForJoin ? CoopRules.PilotColor(LocalPlayers.Count) : (Color?)null);
+                        bool joining = _listening == Listening.Join;
+                        bool canJoin = FreeControllers() > 0 || LocalPlayers.OwnerOf(Keyboard.current) < 0;
+                        AddRow(joining ? Loc.T("hub.coop.press", ("player", PilotLabels.Name(LocalPlayers.Count)))
+                                : Loc.T("hub.coop.add", ("player", PilotLabels.Name(LocalPlayers.Count))), null,
+                            Loc.T(joining ? "hub.coop.press.detail" : canJoin ? "hub.coop.add.detail" : "hub.coop.add.no_controller",
+                                ("player", PilotLabels.Name(LocalPlayers.Count))),
+                            joining ? CoopRules.PilotColor(LocalPlayers.Count) : (Color?)null);
                     }
                     if (coop && _editing > 0)
                     {
                         _loadoutKeys.Add("remove");
                         AddRow(Loc.T("hub.coop.remove", ("player", PilotLabels.Name(_editing))), null, null, UiKit.Bad);
                     }
-                    _hint.text = Loc.T(_waitingForJoin ? "hub.coop.waiting.hint" : "hub.loadout.hint");
+                    _hint.text = Loc.T(_listening != Listening.None ? "hub.coop.press.hint" : "hub.loadout.hint");
                     break;
                 }
 

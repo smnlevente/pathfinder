@@ -85,7 +85,12 @@ namespace Pathfinder.Game.Player
             if (_actions == null)
                 return;
             var devices = LocalPlayers.DevicesFor(_playerIndex);
-            _actions.devices = devices;
+            // Null must stay null (every device). Assigning a null array converts it to an empty device list first, and a
+            // pilot alone then listened to nothing at all (playtest 8).
+            if (devices == null)
+                _actions.devices = null;
+            else
+                _actions.devices = devices;
             _devicesVersion = LocalPlayers.Version;
 
             _usesMouse = Mouse.current != null && (devices == null || System.Array.IndexOf(devices, Mouse.current) >= 0);
