@@ -1182,8 +1182,8 @@ MonoBehaviour:
   diveTime: 1.4
   emergeTime: 1.2
   undergroundTime: 2
-  lockTime: 0.5
-  eruptRadius: 4
+  lockTime: 0.4
+  eruptRadius: 3
   eruptDamage: 30
   rockCount: 16
   rockSpeed: 6
@@ -1191,6 +1191,7 @@ MonoBehaviour:
   surfacedBurstInterval: 1.6
   eruptTelegraphPrefab: {fileID: 1573212990333254968, guid: 7a3a89b575f44304eb6958de315d28ee, type: 3}
   eruptEffect: {fileID: 800930524078674997, guid: 22506e3a31e483b4f957a4a7aea5b199, type: 3}
+  eruptBurstPrefab: {fileID: 8640957515008977051, guid: af3b7b4e5afc5ca44b70849f79597333, type: 3}
   burrowDustPrefab: {fileID: 7097322023106304997, guid: 65001f7a3e24d7045885b17239aceb5c, type: 3}
   sweepSpeed: 13
   firstSweepWindUp: 1.4

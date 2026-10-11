@@ -26,14 +26,11 @@ namespace Pathfinder.Editor.Setup
             var beam = Load<Texture2D>(TexturesDir + "/T_Beam.png");
 
             // Playtest 7: the first spore marks were 64 and 128 px textures stretched over a 5 u circle, and read as blurry.
-            // The new ones draw their rings as geometry with a crisp line profile, and fill with textures sized for the area.
-            var lineCore = CreateTexture("T_LineCore", 64, (x, y) =>
-            {
-                float v = Mathf.Abs((y + 0.5f) / 64f - 0.5f) * 2f; // 0 on the centre line, 1 at the line's edges
-                return new Color(1f, 1f, 1f, v < 0.55f ? 1f : Mathf.Exp(-Mathf.Pow((v - 0.55f) / 0.18f, 2f)));
-            }, TextureWrapMode.Clamp, alphaIsTransparency: true);
-            var disc = RadialTexture("T_Disc", 512, d => d >= 1f ? 0f : Mathf.Clamp01((1f - d) * 256f) * (0.45f + 0.55f * d * d));
-            var sharpRing = RadialTexture("T_RingSharp", 512, d => Mathf.Clamp01(1f - Mathf.Abs(d - 0.92f) / 0.05f));
+            // The new ones draw their rings as geometry with a crisp line profile (T_LineCore, from the art step), and fill
+            // with textures sized for the area.
+            var lineCore = Load<Texture2D>(TexturesDir + "/T_LineCore.png");
+            var disc = Load<Texture2D>(TexturesDir + "/T_Disc.png");
+            var sharpRing = Load<Texture2D>(TexturesDir + "/T_RingSharp.png");
             var fog = CreateTexture("T_SporeFog", 256, (x, y) =>
             {
                 float u = (x + 0.5f) / 256f, v = (y + 0.5f) / 256f;
@@ -73,8 +70,8 @@ namespace Pathfinder.Editor.Setup
             pod.transform.SetParent(mark.transform, false);
             Primitive(PrimitiveType.Sphere, "Body", pod.transform, swarmGlow, Vector3.zero, Vector3.one * 0.55f);
             FlatQuad("Halo", pod.transform, sporeGlow, 0f, 1.6f);
-            SetFields(mark.AddComponent<SporeTelegraph>(), ("fill", fill.GetComponent<Renderer>()), ("outline", outline), ("closingRing", closing),
-                ("pod", pod.transform));
+            SetFields(mark.AddComponent<ImpactTelegraph>(), ("fill", fill.GetComponent<Renderer>()), ("outline", outline), ("closingRing", closing),
+                ("projectile", pod.transform));
             var markPrefab = SavePrefab(mark, "FX");
 
             // Spore cloud: a translucent area with a crisp breathing edge, churning fog and spores drifting up. Authored at a

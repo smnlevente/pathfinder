@@ -14,9 +14,9 @@ namespace Pathfinder.Game.Enemies
     /// is armour: shots only hurt the glowing yellow weak points along its body, and its maw whenever it opens.
     /// <list type="number">
     /// <item><b>Burrow</b> (above 66%): it slithers around the ship side-on, spitting aimed bursts, so its weak points
-    /// face the guns. Then it rears up, opens its maw and sinks into the ground, a window to shoot it. A red glow tracks
-    /// the ship and marks where it erupts, with a ring closing in on it as a timer; the spot locks only half a second
-    /// before impact, too late to walk clear, so it has to be dashed (playtest 6). It bursts out with two rings of rocks
+    /// face the guns. Then it rears up, opens its maw and sinks into the ground, a window to shoot it. A red mark tracks
+    /// the ship: an outline at the blast radius, a fill growing out to it and a ring closing in to meet it as a timer.
+    /// The spot locks only 0.4 s before impact, too late to walk clear, so it has to be dashed (playtest 6, 7). It bursts out with two rings of rocks
     /// and rises, maw open again.</item>
     /// <item><b>Sweep</b> (66–33%): volleys of two charges from wherever it is, through the ship's position, each shown by
     /// a chevron lane first. Charging, it sheds walls of rocks to both sides. After a volley it rests, maw open, coiling
@@ -45,8 +45,9 @@ namespace Pathfinder.Game.Enemies
         [SerializeField, Min(0.1f), Tooltip("Rearing up and sinking: maw open, can be shot.")] float diveTime = 1.4f;
         [SerializeField, Min(0.1f), Tooltip("Rising after the eruption: maw open, can be shot.")] float emergeTime = 1.2f;
         [SerializeField, Min(0.1f)] float undergroundTime = 2f;
-        [SerializeField, Min(0.05f), Tooltip("The glow follows the ship until this long before the eruption, then locks.")] float lockTime = 0.5f;
-        [SerializeField, Min(0.1f)] float eruptRadius = 4f;
+        [SerializeField, Min(0.05f), Tooltip("The mark follows the ship until this long before the eruption, then locks.")] float lockTime = 0.4f;
+        [SerializeField, Min(0.1f), Tooltip("Playtest 7: 4 u felt too big; with the 0.4 s lock, walking still can't clear 3 u, a dash can.")]
+        float eruptRadius = 3f;
         [SerializeField, Min(0f)] float eruptDamage = 30f;
         [SerializeField, Min(3)] int rockCount = 16;
         [SerializeField, Min(0.1f)] float rockSpeed = 6f;
@@ -54,6 +55,7 @@ namespace Pathfinder.Game.Enemies
         [SerializeField, Min(0.1f)] float surfacedBurstInterval = 1.6f;
         [SerializeField] GameObject eruptTelegraphPrefab;
         [SerializeField] GameObject eruptEffect;
+        [SerializeField, Tooltip("A sharp ring snapping out over the blast radius when it erupts.")] GameObject eruptBurstPrefab;
         [SerializeField, Tooltip("Kicked up as it digs in and out.")] GameObject burrowDustPrefab;
 
         [Header("Phase 2: Sweep")]
@@ -101,7 +103,7 @@ namespace Pathfinder.Game.Enemies
         float _spiralAngle;
         Vector2 _eruptTarget;
         GameObject _telegraph;
-        Presentation.EruptTelegraph _telegraphView;
+        Presentation.ImpactTelegraph _telegraphView;
         Vector2 _sweepFrom, _sweepTo;
         int _sweepsLeft;
         float _orbitSign = 1f;
@@ -222,10 +224,8 @@ namespace Pathfinder.Game.Enemies
                     self.AccelerationMultiplier = 20f;
                     if (target != null && _timer > lockTime)
                         _eruptTarget = world.ClampToArena(target.Position, 2f);
-                    if (_telegraph != null)
-                        _telegraph.transform.position = PlaneMath.ToWorld(_eruptTarget);
                     if (_telegraphView != null)
-                        _telegraphView.Show(eruptRadius, 1f - _timer / undergroundTime, _timer <= lockTime);
+                        _telegraphView.Show(_eruptTarget, 1f - _timer / undergroundTime, _timer <= lockTime);
                     if (_timer <= 0f)
                         Erupt(self, world);
                     break;
@@ -395,8 +395,8 @@ namespace Pathfinder.Game.Enemies
             if (eruptTelegraphPrefab != null)
             {
                 _telegraph = Instantiate(eruptTelegraphPrefab, PlaneMath.ToWorld(_eruptTarget), Quaternion.identity);
-                _telegraphView = _telegraph.GetComponent<Presentation.EruptTelegraph>();
-                _telegraphView?.Show(eruptRadius, 0f, false);
+                _telegraphView = _telegraph.GetComponent<Presentation.ImpactTelegraph>();
+                _telegraphView?.Launch(_eruptTarget, _eruptTarget, eruptRadius);
             }
             Enter(self, Action.Underground, undergroundTime);
         }
@@ -425,6 +425,12 @@ namespace Pathfinder.Game.Enemies
             FireRing(self, world, _eruptTarget, rockCount, slowRockSpeed, offset + 180f / rockCount);
             if (eruptEffect != null)
                 Instantiate(eruptEffect, PlaneMath.ToWorld(_eruptTarget, 0.5f), Quaternion.identity);
+            if (eruptBurstPrefab != null)
+            {
+                var burst = Instantiate(eruptBurstPrefab, PlaneMath.ToWorld(_eruptTarget), Quaternion.identity);
+                if (burst.TryGetComponent(out Presentation.RingPulse pulse))
+                    pulse.SizeMultiplier = eruptRadius;
+            }
             GameAudio.Play(SoundCue.Erupt, PlaneMath.ToWorld(_eruptTarget));
             Presentation.CameraRig.Kick(0.45f);
 

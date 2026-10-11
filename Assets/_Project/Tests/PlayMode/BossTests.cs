@@ -134,7 +134,7 @@ namespace Pathfinder.Tests.PlayMode
             bool caught = false;
             var walk = new ShipCommand { Move = Vector2.right };
             yield return EruptionAfterLock(walk, walk, hit => caught = hit);
-            Assert.IsTrue(caught, "Once the spot locks, walking can't clear the 4 u blast (playtest 6).");
+            Assert.IsTrue(caught, "Once the spot locks, walking can't clear the blast (playtest 6, 7).");
         }
 
         [UnityTest]

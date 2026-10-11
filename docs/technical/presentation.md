@@ -71,8 +71,7 @@ The art is generated primitives with emissive materials, bloom and a consistent 
 | `AreaTelegraph` | A floor outline at an attack's reach with a fill growing out to it, flickering just before it lands; builds cone or circle meshes from the brain's arc (Scorcher, Crusher, Warden reboot ring) |
 | `BeamTelegraph` | A thin, flickering line along a locked beam path that thickens before it fires (Arc Drone) |
 | `ArcBolt` | A jagged lightning bolt that crackles and fades (Arc Drone zap) |
-| `EruptTelegraph` | Where the burrowed Quarry Maw will burst out: a glow and an outline, with a ring closing in; flickers once the spot locks |
-| `SporeTelegraph` | A Matriarch spore pod arcing from her to its landing spot, with a crisp outline there, a fill growing out to it and a ring closing in to meet it; flashes just before the burst |
+| `ImpactTelegraph` | Where something is about to hit the floor (the Quarry Maw's eruption, a Matriarch spore pod): a crisp outline drawn as geometry, a fill growing out to it and a ring closing in to meet it, flashing once the spot locks; optionally the projectile arcing in |
 | `SporeCloud` | A spore cloud: a translucent area with a crisp, breathing edge, churning fog and spores drifting up; pops in, fades out over its last moments |
 | `RingLine` | A constant-width circle drawn as a line, so it stays thin as it grows (the Matriarch's bloom pulse) |
 | `WardenVisual` | A Warden core's spin, its glow going dark when offline, and the Alpha's crackling tether |

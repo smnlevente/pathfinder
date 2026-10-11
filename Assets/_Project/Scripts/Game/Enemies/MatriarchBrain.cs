@@ -38,7 +38,7 @@ namespace Pathfinder.Game.Enemies
             public float Timer;
             public bool Landed;
             public GameObject View;
-            public Presentation.SporeTelegraph Mark;
+            public Presentation.ImpactTelegraph Mark;
             public Presentation.SporeCloud Cloud;
         }
 
@@ -370,7 +370,7 @@ namespace Pathfinder.Game.Enemies
             if (sporeMarkPrefab != null)
             {
                 spore.View = Instantiate(sporeMarkPrefab, PlaneMath.ToWorld(spore.Position), Quaternion.identity);
-                spore.Mark = spore.View.GetComponent<Presentation.SporeTelegraph>();
+                spore.Mark = spore.View.GetComponent<Presentation.ImpactTelegraph>();
                 spore.Mark?.Launch(self.Position, spore.Position, sporeRadius);
             }
             _spores.Add(spore);
@@ -385,7 +385,7 @@ namespace Pathfinder.Game.Enemies
                 spore.Timer -= deltaTime;
                 if (!spore.Landed)
                 {
-                    spore.Mark?.Show(1f - spore.Timer / sporeFlightTime, spore.Timer < 0.3f);
+                    spore.Mark?.Show(spore.Position, 1f - spore.Timer / sporeFlightTime, spore.Timer < 0.3f);
                     if (spore.Timer <= 0f)
                     {
                         // The pod bursts, hitting whoever stayed under it, and leaves a cloud that burns and slows.

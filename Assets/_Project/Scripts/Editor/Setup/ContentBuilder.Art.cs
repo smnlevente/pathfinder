@@ -34,6 +34,16 @@ namespace Pathfinder.Editor.Setup
             var dot = RadialTexture("T_SoftDot", 64, d => (1f - d) * (1f - d) * (d < 1f ? 1f : 0f));
             var ring = RadialTexture("T_Ring", 128, d => Mathf.Exp(-Mathf.Pow((d - 0.88f) / 0.06f, 2f)));
 
+            // Floor telegraphs (playtest 7): small ring textures stretched over a 5-10 u circle read as blurry. Rings are drawn
+            // as line geometry with this crisp profile across their width, and fills use a disc sized for the area.
+            CreateTexture("T_LineCore", 64, (x, y) =>
+            {
+                float v = Mathf.Abs((y + 0.5f) / 64f - 0.5f) * 2f; // 0 on the centre line, 1 at the line's edges
+                return new Color(1f, 1f, 1f, v < 0.55f ? 1f : Mathf.Exp(-Mathf.Pow((v - 0.55f) / 0.18f, 2f)));
+            }, TextureWrapMode.Clamp, alphaIsTransparency: true);
+            RadialTexture("T_Disc", 512, d => d >= 1f ? 0f : Mathf.Clamp01((1f - d) * 256f) * (0.45f + 0.55f * d * d));
+            RadialTexture("T_RingSharp", 512, d => Mathf.Clamp01(1f - Mathf.Abs(d - 0.92f) / 0.05f));
+
             // Enemy bullet body (GDD §12.4): a tinted rim inside a dark outline. The outline separates neighbouring
             // bullets in dense patterns and against glowing backgrounds; it stays black whatever the tint.
             var bulletBody = CreateTexture("T_BulletBody", 64, (x, y) =>

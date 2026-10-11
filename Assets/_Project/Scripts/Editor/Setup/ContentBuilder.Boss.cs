@@ -20,18 +20,23 @@ namespace Pathfinder.Editor.Setup
                 ("MaxHealth", 5500f), ("MoveSpeed", 4.5f), ("ContactDamage", 15f), ("BudgetCost", 20), ("ScrapsDrop", 30), ("ScrapsDropChance", 1f),
                 ("KnockbackMultiplier", 0f)));
 
-            // Eruption telegraph, authored at a radius of 1 (the boss scales it): a red glow, an outline at the radius, and a
-            // ring that closes in on the outline as the eruption nears (the ring band sits at 88% of a ring quad's half-size).
-            var impactRing = Additive("M_FX_ImpactRing", new Color(3f, 0.35f, 0.15f), Load<Texture2D>(TexturesDir + "/T_Ring.png"));
+            // Eruption telegraph (playtest 7: the old glow and rings were small textures stretched over up to 20 u and read as
+            // blurry): a crisp red outline at the blast radius drawn as geometry, a fill growing out to it and a ring closing in
+            // to meet it; it flashes once the spot locks. The boss sets the radius and moves it with the ship.
+            var impactRing = Additive("M_FX_ImpactRing", new Color(3f, 0.35f, 0.15f), Load<Texture2D>(TexturesDir + "/T_LineCore.png"));
+            var impactFill = Additive("M_FX_ImpactFill", new Color(1.6f, 0.18f, 0.08f, 0.6f), Load<Texture2D>(TexturesDir + "/T_Disc.png"));
             var telegraph = new GameObject("FX_EruptTelegraph");
-            var glow = FlatQuad("Glow", telegraph.transform, art.FxRed, 0.03f, 2.2f);
-            SetFields(glow.AddComponent<SimpleMotion>(), ("pulseAmount", 0.12f), ("pulseFrequency", 4f));
-            FlatQuad("Outline", telegraph.transform, impactRing, 0.04f, 2f / 0.88f);
-            var closing = FlatQuad("ClosingRing", telegraph.transform, impactRing, 0.05f, 2f / 0.88f);
-            var core = Primitive(PrimitiveType.Cylinder, "Core", telegraph.transform, art.Telegraph, new Vector3(0f, 0.02f, 0f), new Vector3(0.2f, 0.01f, 0.2f));
-            SetFields(core.AddComponent<SimpleMotion>(), ("pulseAmount", 0.5f), ("pulseFrequency", 4f));
-            SetFields(telegraph.AddComponent<EruptTelegraph>(), ("closingRing", closing.transform), ("glow", glow.GetComponent<Renderer>()));
+            var fill = FlatQuad("Fill", telegraph.transform, impactFill, 0.03f, 1f);
+            var outline = FloorRing("Outline", telegraph.transform, impactRing, 0.12f, 0.05f);
+            var closing = FloorRing("ClosingRing", telegraph.transform, impactRing, 0.16f, 0.06f);
+            SetFields(telegraph.AddComponent<ImpactTelegraph>(), ("fill", fill.GetComponent<Renderer>()), ("outline", outline), ("closingRing", closing));
             var telegraphPrefab = SavePrefab(telegraph, "FX");
+
+            // Eruption burst: a sharp red ring snapping out over the blast radius.
+            var burst = new GameObject("FX_EruptBurst");
+            var burstRing = FlatQuad("Ring", burst.transform, Additive("M_FX_EruptBurst", new Color(3f, 0.4f, 0.15f), Load<Texture2D>(TexturesDir + "/T_RingSharp.png")), 0.07f, 2f);
+            SetFields(burst.AddComponent<RingPulse>(), ("ring", burstRing.GetComponent<Renderer>()), ("duration", 0.4f), ("startScale", 0.4f), ("endScale", 1.2f));
+            var burstPrefab = SavePrefab(burst, "FX");
 
             // Segment: a craggy crimson rock chunk. Weak points carry a pulsing yellow crystal ringed in yellow, the only
             // place shots hurt (GDD §12.4: weak points are yellow).
@@ -82,7 +87,7 @@ namespace Pathfinder.Editor.Setup
             var brain = head.AddComponent<QuarryMawBrain>();
             var dust = SavePrefab(Burst("FX_BurrowDust", art.FxGrey, count: 36, speed: 4.5f, size: 0.7f, lifetime: 0.9f), "FX");
             SetFields(head.AddComponent<SinkVisual>(), ("source", brain), ("model", headModel));
-            SetFields(brain, ("segmentPrefab", segmentPrefab), ("eruptTelegraphPrefab", telegraphPrefab), ("exposedMawMarker", exposedMaw), ("burrowDustPrefab", dust),
+            SetFields(brain, ("segmentPrefab", segmentPrefab), ("eruptTelegraphPrefab", telegraphPrefab), ("eruptBurstPrefab", burstPrefab), ("exposedMawMarker", exposedMaw), ("burrowDustPrefab", dust),
                 ("eruptEffect", art.EnemyExplosion), ("bulletPrefab", art.EnemyBulletVisual), ("bulletImpactPrefab", art.BulletImpact));
             var lane = ChargeLane("SweepLane", art, head.transform, size: 1.7f, spacing: 1.9f);
             SetFields(head.AddComponent<TelegraphLine>(), ("source", brain), ("lane", lane.GetComponent<ChevronLane>()));
