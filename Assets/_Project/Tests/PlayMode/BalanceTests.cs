@@ -38,7 +38,7 @@ namespace Pathfinder.Tests.PlayMode
         [TearDown]
         public void Restore()
         {
-            Time.timeScale = 1f;
+            Time.timeScale = SilentTestRun.Speed;
             MetaProgression.SavePath = null;
             if (File.Exists(_savePath))
                 File.Delete(_savePath);
@@ -103,7 +103,7 @@ namespace Pathfinder.Tests.PlayMode
             var choice = Object.FindAnyObjectByType<EquipmentChoiceScreen>();
             int start = Object.FindAnyObjectByType<CombatWorld>().Tick;
 
-            Time.timeScale = 5f;
+            Time.timeScale = Mathf.Max(20f, SilentTestRun.Speed); // a probe only counts ticks
             float deadline = Time.realtimeSinceStartup + 120f;
             while (!level.ExitOpen || level.UnharvestedNodes.Any() && level.InstabilityRemaining > 0f)
             {
@@ -113,7 +113,7 @@ namespace Pathfinder.Tests.PlayMode
                     break;
                 yield return null;
             }
-            Time.timeScale = 1f;
+            Time.timeScale = SilentTestRun.Speed;
 
             float seconds = (Object.FindAnyObjectByType<CombatWorld>().Tick - start) / 60f;
             level.DebugTakeExit(); // leftover Scraps are collected on the way out

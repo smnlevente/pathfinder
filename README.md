@@ -130,4 +130,6 @@ Close the Editor first, because batch mode can't open a project the Editor has o
 "D:/UnityInstalls/6000.0.67f1/Editor/Unity.exe" -batchmode -projectPath . -runTests -testPlatform PlayMode -testResults playmode.xml
 ```
 
-Set `PATHFINDER_SCREENSHOT_DIR` before the PlayMode run to also save combat screenshots.
+PlayMode takes about two minutes (the tests run the game clock at 4×; see [Testing](docs/technical/testing.md)). Add
+`-nographics` to make it faster, unless you set `PATHFINDER_SCREENSHOT_DIR` before the run to also save combat
+screenshots.

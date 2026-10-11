@@ -21,6 +21,23 @@ Run them from **Window › General › Test Runner**, or from the command line (
 
 Add `-testFilter "WardenTests|GalaxyTwoEnemyTests"` to run a subset.
 
+### How long they take
+
+EditMode takes a couple of seconds. PlayMode takes about **2 minutes**, plus Unity's start-up. Most of that is loading a
+scene for each test.
+
+- **The game clock runs 4× fast** for the whole PlayMode run (`SilentTestRun.Speed`). The simulation steps at a fixed
+  60 Hz whatever the frame rate, so a faster clock only packs more ticks into each real second. The tests wait on
+  ticks, so they check the same things, and the same seed plays out the same. Set `PATHFINDER_TEST_SPEED` (e.g. `1`)
+  to change it, for example to watch a test at normal speed.
+- **Probes that only count ticks** (the balance bots, the determinism replay) run at 20×.
+- **Add `-nographics`** to a batch PlayMode run that doesn't take screenshots: nothing has to render, so it's faster.
+  Leave it off with `PATHFINDER_SCREENSHOT_DIR`.
+- **Content only needs rebuilding** (Build Content) when the builder or generated art changed, not before every test
+  run. Screenshot runs are only worth it when something visual changed.
+
+*(Playtest 7: the PlayMode run went from about 6 minutes to 2.)*
+
 ## EditMode
 
 | Area | Tests |
@@ -91,8 +108,8 @@ the room with music and explosions. Sounds still play and are checked by `AudioT
 
 Batch runs have no window. To **watch** the PlayMode tests, open the project in the Editor, open **Window › General ›
 Test Runner**, choose **PlayMode** and run a test or a whole class: the Game view shows each fight as it plays.
-Most tests take a few seconds; the balance bots run at 5× speed. For a slower look, set `Time.timeScale` lower in a
-test while you watch, or capture screenshots (below).
+Tests run on a 4× game clock and the balance bots at 20×. To watch at normal speed, set the environment variable
+`PATHFINDER_TEST_SPEED=1` before starting the Editor, or capture screenshots (below).
 
 ### Rules for tests
 
@@ -101,7 +118,10 @@ test while you watch, or capture screenshots (below).
 - **Wait on ticks.** Gameplay is tick-based; waiting a number of frames is flaky.
 - **Prefer behaviour over numbers.** Assert "the ship takes damage while standing in the cone", not exact damage
   values, unless the number is the point (a boss's health, a Shop price).
-- **Speed up long fights** with `Time.timeScale` inside the test only, as the balance bots do, and restore it.
+- **Never assume the clock's speed.** Several ticks can pass in one frame, more so on the fast test clock. Measure
+  from a value read at the start (a tick count, the Survival clock), not from zero.
+- **Speed up long fights further** with `Time.timeScale` inside the test only, as the balance bots do, and restore the
+  value you found.
 
 ## Bots and balance probes
 
@@ -109,7 +129,7 @@ Some tests play the game with a bot to keep balance honest:
 
 - **`BalanceTests`** plays real levels in god mode with perfect aim and logs what each pays in Scraps and Dark Matter,
   and how long it takes. The economy section of the GDD is built from these numbers.
-- **`Balance_TimeToKill`** in `BossTests` and `WardenTests` logs how long each boss takes with the default loadout and
+- **`Balance_TimeToKill`** in `BossTests`, `WardenTests` and `MatriarchTests` logs how long each boss takes with the default loadout and
   fails if it falls outside a sensible range. The Wardens' bot plays the intended way: it always shoots the core with
   more health left, so both wear down together.
 

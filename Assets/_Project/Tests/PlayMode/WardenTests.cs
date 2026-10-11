@@ -145,7 +145,7 @@ namespace Pathfinder.Tests.PlayMode
             });
 
             float timeScale = Time.timeScale;
-            Time.timeScale = 5f;
+            Time.timeScale = Mathf.Max(20f, timeScale); // a probe only counts ticks
             int start = World.Tick;
             yield return WaitUntilTicks(() => IsDead(_alpha), 60 * 300);
             Time.timeScale = timeScale;

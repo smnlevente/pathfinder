@@ -66,7 +66,7 @@ namespace Pathfinder.Game.Run
         {
             if (State == Phase.GalaxyCleared)
             {
-                _phaseTimer -= Time.unscaledDeltaTime;
+                _phaseTimer -= Time.deltaTime; // the game never scales time; tests do, to run faster
                 if (_phaseTimer <= 0f)
                     EnterMap();
             }

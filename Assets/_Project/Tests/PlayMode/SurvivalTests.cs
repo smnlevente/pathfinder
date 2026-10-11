@@ -115,12 +115,13 @@ namespace Pathfinder.Tests.PlayMode
             Assert.AreEqual(Phase.Fighting, _survival.State);
             Assert.AreEqual(0, _director.Wave, "The first wave waits a moment.");
 
+            float clock = _survival.Clock;
             yield return WaitTicks(190);
-            Assert.AreEqual(190f / 60f, _survival.Clock, 0.05f, "The clock runs with the fight.");
+            Assert.AreEqual(190f / 60f, _survival.Clock - clock, 0.02f, "The clock runs with the fight.");
             Assert.AreEqual(1, _director.Wave, "The first wave comes after 2 s.");
             Assert.AreEqual(Config.Budget(_survival.Clock), _director.FixedBudget, "The wave budget follows the clock.");
             Assert.AreEqual(0, _director.GalaxyIndex, "The waves start with the Shattered Expanse.");
-            StringAssert.Contains("0:03", _survival.Header);
+            StringAssert.Contains(SurvivalController.FormatClock(_survival.Clock), _survival.Header);
         }
 
         [UnityTest]
@@ -131,11 +132,12 @@ namespace Pathfinder.Tests.PlayMode
             float health = _world.EnemyHealthMultiplier;
             float elites = _director.FixedEliteChance;
 
+            float clock = _survival.Clock;
             _survival.DebugAdvance(240f);
-            Assert.AreEqual(240f, _survival.Clock, 0.01f);
+            Assert.AreEqual(clock + 240f, _survival.Clock, 0.01f);
             Assert.Greater(_director.FixedBudget, budget * 2, "Four minutes in, waves are much bigger.");
             Assert.Greater(_world.EnemyHealthMultiplier, health, "Enemies are tougher.");
-            Assert.AreEqual(Config.EnemyHealthAt(240f), _world.EnemyHealthMultiplier, 1e-4f);
+            Assert.AreEqual(Config.EnemyHealthAt(_survival.Clock), _world.EnemyHealthMultiplier, 1e-4f);
             Assert.Greater(_director.FixedEliteChance, elites, "Elites are more likely.");
             Assert.AreEqual(4 * Config.DarkMatterPerMinute[0], _survival.Run.DarkMatter, "Every minute on the clock pays Dark Matter.");
             Assert.AreEqual(0, _survival.UpgradesOffered, "A debug skip skips the upgrades on the way.");

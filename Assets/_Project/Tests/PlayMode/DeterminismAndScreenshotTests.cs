@@ -44,7 +44,10 @@ namespace Pathfinder.Tests.PlayMode
             }
 
             World.Ticked += OnTick;
+            float timeScale = Time.timeScale;
+            Time.timeScale = Mathf.Max(20f, timeScale); // only ticks matter here
             yield return WaitUntilTicks(() => snapshot != null, maxTicks: snapshotTick + 60);
+            Time.timeScale = timeScale;
             World.Ticked -= OnTick;
             record(snapshot);
         }
