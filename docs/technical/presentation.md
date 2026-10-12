@@ -88,6 +88,7 @@ The art is generated primitives with emissive materials, bloom and a consistent 
 | `ImpactTelegraph` | Where something is about to hit the floor (the Quarry Maw's eruption, a Matriarch spore pod): a crisp outline drawn as geometry, a fill growing out to it and a ring closing in to meet it, flashing once the spot locks; optionally the projectile arcing in |
 | `SporeCloud` | A spore cloud: a translucent area with a crisp, breathing edge, churning fog and spores drifting up; pops in, fades out over its last moments |
 | `PilotMarker` | A ring on the floor in the pilot's colour under each ship, shown in co-op; dims under a wreck, with an arc that fills as a teammate revives them (M8) |
+| `ShipLivery` | Used by `EntityVisual` on a player ship: the pilot's paint on the lights, exhaust and dash trail, and the ship's own hull colour, or in co-op the paint (playtest 8). On material instances, since hit flashes use property blocks |
 | `ArenaTheme` | Dresses the arena in a galaxy's look (`GalaxyThemeDefinition`): the floor grid's colour, the walls and the background, through property blocks |
 | `RingLine` | A constant-width circle drawn as a line, so it stays thin as it grows (the Matriarch's bloom pulse) |
 | `WardenVisual` | A Warden core's spin, its glow going dark when offline, and the Alpha's crackling tether |

@@ -24,21 +24,26 @@ Esc (or Circle/B on your own controller) stops waiting.
 
 **CONTROLS** shows what each player plays with. To change it, choose the row, then press a button on the controller that
 player should use, or a key for the keyboard and mouse. If another player had those controls, the two swap. The
-**PILOT** row at the top switches whose controls, ship and weapons the rows below show. **REMOVE PLAYER 2** lets a
-player leave. Players stay joined, with their picks remembered, until the game is closed.
+**PILOT** row at the top switches whose controls, ship, weapons and colour the rows below show. **REMOVE PLAYER 2**
+lets a player leave. Players stay joined, with their picks remembered, until the game is closed.
+
+**COLOUR** paints a player's ship: left and right step through cyan, gold, violet, pink, green, orange, blue and white,
+skipping colours another player has. There's no red: that's the enemies' colour. Each player number's colour is
+remembered on this computer, so player 2 keeps theirs next time if nobody else has taken it.
 
 > [!TIP]
 > One controller can show up as two devices: a PlayStation pad and a virtual Xbox pad that Steam or DS4Windows adds.
 > The game treats devices that press at the same moment as one controller, so both belong to the same player.
 
-![The loadout page with a second player: PILOT picks whose loadout to change, CONTROLS what they play with](../images/coop-hub.png)
+![The loadout page with a second player: PILOT picks whose loadout to change, CONTROLS what they play with, COLOUR their ship's colour](../images/coop-hub.png)
 
 ## On screen
 
 - **One shared screen.** The camera keeps every ship in view, pulling back as you spread out, as far as the whole
   arena. It never splits.
-- **Colours.** Each player has a colour, with a ring under their ship and a tag on their readout and panel: P1
-  cyan, P2 gold, P3 violet, P4 pink.
+- **Colours.** Each player's colour is on their whole ship (hull, lights and trails), the ring under it, their ammo
+  ring, crosshair, tag and panel. By default P1 is cyan, P2 gold, P3 violet and P4 pink. Playing alone, the colour
+  goes on the ship's lights and trails, and the hull keeps the ship's own colour.
 - **Panels.** P1's panel is top left, P2's top right, P3's and P4's below them. P1's ship and slots are bottom left
   and P2's bottom right.
 - **Crosshairs.** Each player has their own. Only player 1 can aim with the mouse.

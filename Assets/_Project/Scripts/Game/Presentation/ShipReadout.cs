@@ -11,8 +11,8 @@ namespace Pathfinder.Game.Presentation
     /// <summary>
     /// The readout on a ship, where its pilot is looking (playtest 6): an ammo/reload ring around it and hull and shield
     /// bars under it. It stays faint while all is well and brightens when it matters: reloading, low ammo or hull, or just
-    /// hit. In local co-op (M8) every ship has one, tagged in its pilot's colour, and a downed pilot's wreck shows a call
-    /// for help with a ring that fills as a teammate revives them.
+    /// hit. In local co-op (M8) every ship has one, tagged and ringed in its pilot's colour (playtest 8), and a downed
+    /// pilot's wreck shows a call for help with a ring that fills as a teammate revives them.
     /// </summary>
     public sealed class ShipReadout
     {
@@ -96,7 +96,7 @@ namespace Pathfinder.Game.Presentation
 
             var status = player.Primary.Status;
             _ring.fillAmount = status.Fill;
-            _ring.color = status.Warning ? CombatHud.WarningColor : CombatHud.WeaponColor;
+            _ring.color = status.Warning ? CombatHud.WarningColor : coop ? CombatHud.PilotWeaponColor(color) : CombatHud.WeaponColor;
             var window = player.ReloadWindow;
             _sweetSpot.enabled = window.HasValue;
             if (window.HasValue)

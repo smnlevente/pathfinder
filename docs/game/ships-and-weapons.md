@@ -35,7 +35,8 @@ Dash modules change how it behaves; see [Equipment](equipment.md#dash-modules).
 | Arcanum Explorer | 85 | 25 | 9 | Cargo Hold: +1 option on every equipment choice and Shop catalog | Planned (3 Cores) |
 | Vampiric Destroyer | 110 | 0 | 8 | Energy Siphon: kills restore hull; +25% damage taken, no shield | Planned (4 Cores) |
 
-Each ship has its own hull colour: the Titan steel grey, the Stormbringer indigo, the Frigate green.
+Each ship has its own hull colour: the Titan steel grey, the Stormbringer indigo, the Frigate green. In local co-op the
+hull wears its pilot's colour instead (see [Local co-op](coop.md)).
 
 ## Primary weapons
 

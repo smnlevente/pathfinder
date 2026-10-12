@@ -34,16 +34,11 @@ namespace Pathfinder.Game.Player
         /// <summary>Wave budget multiplier for this many pilots: ×1.5 for two, ×2 for three.</summary>
         public static float WaveBudgetScale(int pilots) => 1f + WaveBudgetPerExtraPilot * Mathf.Max(0, pilots - 1);
 
-        static readonly Color[] Colors =
-        {
-            new Color(0.35f, 0.9f, 1f),  // cyan
-            new Color(1f, 0.8f, 0.3f),   // gold
-            new Color(0.78f, 0.55f, 1f), // violet
-            new Color(1f, 0.5f, 0.72f),  // pink
-        };
+        /// <summary>The colour each pilot painted their ship (playtest 8), as it goes on their ring, tag and panel.</summary>
+        public static Color PilotColor(int index) => Paint(index).Ui;
 
-        /// <summary>Each pilot's own colour: their ring, tag and panel.</summary>
-        public static Color PilotColor(int index) => Colors[Mathf.Clamp(index, 0, Colors.Length - 1)];
+        /// <summary>Each pilot's paint: chosen in the Hub, and never the same as another local player's.</summary>
+        public static PilotPaint Paint(int index) => PilotPaint.Get(LocalPlayers.PaintOf(index));
 
         /// <summary>"P1", "P2"…</summary>
         public static string Tag(int index) => $"P{index + 1}";

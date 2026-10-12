@@ -87,7 +87,7 @@ namespace Pathfinder.Tests.PlayMode
 
             menu.OpenLoadout(survival: true);
             Assert.AreEqual(HubMenu.Page.Loadout, menu.CurrentPage);
-            Assert.AreEqual(Pathfinder.Game.Localization.Loc.T("hub.loadout.launch_survival"), menu.Rows[3].LabelText);
+            Assert.AreEqual(Pathfinder.Game.Localization.Loc.T("hub.loadout.launch_survival"), menu.Rows[System.Linq.Enumerable.ToList(menu.LoadoutRows).IndexOf("launch")].LabelText);
 
             menu.StartSurvival();
             float deadline = Time.realtimeSinceStartup + 5f;

@@ -15,6 +15,7 @@ namespace Pathfinder.Game.Settings
         static float s_master = 0.8f, s_music = 0.7f, s_effects = 1f, s_shake = 1f;
         static bool s_fullscreen = true, s_showFps, s_soundInBackground;
         static string s_language = "en";
+        static readonly int[] s_paints = { -1, -1, -1, -1 }; // per player number; -1 is their default
 
         /// <summary>False keeps changes in memory only, so tests never touch the player's preferences.</summary>
         public static bool Persist { get; set; } = true;
@@ -87,6 +88,25 @@ namespace Pathfinder.Game.Settings
             set { Load(); s_showFps = value; Save("fps", value ? 1f : 0f); }
         }
 
+        /// <summary>
+        /// The colour each player number last painted their ship (playtest 8), or -1 for their default. Remembered on this
+        /// machine, so regular players keep their colours. Indices into <see cref="Player.PilotPaint.All"/>.
+        /// </summary>
+        public static int PilotPaint(int player)
+        {
+            Load();
+            return player >= 0 && player < s_paints.Length ? s_paints[player] : -1;
+        }
+
+        public static void SetPilotPaint(int player, int paint)
+        {
+            Load();
+            if (player < 0 || player >= s_paints.Length)
+                return;
+            s_paints[player] = paint;
+            Save("paint" + (player + 1), paint);
+        }
+
         /// <summary>Back to the defaults. Used by tests.</summary>
         public static void ResetToDefaults()
         {
@@ -98,6 +118,8 @@ namespace Pathfinder.Game.Settings
             s_showFps = false;
             s_soundInBackground = false;
             s_language = "en";
+            for (int i = 0; i < s_paints.Length; i++)
+                s_paints[i] = -1;
             s_loaded = true;
             Changed?.Invoke();
         }
@@ -139,6 +161,8 @@ namespace Pathfinder.Game.Settings
             s_fullscreen = PlayerPrefs.GetFloat(Prefix + "fullscreen", s_fullscreen ? 1f : 0f) > 0.5f;
             s_showFps = PlayerPrefs.GetFloat(Prefix + "fps", 0f) > 0.5f;
             s_soundInBackground = PlayerPrefs.GetFloat(Prefix + "background", 0f) > 0.5f;
+            for (int i = 0; i < s_paints.Length; i++)
+                s_paints[i] = Mathf.RoundToInt(PlayerPrefs.GetFloat(Prefix + "paint" + (i + 1), -1f));
             ApplyBackground();
             s_language = PlayerPrefs.GetString(Prefix + "language", s_language);
         }

@@ -179,7 +179,8 @@ Local co-op is built (M8, see below), and these rules keep online co-op possible
 
 - **Who's playing:** `LocalPlayers` (static, kept across scenes) holds up to four slots, each with its `Controls`
   (`Any` for player 1 alone, `KeyboardMouse`, or `Gamepad` with that controller's devices: one pad can show up as
-  several) and its `PilotLoadout`. `LocalPlayers.DevicesFor(index)` is the device list a player's controls listen to;
+  several), its `PilotLoadout` and its paint (`LocalPlayers.PaintOf`, an index into `PilotPaint.All`; no two players
+  share one, and `GameSettings` remembers each player number's). `LocalPlayers.DevicesFor(index)` is the device list a player's controls listen to;
   null means every device. Assign a null list as `null`, never as a null array: an array converts to an empty device
   list first, and the pilot hears nothing (playtest 8). The Hub assigns controls by press (`HubMenu.ListenForJoin`,
   `ListenForControls`) and logs every device and assignment to the player log (`[Input]`, `[Controls]`).
@@ -189,7 +190,7 @@ Local co-op is built (M8, see below), and these rules keep online co-op possible
   device can press.
 - **Spawning:** `PlayerSpawner` spawns one ship per slot, side by side (`CoopRules.EntryOffset`). Players 2+ share
   player 1's `ScrapWallet`, and each gets a `PilotMarker` ring.
-- **Rules:** `CoopRules` holds the numbers: revive time, radius and hull, scaling, colours. `ReviveSystem` runs in
+- **Rules:** `CoopRules` holds the numbers: revive time, radius and hull, scaling; `CoopRules.PilotColor` is each pilot's paint. `ReviveSystem` runs in
   the world's tick. `CombatWorld.SpawnEnemy` and `WaveDirector` scale by `CombatRegistry.Players.Count`.
 - **In turn:** `PilotOrder.StartingWith(pilot)` is the order for things each pilot gets: equipment picks, Survival
   upgrades.

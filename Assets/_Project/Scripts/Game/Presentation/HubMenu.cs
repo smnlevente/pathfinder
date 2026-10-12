@@ -19,7 +19,7 @@ namespace Pathfinder.Game.Presentation
     /// The Hub (GDD §11.2, §12.1): start a run or Survival (GDD §3.2) after choosing a ship and loadout (GDD §5.4), or spend
     /// Dark Matter and Singularity Cores in the Pathfinder Lab. Locked weapons are skipped in the loadout until bought.
     /// Mouse, keyboard and gamepad all work. Local co-op (M8): on the loadout page, more players join with a controller of
-    /// their own, and each picks their ship and weapons.
+    /// their own, and each picks their ship, weapons and colour (playtest 8).
     /// </summary>
     public sealed class HubMenu : MonoBehaviour
     {
@@ -269,7 +269,7 @@ namespace Pathfinder.Game.Presentation
             _selected = Mathf.Max(0, _loadoutKeys.IndexOf("launch"));
         }
 
-        /// <summary>Steps a loadout row ("pilot", "ship", "primary", "secondary") left or right. For tests and debug tools.</summary>
+        /// <summary>Steps a loadout row ("pilot", "paint", "ship", "primary", "secondary") left or right. For tests and debug tools.</summary>
         public void Change(string row, int step)
         {
             int index = _loadoutKeys.IndexOf(row);
@@ -279,13 +279,14 @@ namespace Pathfinder.Game.Presentation
 
         string LoadoutKey(int row) => row >= 0 && row < _loadoutKeys.Count ? _loadoutKeys[row] : string.Empty;
 
-        bool IsCycleRow(int row) => LoadoutKey(row) is "pilot" or "ship" or "primary" or "secondary";
+        bool IsCycleRow(int row) => LoadoutKey(row) is "pilot" or "paint" or "ship" or "primary" or "secondary";
 
         void Cycle(int row, int step)
         {
             switch (LoadoutKey(row))
             {
                 case "pilot": _editing = Wrap(_editing + (step < 0 ? -1 : 1), LocalPlayers.Count); break;
+                case "paint": LocalPlayers.CyclePaint(_editing, step); break;
                 case "ship": _ships[_editing] = NextAvailable(content.Ships, _ships[_editing], step); break;
                 case "primary": _primaries[_editing] = NextAvailable(content.PrimaryWeapons, _primaries[_editing], step); break;
                 case "secondary": _secondaries[_editing] = NextAvailable(content.SecondaryWeapons, _secondaries[_editing], step); break;
@@ -692,6 +693,11 @@ namespace Pathfinder.Game.Presentation
                     _loadoutKeys.Add("secondary");
                     AddRow(Loc.T("hub.loadout.secondary", ("name", secondary.DisplayName)), null, Loc.T("hub.loadout.secondary.detail", ("seconds", secondary.Cooldown)))
                         .SetIcon(secondary.Icon, WeaponColor, 56f);
+                    // Their ship's colour (playtest 8: telling the players apart). Nobody else's: those are skipped.
+                    var paint = CoopRules.Paint(_editing);
+                    _loadoutKeys.Add("paint");
+                    AddRow(Loc.T("hub.paint", ("name", Loc.T(paint.Key))), null, Loc.T(coop ? "hub.paint.detail_coop" : "hub.paint.detail"), paint.Ui)
+                        .SetIcon(ship.Icon, paint.Ui, 56f);
                     _loadoutKeys.Add("launch");
                     AddRow(Loc.T(_survival ? "hub.loadout.launch_survival" : "hub.loadout.launch"), null,
                         coop ? Loc.T("hub.coop.launch.detail", ("count", LocalPlayers.Count)) : null, UiKit.Accent);

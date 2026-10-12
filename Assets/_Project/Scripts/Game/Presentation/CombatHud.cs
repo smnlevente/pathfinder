@@ -342,13 +342,17 @@ namespace Pathfinder.Game.Presentation
                     _reticles[i].anchoredPosition = local;
 
                 var status = player.Primary.Status;
-                _reticleFills[i].fillAmount = status.Fill;
-                _reticleFills[i].color = status.Warning ? WarningColor : WeaponColor;
                 var color = CoopRules.PilotColor(player.PlayerIndex);
+                _reticleFills[i].fillAmount = status.Fill;
+                // In co-op, each player's reticle is in their colour (playtest 8), so nobody follows someone else's.
+                _reticleFills[i].color = status.Warning ? WarningColor : coop ? PilotWeaponColor(color) : WeaponColor;
                 _reticleTracks[i].color = coop ? new Color(color.r, color.g, color.b, 0.45f) : new Color(1f, 1f, 1f, 0.18f);
             }
             Cursor.visible = !anyFlying && !MenuMouse.Blocked; // no cursor over a co-op player's menu the mouse can't work
         }
+
+        /// <summary>A pilot's colour on an ammo ring: a little lighter, to read against the arena.</summary>
+        public static Color PilotWeaponColor(Color pilot) => Color.Lerp(pilot, Color.white, 0.2f);
 
         /// <summary>For tests: player 1's ship readout is showing, and its ammo ring's fill.</summary>
         public bool ShipReadoutShown => _readouts[0].Shown;

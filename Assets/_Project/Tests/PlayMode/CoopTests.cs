@@ -19,9 +19,17 @@ namespace Pathfinder.Tests.PlayMode
     {
         readonly List<Gamepad> _pads = new List<Gamepad>();
 
+        [SetUp]
+        public void DefaultColours()
+        {
+            Pathfinder.Game.Settings.GameSettings.ResetToDefaults(); // everyone in their default colour
+            LocalPlayers.Reset();
+        }
+
         [TearDown]
         public void LeaveCoop()
         {
+            Pathfinder.Game.Settings.GameSettings.ResetToDefaults(); // forget colours picked here (in memory only, in tests)
             LocalPlayers.Reset();
             foreach (var pad in _pads)
             {
@@ -44,6 +52,57 @@ namespace Pathfinder.Tests.PlayMode
         }
 
         PlayerShip Pilot(int index) => CombatRegistry.Players.First(p => p.PlayerIndex == index);
+
+        static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+
+        static Color PartColor(PlayerShip ship, string part) =>
+            ship.GetComponentsInChildren<Renderer>(true).First(r => r.name == part).sharedMaterial.GetColor(BaseColorId);
+
+        /// <summary>Colours read back from a material come back a hair off (colour space round trips).</summary>
+        static void AssertColor(Color expected, Color actual, string message = null)
+        {
+            for (int i = 0; i < 4; i++)
+                Assert.AreEqual(expected[i], actual[i], 0.01f, $"{message} ({expected} vs {actual})");
+        }
+
+        [UnityTest]
+        public IEnumerator EachShip_WearsItsPilotsColour_AndRepaintsWhenItChanges()
+        {
+            // Playtest 8: "it's hard to distinguish who is who". Both fly the same ship here.
+            yield return LoadCoop();
+            yield return null;
+            var one = Pilot(0);
+            var two = Pilot(1);
+            Assert.AreEqual(one.Definition, two.Definition);
+            AssertColor(PilotPaint.Get(0).Glow, PartColor(one, "Cockpit"), "Player 1's lights are cyan.");
+            AssertColor(PilotPaint.Get(1).Glow, PartColor(two, "Cockpit"), "Player 2's are gold.");
+            AssertColor(PilotPaint.Get(1).Glow, PartColor(two, "WingtipL"));
+            Assert.AreNotEqual(PartColor(one, "Hull"), PartColor(two, "Hull"), "In co-op the hulls wear the colours too.");
+            var gold = PartColor(two, "Hull");
+            Assert.Greater(gold.r, gold.b, "Player 2's hull is gold.");
+
+            LocalPlayers.SetPaint(1, 4);
+            yield return null;
+            AssertColor(PilotPaint.Get(4).Glow, PartColor(two, "Cockpit"), "Repainted green.");
+            var green = PartColor(two, "Hull");
+            Assert.Greater(green.g, green.r);
+            Assert.AreEqual(PilotPaint.Get(4).Ui, CoopRules.PilotColor(1), "Their ring, tag and panel follow.");
+        }
+
+        [UnityTest]
+        public IEnumerator Alone_TheLightsWearThePaint_AndTheHullKeepsItsShipsOwnColour()
+        {
+            LocalPlayers.SetPaint(0, 1);
+            yield return LoadRun();
+            yield return null;
+            var hull = PartColor(Player, "Hull");
+            AssertColor(PilotPaint.Get(1).Glow, PartColor(Player, "Cockpit"), "Gold lights.");
+
+            LocalPlayers.SetPaint(0, 4);
+            yield return null;
+            AssertColor(PilotPaint.Get(4).Glow, PartColor(Player, "Cockpit"), "Green lights.");
+            AssertColor(hull, PartColor(Player, "Hull"), "Alone, the hull keeps the ship's own colour (M7).");
+        }
 
         [UnityTest]
         public IEnumerator TwoPilots_ArriveSideBySide_InTheirColours_AndShareTheirScraps()

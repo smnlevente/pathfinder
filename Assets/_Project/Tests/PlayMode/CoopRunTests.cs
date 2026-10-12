@@ -34,6 +34,8 @@ namespace Pathfinder.Tests.PlayMode
         {
             _savePath = System.IO.Path.Combine(Application.temporaryCachePath, $"meta-test-{Guid.NewGuid():N}.json");
             Pathfinder.Game.Meta.MetaProgression.SavePath = _savePath;
+            Pathfinder.Game.Settings.GameSettings.ResetToDefaults(); // everyone in their default colour
+            LocalPlayers.Reset();
             _pad = InputSystem.AddDevice<Gamepad>();
             Assert.AreEqual(1, LocalPlayers.Join(_pad));
         }
@@ -41,6 +43,7 @@ namespace Pathfinder.Tests.PlayMode
         [TearDown]
         public void LeaveAndDeleteSave()
         {
+            Pathfinder.Game.Settings.GameSettings.ResetToDefaults(); // forget colours picked here (in memory only, in tests)
             LocalPlayers.Reset();
             if (_pad != null && _pad.added)
                 InputSystem.RemoveDevice(_pad);
@@ -270,12 +273,17 @@ namespace Pathfinder.Tests.PlayMode
             var menu = Object.FindAnyObjectByType<HubMenu>();
             menu.OpenLoadout(survival: false);
             CollectionAssert.DoesNotContain(menu.LoadoutRows, "pilot", "Alone, there's no one else's loadout to pick.");
-            Assert.AreEqual("launch", menu.LoadoutRows[3], "Launch stays where it was.");
+            CollectionAssert.AreEqual(new[] { "ship", "primary", "secondary", "paint", "launch", "add" }, menu.LoadoutRows);
 
             Assert.AreEqual(1, menu.AddPlayer(_pad), "Player 2 joins with their controller.");
             Assert.AreEqual(1, menu.EditingPlayer, "And picks their loadout next.");
-            CollectionAssert.IsSubsetOf(new[] { "pilot", "ship", "primary", "secondary", "launch", "remove" }, menu.LoadoutRows);
+            CollectionAssert.IsSubsetOf(new[] { "pilot", "ship", "primary", "secondary", "paint", "launch", "remove" }, menu.LoadoutRows);
             menu.Change("ship", 1);
+            // Their own colour (playtest 8): stepping back from gold skips player 1's cyan.
+            Assert.AreEqual(1, LocalPlayers.PaintOf(1));
+            menu.Change("paint", -1);
+            Assert.AreEqual(PilotPaint.Count - 1, LocalPlayers.PaintOf(1));
+            Assert.AreEqual(0, LocalPlayers.PaintOf(0), "Player 1's is untouched.");
 
             menu.StartRun();
             float deadline = Time.realtimeSinceStartup + 5f;
@@ -285,6 +293,7 @@ namespace Pathfinder.Tests.PlayMode
             Assert.AreEqual(RunSession.Current.Loadout.ShipId, Pilot(0).Definition.Id, "Player 1 flies their pick.");
             Assert.AreEqual(LocalPlayers.LoadoutFor(1).ShipId, Pilot(1).Definition.Id, "Player 2 flies theirs.");
             Assert.AreNotEqual(Pilot(0).Definition.Id, Pilot(1).Definition.Id, "Each their own.");
+            Assert.AreEqual(PilotPaint.Get(PilotPaint.Count - 1).Ui, CoopRules.PilotColor(1), "In the colour they picked.");
         }
 
         /// <summary>The Hub's loadout page with a second player, for visual review.</summary>
@@ -301,6 +310,7 @@ namespace Pathfinder.Tests.PlayMode
             menu.OpenLoadout(survival: false);
             menu.AddPlayer(_pad);
             yield return null;
+            menu.List.ScrollTo(menu.Rows[menu.LoadoutRows.ToList().IndexOf("paint")].Rect); // down to their colour
             yield return null;
             Screenshots.CaptureWithUi(System.IO.Path.Combine(directory, "coop_hub_loadout.png"));
         }

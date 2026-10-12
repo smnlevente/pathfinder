@@ -10,7 +10,8 @@ namespace Pathfinder.Game.Player
     /// device. With company, every player has their own controls, chosen in the Hub by pressing a button: the keyboard
     /// and mouse, or one controller (playtest 8: "we need to specify which player uses which controls"). One physical
     /// controller can show up as several devices (a PlayStation pad plus a virtual Xbox pad from Steam or DS4Windows), so a
-    /// player's controller is a list of devices. Kept across scene loads for the session.
+    /// player's controller is a list of devices. Each player paints their ship a colour of their own (playtest 8), remembered
+    /// on this machine by player number. Kept across scene loads for the session.
     /// </summary>
     public static class LocalPlayers
     {
@@ -31,6 +32,9 @@ namespace Pathfinder.Game.Player
 
             /// <summary>Their ship and weapons, chosen in the Hub. Player 1's is the run's own loadout.</summary>
             public PilotLoadout Loadout { get; set; }
+
+            /// <summary>Their ship's colour, an index into <see cref="PilotPaint.All"/>; -1 until first asked.</summary>
+            internal int Paint = -1;
         }
 
         static readonly List<Slot> s_slots = new List<Slot> { new Slot() };
@@ -103,7 +107,10 @@ namespace Pathfinder.Game.Player
             if (controls == Controls.KeyboardMouse && KeyboardOwner() >= 0)
                 return -1;
 
+            for (int i = 0; i < s_slots.Count; i++)
+                PaintOf(i); // everyone already in keeps their colour; the newcomer takes a free one
             var slot = new Slot { Controls = controls, Loadout = s_slots[0].Loadout };
+            slot.Paint = FreePaint(PreferredPaint(s_slots.Count), slot);
             if (controller != null)
             {
                 foreach (var device in controller)
@@ -204,6 +211,90 @@ namespace Pathfinder.Game.Player
             Version++;
         }
 
+        /// <summary>
+        /// A player's colour, an index into <see cref="PilotPaint.All"/>: the one they picked last time on this machine if
+        /// nobody else has it, else the next free one. A ship with no local player behind it gets its number's default.
+        /// </summary>
+        public static int PaintOf(int index)
+        {
+            if (index < 0)
+                return PilotPaint.DefaultFor(0);
+            if (index >= s_slots.Count)
+            {
+                // Someone about to join, or a test's extra ship: a colour nobody here has.
+                for (int i = 0; i < s_slots.Count; i++)
+                    PaintOf(i);
+                return FreePaint(PreferredPaint(index), null);
+            }
+            var slot = s_slots[index];
+            if (slot.Paint < 0)
+                slot.Paint = FreePaint(PreferredPaint(index), slot);
+            return slot.Paint;
+        }
+
+        /// <summary>Steps a player's colour to the next (or previous) one nobody else is using, and remembers it.</summary>
+        public static void CyclePaint(int index, int step)
+        {
+            if (index < 0 || index >= s_slots.Count)
+                return;
+            int direction = step < 0 ? -1 : 1;
+            int paint = PaintOf(index);
+            for (int i = 0; i < PilotPaint.Count; i++)
+            {
+                paint = (paint + direction + PilotPaint.Count) % PilotPaint.Count;
+                if (!PaintTaken(paint, s_slots[index]))
+                    break;
+            }
+            SetPaint(index, paint);
+        }
+
+        /// <summary>Paints a player's ship; if someone else had that colour, they take this player's old one.</summary>
+        public static void SetPaint(int index, int paint)
+        {
+            if (index < 0 || index >= s_slots.Count || paint < 0 || paint >= PilotPaint.Count)
+                return;
+            int previous = PaintOf(index);
+            for (int i = 0; i < s_slots.Count; i++)
+            {
+                if (i != index && PaintOf(i) == paint)
+                {
+                    s_slots[i].Paint = previous;
+                    Settings.GameSettings.SetPilotPaint(i, previous);
+                }
+            }
+            s_slots[index].Paint = paint;
+            Settings.GameSettings.SetPilotPaint(index, paint);
+        }
+
+        static int PreferredPaint(int index)
+        {
+            int saved = Settings.GameSettings.PilotPaint(index);
+            return saved >= 0 && saved < PilotPaint.Count ? saved : PilotPaint.DefaultFor(index);
+        }
+
+        /// <summary>The preferred paint if no other player has it, else the next one nobody has.</summary>
+        static int FreePaint(int preferred, Slot slot)
+        {
+            int paint = preferred;
+            for (int i = 0; i < PilotPaint.Count; i++)
+            {
+                if (!PaintTaken(paint, slot))
+                    return paint;
+                paint = (paint + 1) % PilotPaint.Count;
+            }
+            return preferred;
+        }
+
+        static bool PaintTaken(int paint, Slot except)
+        {
+            foreach (var other in s_slots)
+            {
+                if (other != except && other.Paint == paint)
+                    return true;
+            }
+            return false;
+        }
+
         public static PilotLoadout LoadoutFor(int index) => index >= 0 && index < s_slots.Count ? s_slots[index].Loadout : default;
 
         public static void SetLoadout(int index, PilotLoadout loadout)
@@ -273,6 +364,7 @@ namespace Pathfinder.Game.Player
             s_slots.Clear();
             first.Controls = Controls.Any;
             first.Gamepads.Clear();
+            first.Paint = -1; // their remembered colour again
             s_slots.Add(first);
             Version++;
         }

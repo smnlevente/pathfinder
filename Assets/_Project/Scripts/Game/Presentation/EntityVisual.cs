@@ -10,8 +10,9 @@ namespace Pathfinder.Game.Presentation
     /// <summary>
     /// Feedback for an entity's model. It flashes on hits, glows while an enemy telegraphs or the ship charges a
     /// shot, blinks during post-hit invulnerability, draws the dash trail, and spawns death and secondary-weapon
-    /// effects. A downed local co-op pilot's ship stays as a dark wreck, brightening as a teammate revives it (M8). It only
-    /// reads gameplay state and events and never changes them.
+    /// effects. A downed local co-op pilot's ship stays as a dark wreck, brightening as a teammate revives it (M8). A player
+    /// ship wears its pilot's colours (<see cref="ShipLivery"/>). It only reads gameplay state and events and never changes
+    /// them.
     /// </summary>
     public sealed class EntityVisual : MonoBehaviour
     {
@@ -35,6 +36,7 @@ namespace Pathfinder.Game.Presentation
         float _flashRemaining;
         bool _usingBlock;
         bool _wrecked;
+        ShipLivery _livery;
 
         void Awake()
         {
@@ -48,7 +50,11 @@ namespace Pathfinder.Game.Presentation
                 var material = glowRenderers[i].sharedMaterial;
                 _glowBaseColors[i] = material != null && material.HasProperty(BaseColorId) ? material.GetColor(BaseColorId) : Color.white;
             }
+            if (entity is PlayerShip ship)
+                _livery = new ShipLivery(ship, glowRenderers, dashTrail);
         }
+
+        void OnDestroy() => _livery?.Release();
 
         /// <summary>Boss segments flash when their owner is hit.</summary>
         CombatEntity FlashSource => entity.DamageOwner != null ? entity.DamageOwner : entity;
@@ -140,6 +146,11 @@ namespace Pathfinder.Game.Presentation
         void LateUpdate()
         {
             SubscribeFlash(); // a boss segment gets its owner after spawning
+            if (_livery != null && _livery.Refresh())
+            {
+                for (int i = 0; i < _glowBaseColors.Length; i++)
+                    _glowBaseColors[i] = _livery.Glow;
+            }
             if (!entity.IsAlive)
             {
                 // A wreck being revived lights up, pulsing faster as it comes back.

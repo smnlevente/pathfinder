@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using Pathfinder.Core.Run;
 using Pathfinder.Game.Player;
+using Pathfinder.Game.Settings;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -10,10 +11,14 @@ namespace Pathfinder.Tests.Game
     public class CoopRulesTests
     {
         Gamepad _padA, _padB;
+        bool _persist;
 
         [SetUp]
         public void AddPads()
         {
+            _persist = GameSettings.Persist;
+            GameSettings.Persist = false; // remembered colours stay in memory, never in the player's preferences
+            GameSettings.ResetToDefaults();
             LocalPlayers.Reset();
             _padA = InputSystem.AddDevice<Gamepad>();
             _padB = InputSystem.AddDevice<Gamepad>();
@@ -26,6 +31,53 @@ namespace Pathfinder.Tests.Game
             LocalPlayers.SetLoadout(0, default);
             InputSystem.RemoveDevice(_padA);
             InputSystem.RemoveDevice(_padB);
+            GameSettings.ResetToDefaults();
+            GameSettings.Persist = _persist;
+        }
+
+        [Test]
+        public void EachPlayer_PaintsTheirShip_AColourNobodyElseHas()
+        {
+            // Playtest 8: "it's hard to distinguish who is who".
+            Assert.AreEqual(0, LocalPlayers.PaintOf(0), "Player 1 starts cyan.");
+            Assert.AreEqual(1, LocalPlayers.Join(_padA));
+            Assert.AreEqual(1, LocalPlayers.PaintOf(1), "Player 2 starts gold.");
+
+            LocalPlayers.CyclePaint(1, -1);
+            Assert.AreEqual(PilotPaint.Count - 1, LocalPlayers.PaintOf(1), "Stepping back from gold skips player 1's cyan.");
+            LocalPlayers.CyclePaint(1, 1);
+            Assert.AreEqual(1, LocalPlayers.PaintOf(1), "Forward again skips it too.");
+
+            LocalPlayers.SetPaint(0, 1);
+            Assert.AreEqual(1, LocalPlayers.PaintOf(0));
+            Assert.AreEqual(0, LocalPlayers.PaintOf(1), "Taking someone's colour gives them yours.");
+            Assert.AreEqual(PilotPaint.Get(1).Ui, CoopRules.PilotColor(0), "It goes on their ring, tag and panel.");
+            Assert.AreNotEqual(LocalPlayers.PaintOf(0), LocalPlayers.PaintOf(2), "Whoever joins next gets a colour nobody has.");
+            Assert.AreNotEqual(LocalPlayers.PaintOf(1), LocalPlayers.PaintOf(2));
+
+            var keys = new System.Collections.Generic.HashSet<string>();
+            foreach (var paint in PilotPaint.All)
+            {
+                Assert.IsTrue(keys.Add(paint.Key), $"{paint.Key} once.");
+                Assert.Greater(paint.Glow.maxColorComponent, 1.5f, $"{paint.Key}'s lights bloom.");
+                Assert.Less(paint.Exhaust.maxColorComponent, 1.1f, $"{paint.Key}'s exhaust stays a hint, under the bloom.");
+            }
+        }
+
+        [Test]
+        public void APlayersColour_IsRememberedForNextTime_UnlessSomeoneElseHasIt()
+        {
+            LocalPlayers.SetPaint(0, 4);
+            Assert.AreEqual(4, GameSettings.PilotPaint(0), "Remembered on this machine, by player number.");
+            LocalPlayers.Reset();
+            Assert.AreEqual(4, LocalPlayers.PaintOf(0), "Next time, player 1 is green again.");
+
+            GameSettings.SetPilotPaint(1, 4); // player 2 picked green last time
+            Assert.AreEqual(1, LocalPlayers.Join(_padA));
+            Assert.AreNotEqual(4, LocalPlayers.PaintOf(1), "Player 1 has it now, so player 2 takes another.");
+            GameSettings.SetPilotPaint(2, 6);
+            Assert.AreEqual(2, LocalPlayers.Join(_padB));
+            Assert.AreEqual(6, LocalPlayers.PaintOf(2), "Player 3 gets the blue they picked last time.");
         }
 
         [Test]
